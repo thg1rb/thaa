@@ -21,6 +21,14 @@
 - [Non-Functional Requirements](requirements/NON-FUNCTIONAL-REQUIREMENTS.md)
 - [Product Rules](requirements/PRODUCT-RULES.md)
 
+## Architecture baseline
+
+- [Architecture overview](architecture/ARCHITECTURE.md)
+- [Domain model](architecture/DOMAIN-MODEL.md)
+- [Platform adapters](architecture/PLATFORM-ADAPTERS.md)
+- [Data flow](architecture/DATA-FLOW.md)
+- [Architecture Decision Records](adr/README.md)
+
 ## Current state
 
 The repository is in pre-implementation baseline work. The authoritative prompt remains the source of product direction; requirement documents record the frozen, traceable implementation baseline. See `work/` for active work status.
