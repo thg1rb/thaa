@@ -2,7 +2,7 @@
 
 ## Status
 
-Review complete; applicable validation passes. PR #1 merge pending.
+Done — W001 was integrated into `develop` by PR #1.
 
 ## Objective
 
@@ -57,8 +57,12 @@ Creates the initial navigable documentation and agent/contributor process. Requi
 
 ## Review Findings
 
-The initial local review identified an instruction conflict: upstream `find-skills` included a global-install recommendation. Repository instructions now explicitly override global-scope installation and skipped source review; local re-review reported no remaining findings. The final PR review identified a Low-severity stale remote-state note in W000. The main Agent corrected it, and the reviewer re-reviewed the update with no remaining findings.
+The initial local review identified an instruction conflict: upstream `find-skills` included a global-install recommendation. Repository instructions now explicitly override global-scope installation and skipped source review; local re-review reported no remaining findings. The PR review identified two Low-severity documentation accuracy issues: stale W000 remote-state wording and an overstated human GitHub review. The main Agent corrected both; focused re-reviews and final PR re-review reported no remaining findings.
 
 ## Known Limitations
 
-There is no CI workflow yet; CI baseline is W006. GitHub branch protection has not been configured and is not represented as active. PR #1 has completed the documented read-only Sub-agent review and applicable W001 checks; no human GitHub review is recorded, and application builds/tests are not applicable before scaffold work.
+There is no CI workflow yet; CI baseline is W006. GitHub branch protection has not been configured and is not represented as active. PR #1 completed the documented read-only Sub-agent review and applicable W001 checks; no human GitHub review is recorded, and application builds/tests were not applicable before scaffold work.
+
+## Integration
+
+PR [#1](https://github.com/thg1rb/thaa/pull/1) was merged into `develop` on 2026-10-02 as merge commit `32a152db663e38ac2710212c52ba579fa6cef154`. The post-merge Done status was recorded on a separate documentation task branch to preserve the no-direct-changes-to-`develop` rule.
