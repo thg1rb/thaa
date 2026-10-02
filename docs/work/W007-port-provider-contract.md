@@ -2,8 +2,9 @@
 
 ## Status
 
-Ready for review — implementation and applicable local validation are complete
-on `feat/port-provider-contract`; PR review and integration remain.
+Ready for re-review — the initial read-only review's Low finding was fixed by
+moving reusable contract assertions into `src-tauri/tests/common/`, and the
+affected validation has been rerun. PR re-review and integration remain.
 
 ## Objective
 
@@ -56,10 +57,11 @@ ordering is unspecified. Preserve records that differ by address or
 ownership; only fully identical normalized duplicate rows may be coalesced.
 Errors expose stable categories, not platform codes or raw output.
 
-The `cfg(test)` contract-test support exposes controlled-listener discovery and
-absence assertions for W008/W009. Discovery returns completeness alongside
-the match; absence requires a complete scan so a partial result cannot falsely
-prove that a listener is gone.
+Reusable controlled-listener discovery and absence assertions live in
+`src-tauri/tests/common/port_provider_contract.rs`. They are available to
+external Cargo integration-test targets such as future W008/W009 provider
+tests. Discovery returns completeness alongside the match; absence requires a
+complete scan so a partial result cannot falsely prove that a listener is gone.
 
 ## Acceptance Criteria
 
@@ -74,6 +76,7 @@ prove that a listener is gone.
 - [x] Trait is substitutable through a trait object and uses no runtime or
       platform-specific dependency.
 - [x] Deterministic tests cover successful, empty, partial, and error outcomes.
+- [x] Contract assertions are available to external integration-test crates.
 - [x] Architecture and testing docs accurately distinguish contract evidence
       from native discovery implementation.
 - [ ] PR review and integration into `develop` are complete before status is
@@ -81,11 +84,11 @@ prove that a listener is gone.
 
 ## Validation
 
-PASS: `cargo fmt --check`, `cargo clippy --all-targets -- -D warnings`,
-`cargo test` (12 tests total), frontend Prettier/lint/typecheck/Vitest (3
-tests)/production build, host macOS arm64 `pnpm tauri build --no-bundle`,
-`pnpm audit`, Markdown link check (41 files), contract-test ID uniqueness,
-frozen requirement/ADR/prompt integrity, no dependency changes, and
+After the review fix: PASS — `cargo fmt --check`,
+`cargo clippy --all-targets -- -D warnings`, `cargo test` (8 unit and 4
+integration tests), frontend Prettier/lint/typecheck/Vitest (3 tests)/production
+build, host macOS arm64 `pnpm tauri build --no-bundle`, `pnpm audit`, Markdown
+formatting/link checks (19 architecture/testing/security/work documents), and
 `git diff --check`. `cargo audit` is NOT RUN because the subcommand is not
 installed. Windows execution is NOT RUN because no Windows runner is available.
 
@@ -114,7 +117,11 @@ frozen requirements.
 
 ## Review Findings
 
-Pending PR review by a dedicated read-only reviewer.
+The initial dedicated read-only review reported one Low finding: a helper
+compiled inside the library's `cfg(test)` module was inaccessible to external
+Cargo integration-test crates, despite being documented for W008/W009 reuse.
+The main Agent moved the assertions and contract tests to `src-tauri/tests/`;
+the tests now compile against the public library API. Re-review is pending.
 
 ## Known Limitations
 
