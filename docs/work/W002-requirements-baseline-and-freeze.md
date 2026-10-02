@@ -2,7 +2,7 @@
 
 ## Status
 
-Reviewed; applicable validation passes. PR #3 merge pending.
+Done — the frozen THAA-REQ-0.1 baseline was integrated by PR #3.
 
 ## Objective
 
@@ -63,8 +63,12 @@ Creates the four `docs/requirements/` baseline documents, updates the docs index
 
 ## Review Findings
 
-The read-only reviewer identified a Low-severity wording mismatch: the docs index called the requirements baseline “Approved” while this work item was still under review. The index heading is now “Initial requirements baseline”; focused re-review reported no remaining findings.
+The read-only reviewer identified a Low-severity wording mismatch: the docs index called the requirements baseline “Approved” while this work item was still under review. The index heading is now “Initial requirements baseline”; focused re-review and final PR re-review reported no remaining findings.
 
 ## Known Limitations
 
 No requirements are implemented by this work item. Numeric performance budgets and provider feasibility details are assigned to measurement and architecture/provider work rather than invented here.
+
+## Integration
+
+PR [#3](https://github.com/thg1rb/thaa/pull/3) was merged into `develop` on 2026-10-02 as merge commit `c7cfa3864e970d3f3649ce4eeb4cad9bab39879f`. This post-merge status and README update are recorded in a separate documentation task PR to preserve the no-direct-changes-to-`develop` rule.
