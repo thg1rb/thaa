@@ -2,7 +2,7 @@
 
 ## Status
 
-In Progress — implementation is documentation-only; review and integration are pending.
+In Progress — architecture documentation and read-only review are complete; PR integration is pending.
 
 ## Objective
 
@@ -32,16 +32,16 @@ Use a Clean/Hexagonal-inspired structure without speculative abstractions. Keep 
 
 ## Acceptance Criteria
 
-- [ ] Architecture layers, inward dependency direction, composition, and proposed source layout are clear.
-- [ ] Domain concepts represent listeners, process identity and metadata, metadata availability, and binding scope without platform types.
-- [ ] Port discovery, process inspection, and process control have distinct substitutable contracts.
-- [ ] macOS and Windows implementations remain isolated and can run equivalent behavioral contracts.
-- [ ] Tauri commands are thin; frontend code does not inspect the system directly.
-- [ ] Process actions can revalidate observed identity immediately before acting; graceful and force stop remain separate.
-- [ ] Capability differences, error mapping, privacy constraints, and missing metadata are explicit.
-- [ ] One backend coordinator owns refresh state, prevents overlapping scans, and rejects stale snapshots.
-- [ ] Architecture supports P0 traceability without promoting P1 project-root/Git features.
-- [ ] Accepted ADRs record material decisions and alternatives; no application scaffold or provider implementation is added.
+- [x] Architecture layers, inward dependency direction, composition, and proposed source layout are clear.
+- [x] Domain concepts represent listeners, process identity and metadata, metadata availability, and binding scope without platform types.
+- [x] Port discovery, process inspection, and process control have distinct substitutable contracts.
+- [x] macOS and Windows implementations remain isolated and can run equivalent behavioral contracts.
+- [x] Tauri commands are thin; frontend code does not inspect the system directly.
+- [x] Process actions can revalidate observed identity immediately before acting; graceful and force stop remain separate.
+- [x] Capability differences, error mapping, privacy constraints, and missing metadata are explicit.
+- [x] One backend coordinator owns refresh state, prevents overlapping scans, and rejects stale snapshots.
+- [x] Architecture supports P0 traceability without promoting P1 project-root/Git features.
+- [x] Accepted ADRs record material decisions and alternatives; no application scaffold or provider implementation is added.
 
 ## Validation
 
@@ -66,7 +66,7 @@ Adds the architecture overview, domain model, platform adapter contracts, data-f
 
 ## Review Findings
 
-Pending PR review.
+The read-only Sub-agent reviewed PR #5 and reported no findings. The main Agent made no review-driven changes.
 
 ## Known Limitations
 
