@@ -2,7 +2,7 @@
 
 ## Status
 
-In Progress — documentation baseline in development; PR review and integration pending.
+In Progress — documentation baseline and initial read-only PR review are complete; final-head re-review and integration are pending.
 
 ## Objective
 
@@ -48,8 +48,9 @@ Threat entries use `THR-###`. Preserve requirement case IDs `TC-001`–`TC-011`;
 - Threat/test ID uniqueness and FR/NFR/PR references — pass.
 - W003/ADR consistency and frozen requirement comparison — pass.
 - Public hygiene and scope check (no code, dependencies, or CI) — pass.
-- Application builds/tests — not applicable; documentation-only.
-- Dedicated read-only Sub-agent PR review — pending.
+- Dedicated read-only Sub-agent PR review of the initial PR head — pass; no findings.
+- Final-head read-only re-review — pending after this work-record update.
+- Application builds/tests — not applicable; no executable application code was introduced.
 
 ## Security Considerations
 
@@ -65,7 +66,7 @@ Adds root vulnerability-reporting policy, engineering security baseline, threat 
 
 ## Review Findings
 
-Pending PR review.
+Initial dedicated read-only PR review: no findings. Final-head re-review and PR integration are pending.
 
 ## Known Limitations
 
