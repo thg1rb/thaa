@@ -2,7 +2,7 @@
 
 ## Status
 
-PR open; final read-only PR review pending.
+Review complete; applicable validation passes. PR #1 merge pending.
 
 ## Objective
 
@@ -57,8 +57,8 @@ Creates the initial navigable documentation and agent/contributor process. Requi
 
 ## Review Findings
 
-The read-only reviewer initially identified an instruction conflict: upstream `find-skills` included a global-install recommendation. Repository instructions now explicitly override global-scope installation and skipped source review. Re-review reported no remaining findings.
+The initial local review identified an instruction conflict: upstream `find-skills` included a global-install recommendation. Repository instructions now explicitly override global-scope installation and skipped source review; local re-review reported no remaining findings. The final PR review identified a Low-severity stale remote-state note in W000. The main Agent corrected it, and the reviewer re-reviewed the update with no remaining findings.
 
 ## Known Limitations
 
-The initial local review was completed before the remote repository was initialized. A final read-only review of the actual PR diff is required before merge.
+There is no CI workflow yet; CI baseline is W006. GitHub branch protection has not been configured and is not represented as active. PR #1 has completed the documented human/agent review and applicable W001 checks; application builds/tests are not applicable before scaffold work.
