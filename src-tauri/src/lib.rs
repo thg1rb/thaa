@@ -1,4 +1,5 @@
 mod commands;
+pub mod domain;
 
 pub fn run() {
     tauri::Builder::default()

@@ -1,6 +1,6 @@
 # Initial Test and Verification Catalog
 
-**Baseline:** `THAA-REQ-0.1` · **Status:** Planned verification; no application code exists
+**Baseline:** `THAA-REQ-0.1` · **Status:** Planned verification catalog; implementation evidence is recorded per work item
 
 This catalog anchors important future tests and threat mitigations. It does not claim a test or feature has run or been implemented. Frozen requirement-level cases `TC-001`–`TC-011` remain authoritative in [Functional Requirements](../requirements/FUNCTIONAL-REQUIREMENTS.md). The grouped IDs below complement those IDs and intentionally omit trivial unit tests.
 
@@ -46,6 +46,12 @@ This catalog anchors important future tests and threat mitigations. It does not 
 | TC-SEC-010 | Permission denial never triggers an elevation prompt/retry; ordinary inspection manifests and launch paths require no administrator/root elevation | NFR-002, THR-006 | Planned when app bootstrap/action paths exist |
 
 ## Traceability and execution status
+
+W006 adds deterministic Rust unit evidence for the pure-model portions of
+`TC-PORT-003` (IPv4/IPv6 binding classification) and `TC-PROC-002` (distinct
+field-unavailable reasons and values). These tests do not complete either
+provider/security contract; both catalog cases remain Planned until their
+provider and native evidence exists.
 
 - `TC-001`–`TC-011` remain frozen requirement anchors; this catalog does not redefine acceptance criteria.
 - `TC-PORT-*`, `TC-PROC-*`, `TC-ACTION-*`, `TC-REFRESH-*`, and `TC-SEC-*` are planned contract/security evidence only.
