@@ -2,7 +2,7 @@
 
 ## Status
 
-In progress
+Reviewed; applicable validation passes. PR #3 merge pending.
 
 ## Objective
 
@@ -63,7 +63,7 @@ Creates the four `docs/requirements/` baseline documents, updates the docs index
 
 ## Review Findings
 
-Pending read-only review.
+The read-only reviewer identified a Low-severity wording mismatch: the docs index called the requirements baseline “Approved” while this work item was still under review. The index heading is now “Initial requirements baseline”; focused re-review reported no remaining findings.
 
 ## Known Limitations
 
