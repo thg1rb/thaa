@@ -2,9 +2,8 @@
 
 ## Status
 
-Ready for re-review — the initial read-only review's Low finding was fixed by
-moving reusable contract assertions into `src-tauri/tests/common/`, and the
-affected validation has been rerun. PR re-review and integration remain.
+Done — PR #15 passed a dedicated read-only review and was merged into
+`develop` as merge commit `b6ea84414c7ae2ec4a8581b5397a09a821853c67`.
 
 ## Objective
 
@@ -79,8 +78,7 @@ complete scan so a partial result cannot falsely prove that a listener is gone.
 - [x] Contract assertions are available to external integration-test crates.
 - [x] Architecture and testing docs accurately distinguish contract evidence
       from native discovery implementation.
-- [ ] PR review and integration into `develop` are complete before status is
-      changed to Done.
+- [x] PR review and integration into `develop` are complete.
 
 ## Validation
 
@@ -121,7 +119,9 @@ The initial dedicated read-only review reported one Low finding: a helper
 compiled inside the library's `cfg(test)` module was inaccessible to external
 Cargo integration-test crates, despite being documented for W008/W009 reuse.
 The main Agent moved the assertions and contract tests to `src-tauri/tests/`;
-the tests now compile against the public library API. Re-review is pending.
+the tests now compile against the public library API. The dedicated read-only
+re-review returned no findings and confirmed the fix; it also reran all 12 Rust
+tests and `git diff --check develop...HEAD`.
 
 ## Known Limitations
 
