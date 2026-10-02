@@ -1,0 +1,19 @@
+# Git Workflow
+
+## Branches
+
+- `main`: stable, release-ready state and tagged releases.
+- `develop`: integration branch for reviewed work.
+- Task branches start from `develop`: `feature/*`, `fix/*`, `docs/*`, `refactor/*`, or `chore/*`.
+
+Normal work follows task branch → validation → PR to `develop` → read-only Sub-agent review → main Agent fixes and revalidation → merge. Do not merge task branches directly. Release promotion uses a PR from `develop` to `main` after macOS and Windows validation, security/dependency checks, current docs, and release notes.
+
+The first repository commit was a one-time genesis exception: it preserved the supplied authoritative prompt on `main`, after which `develop` was created at the same commit. No product or documentation work is performed directly on `main`.
+
+## Review-only Sub-agent
+
+The reviewer inspects the diff, tests, documentation, architecture, security, platform effects, regressions, and acceptance criteria. It must not edit, commit, push, merge, rebase, or rewrite history. The main Agent applies valid findings. Re-review after material fixes.
+
+## Branch protection
+
+Once the remote repository is initialized and access is available, require PRs and applicable CI checks for `develop` and `main`. Do not treat local branch existence as remote protection.
