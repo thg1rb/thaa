@@ -61,4 +61,4 @@ The initial local review identified an instruction conflict: upstream `find-skil
 
 ## Known Limitations
 
-There is no CI workflow yet; CI baseline is W006. GitHub branch protection has not been configured and is not represented as active. PR #1 has completed the documented human/agent review and applicable W001 checks; application builds/tests are not applicable before scaffold work.
+There is no CI workflow yet; CI baseline is W006. GitHub branch protection has not been configured and is not represented as active. PR #1 has completed the documented read-only Sub-agent review and applicable W001 checks; no human GitHub review is recorded, and application builds/tests are not applicable before scaffold work.
