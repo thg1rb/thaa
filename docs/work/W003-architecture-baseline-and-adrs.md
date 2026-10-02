@@ -2,7 +2,7 @@
 
 ## Status
 
-In Progress — architecture documentation and read-only review are complete; PR integration is pending.
+Done — the architecture baseline was integrated into `develop` by PR #5.
 
 ## Objective
 
@@ -45,12 +45,13 @@ Use a Clean/Hexagonal-inspired structure without speculative abstractions. Keep 
 
 ## Validation
 
-- `git diff --check`
-- Check local Markdown links, documentation navigation, ADR numbering/references, and requirement identifiers.
-- Confirm frozen requirement files are unchanged and no requirement is marked implemented.
-- Review terminology, dependency direction, security constraints, platform isolation, and architecture against the authoritative prompt and `THAA-REQ-0.1`.
-- Application builds and runtime tests are not applicable because this work item adds documentation only.
-- Complete a read-only Sub-agent review of the PR; resolve valid findings and re-review material fixes.
+- `git diff --check` — pass.
+- Local Markdown paths/anchors and documentation navigation — pass.
+- ADR numbering and FR/NFR/PR identifier references — pass.
+- Frozen requirement files unchanged; public documentation hygiene — pass.
+- Architecture consistency review against the authoritative prompt and `THAA-REQ-0.1` — pass.
+- Application builds and runtime tests — not applicable; this work item adds documentation only.
+- Read-only Sub-agent review and final-head re-review of PR #5 — no findings.
 
 ## Security Considerations
 
@@ -66,8 +67,12 @@ Adds the architecture overview, domain model, platform adapter contracts, data-f
 
 ## Review Findings
 
-The read-only Sub-agent reviewed PR #5 and reported no findings. The main Agent made no review-driven changes.
+The read-only Sub-agent reviewed PR #5 and its final head, reporting no findings. The work record was updated to reflect review completion and checked acceptance criteria; the final-head re-review found no findings.
 
 ## Known Limitations
 
 The architecture does not select concrete native API crates, provider method signatures, refresh cadence, frontend state library, logging backend, or generated type bindings. These remain implementation decisions for the relevant work items and must not weaken the documented contracts.
+
+## Integration
+
+PR [#5](https://github.com/thg1rb/thaa/pull/5) was merged into `develop` on 2026-10-02 as merge commit `1eb9c872af3c2e7dba2b8f821562fc77a79b5883`. The post-merge Done status is recorded on a separate documentation task branch, following the established W001/W002 closeout workflow.
