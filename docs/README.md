@@ -29,6 +29,14 @@
 - [Data flow](architecture/DATA-FLOW.md)
 - [Architecture Decision Records](adr/README.md)
 
+## Security and testing baseline
+
+- [Engineering security baseline](security/SECURITY.md)
+- [Threat model](security/THREAT-MODEL.md)
+- [Testing strategy](testing/TEST-STRATEGY.md)
+- [Initial test catalog](testing/TEST-CASES.md)
+- [Platform testing](testing/PLATFORM-TESTING.md)
+
 ## Current state
 
 The repository is in pre-implementation baseline work. The authoritative prompt remains the source of product direction; requirement documents record the frozen, traceable implementation baseline. See `work/` for active work status.
