@@ -37,6 +37,13 @@
 - [Initial test catalog](testing/TEST-CASES.md)
 - [Platform testing](testing/PLATFORM-TESTING.md)
 
+## Development
+
+- [Local setup](development/LOCAL-SETUP.md)
+- [Development commands and checks](development/DEVELOPMENT.md)
+- [Git workflow](development/GIT-WORKFLOW.md)
+- [Actual application directory structure](architecture/DIRECTORY-STRUCTURE.md)
+
 ## Current state
 
-The repository is in pre-implementation baseline work. The authoritative prompt remains the source of product direction; requirement documents record the frozen, traceable implementation baseline. See `work/` for active work status.
+The requirements, architecture, security, and testing baselines are established. W005 adds only the Tauri/React application shell and a harmless metadata IPC smoke path; product inspection features remain unimplemented. See `work/` for work item status.

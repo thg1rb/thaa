@@ -1,16 +1,16 @@
 # Thaa — Local Runtime Inspector
 
-Thaa is a planned open-source desktop utility for understanding local ports, processes, projects, and development runtimes on macOS and Windows.
+Thaa is a desktop utility in active development for understanding local ports, their owning processes, and development runtimes. The Tauri 2 application shell is now bootstrapped; runtime inspection functionality has not yet been implemented.
 
-> **Project status:** initial requirements baseline frozen; application implementation has not started. Release builds are not available yet.
+The current development shell displays application metadata through a local Tauri IPC smoke path. It does not inspect ports, processes, projects, or runtimes.
 
-The initial product direction is to help developers find what is listening, identify its process, inspect available working-directory context, and safely act on stale development processes. Project root and Git context are planned for P1 after the cross-platform P0 is stable.
+## Run locally
 
-## Project documents
+See [Local Setup](docs/development/LOCAL-SETUP.md) for prerequisites, then:
 
-- [Authoritative development prompt](docs/THAA-DEVELOPMENT-PROMPT.md)
-- [Documentation index](docs/README.md)
-- [Contribution workflow](CONTRIBUTING.md)
-- [Agent instructions](AGENTS.md)
+```sh
+pnpm install --frozen-lockfile
+pnpm tauri dev
+```
 
-Thaa is local-first and privacy-first. The initial supported platforms are macOS and Windows; Linux is not a v1 release target.
+See [Development](docs/development/DEVELOPMENT.md) for quality commands and contributor workflow. Product scope and engineering guidance live in [docs](docs/README.md).
