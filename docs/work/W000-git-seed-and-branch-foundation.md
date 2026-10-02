@@ -32,7 +32,7 @@ None.
 
 ## Validation
 
-Local Git inspection confirms the seed commit and branch refs. Remote publication has not been attempted.
+At W000 completion, local Git inspection confirmed the seed commit and branch refs; remote publication had not yet been attempted. During W001 integration, GitHub authentication was verified and `main`, `develop`, and `chore/repository-agent-bootstrap` were published to `origin` without rewriting history.
 
 ## Security Considerations
 
@@ -52,4 +52,4 @@ No code review applies to this one-time initial branch foundation.
 
 ## Known Limitations
 
-The remote repository has no visible branches and GitHub CLI is not authenticated. Branch protection and PR workflow remain to be established remotely.
+At W000 completion, the remote had no visible branches and GitHub CLI was unauthenticated. Those conditions were resolved during W001 integration. Remote branch protection has not yet been configured; PR and review requirements are documented and followed manually.
