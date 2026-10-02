@@ -2,7 +2,7 @@
 
 ## Status
 
-In Progress — documentation baseline and initial read-only PR review are complete; final-head re-review and integration are pending.
+Done — W004 was reviewed and integrated into `develop` by PR #7. This post-merge status update follows the repository's established work-item closeout convention.
 
 ## Objective
 
@@ -49,7 +49,7 @@ Threat entries use `THR-###`. Preserve requirement case IDs `TC-001`–`TC-011`;
 - W003/ADR consistency and frozen requirement comparison — pass.
 - Public hygiene and scope check (no code, dependencies, or CI) — pass.
 - Dedicated read-only Sub-agent PR review of the initial PR head — pass; no findings.
-- Final-head read-only re-review — pending after this work-record update.
+- Final-head read-only re-review — pass; no findings.
 - Application builds/tests — not applicable; no executable application code was introduced.
 
 ## Security Considerations
@@ -66,8 +66,12 @@ Adds root vulnerability-reporting policy, engineering security baseline, threat 
 
 ## Review Findings
 
-Initial dedicated read-only PR review: no findings. Final-head re-review and PR integration are pending.
+The dedicated read-only Sub-agent reviewed PR #7 and its final head; both reviews reported no findings.
 
 ## Known Limitations
 
 No product code exists, so mitigations and test cases are planned rather than implemented or executed. Test frameworks, security/audit tools, CI, runner images, performance thresholds, and release signing remain future decisions.
+
+## Integration
+
+PR [#7](https://github.com/thg1rb/thaa/pull/7) was merged into `develop` on 2026-10-02 as merge commit `ae1a57f29c85f4bcd40a45533f719f43cd8e840c`. The security and testing documents are now part of the integration baseline; this work remains documentation-only.
