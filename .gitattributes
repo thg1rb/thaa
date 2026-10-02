@@ -1,0 +1,3 @@
+# Preserve upstream Project Skill Markdown exactly so recorded content hashes
+# remain verifiable; its trailing spaces include intentional Markdown breaks.
+.agents/skills/** whitespace=-blank-at-eol

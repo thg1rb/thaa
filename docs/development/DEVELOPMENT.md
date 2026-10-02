@@ -28,4 +28,10 @@ Before a W005-equivalent code PR, run formatting, lint, typecheck, Rust Clippy/t
 
 ## Source formatting
 
-Prettier formats the frontend and selected maintained documentation; rustfmt formats Rust. The pinned Rust toolchain includes rustfmt and Clippy. Avoid running broad auto-format commands over frozen requirement documents.
+See [Coding Standards](CODING-STANDARDS.md) for formatting ownership and
+language guidance. Prettier formats frontend sources and the curated maintained
+documentation/configuration paths in the package scripts; `rustfmt` formats
+Rust. The pinned Rust toolchain includes rustfmt and Clippy. Avoid running
+broad auto-format commands over frozen requirement documents or copied Project
+Skills. `.prettierrc.json`, `.prettierignore`, and `.editorconfig` define the
+repository defaults. ESLint checks code quality; it does not own formatting.

@@ -41,8 +41,16 @@
 
 - [Local setup](development/LOCAL-SETUP.md)
 - [Development commands and checks](development/DEVELOPMENT.md)
+- [Coding standards and formatter ownership](development/CODING-STANDARDS.md)
 - [Git workflow](development/GIT-WORKFLOW.md)
 - [Actual application directory structure](architecture/DIRECTORY-STRUCTURE.md)
+
+## Agent guidance
+
+- [Agent workflow](agent/AGENT-WORKFLOW.md)
+- [Read-only review guidelines](agent/REVIEW-GUIDELINES.md)
+- [Project Skills and invocation guidance](agent/SKILLS.md)
+- [Third-party skill notices](agent/THIRD-PARTY-NOTICES.md)
 
 ## Current state
 
