@@ -2,7 +2,7 @@
 
 ## Status
 
-Reviewed and ready for PR; remote PR publication is blocked pending GitHub authentication.
+PR open; final read-only PR review pending.
 
 ## Objective
 
@@ -61,4 +61,4 @@ The read-only reviewer initially identified an instruction conflict: upstream `f
 
 ## Known Limitations
 
-GitHub CLI is not authenticated and the remote has no branches. This task can be reviewed locally, but no remote PR can be opened until repository access is configured.
+The initial local review was completed before the remote repository was initialized. A final read-only review of the actual PR diff is required before merge.
