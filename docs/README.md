@@ -14,7 +14,7 @@
 - `work/` — active and completed implementation work items.
 - `features/` and `releases/` — add only when maintained feature designs or release notes exist.
 
-## Approved baseline
+## Initial requirements baseline
 
 - [Product Requirements](requirements/PRODUCT-REQUIREMENTS.md)
 - [Functional Requirements](requirements/FUNCTIONAL-REQUIREMENTS.md)
