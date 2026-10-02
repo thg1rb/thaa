@@ -2,7 +2,7 @@
 
 ## Status
 
-In Progress — bootstrap code and documentation are present on `feat/tauri-application-bootstrap`; final validation, PR review, and integration are pending.
+Done — merged into `develop` by [PR #9](https://github.com/thg1rb/thaa/pull/9) at merge commit `179f93c`.
 
 ## Objective
 
@@ -33,18 +33,18 @@ Use the official Tauri 2 React/TypeScript scaffold as a reference/generated base
 
 ## Acceptance Criteria
 
-- [ ] Tauri 2, Rust backend, and React/TypeScript frontend build on the available macOS host; app identity and structure follow ADR-001/002.
-- [ ] The UI calls `get_app_info` through real Tauri IPC and renders the typed response; loading and safe error states are covered by behavior tests.
-- [ ] Rust serialization and frontend tests verify the smoke DTO contract without fake product/runtime data.
-- [ ] Tauri command access, CSP, permissions, and dependencies follow W004 least-privilege and local-first rules; no shell, remote content, telemetry, or system inspection is added.
-- [ ] Formatting, Clippy, Rust tests, frontend format/lint/typecheck/tests/build, host Tauri build, runtime smoke, docs checks, and dependency checks are recorded accurately.
-- [ ] Setup, development, testing, README, docs navigation, and actual directory structure are documented; generated build artifacts are ignored.
-- [ ] macOS results reflect actual host validation; Windows 11 remains explicitly `NOT RUN` unless a real Windows runner is available.
-- [ ] Frozen requirements and accepted ADRs remain unchanged; no P0 product capability is claimed implemented.
+- [x] Tauri 2, Rust backend, and React/TypeScript frontend build on the available macOS host; app identity and structure follow ADR-001/002.
+- [x] The UI calls `get_app_info` through real Tauri IPC and renders the typed response; loading and safe error states are covered by behavior tests.
+- [x] Rust serialization and frontend tests verify the smoke DTO contract without fake product/runtime data.
+- [x] Tauri command access, CSP, permissions, and dependencies follow W004 least-privilege and local-first rules; no shell, remote content, telemetry, or system inspection is added.
+- [x] Formatting, Clippy, Rust tests, frontend format/lint/typecheck/tests/build, host Tauri build, runtime smoke, docs checks, and dependency checks are recorded accurately.
+- [x] Setup, development, testing, README, docs navigation, and actual directory structure are documented; generated build artifacts are ignored.
+- [x] macOS results reflect actual host validation; Windows 11 remains explicitly `NOT RUN` because no Windows runner is available.
+- [x] Frozen requirements and accepted ADRs remain unchanged; no P0 product capability is claimed implemented.
 
 ## Validation
 
-Frontend formatting, ESLint, TypeScript typecheck, Vitest behavior tests (3), frontend production build, Rust formatting, Clippy, Rust DTO serialization test, and macOS Tauri release builds (no-bundle and temporary unsigned app-bundle smoke build) have passed. The Tauri dev process launched and a temporary fixed-string diagnostic confirmed the frontend invoked the real `get_app_info` Rust command twice; that diagnostic was removed and is not in the source. The computer-use review denied access to the Thaa window, so visual confirmation of the native window remains blocked; frontend behavior tests independently verify loading, success, and error presentation. `pnpm audit` reports no known vulnerabilities. `cargo audit` exits successfully with two warnings (`glib` unsound iterator, `proc-macro-error` unmaintained), both confined to Tauri's Linux GTK dependency graph and absent from macOS/Windows target trees. Markdown/link/navigation validation and frozen-requirement/ADR integrity checks passed. Full-diff, PR review, and integration remain pending. Host is macOS 27 arm64; Windows 11 execution is `NOT RUN`. Each check is reported as `PASS`, `FAIL`, `BLOCKED`, `NOT APPLICABLE`, or `NOT RUN` with evidence.
+PASS — frontend format/lint/typecheck, 3 Vitest behavior tests, production build, Rust format, Clippy with warnings denied, Rust serialization test, macOS Tauri release build with `--no-bundle`, `pnpm audit`, documentation/link/navigation checks, `git diff --check`, frozen requirement/ADR integrity, PR review, and integration. The Tauri dev application launched; temporary fixed-string diagnostic output confirmed the frontend reached the real `get_app_info` Rust command twice. That diagnostic was removed and is not in the source. BLOCKED — visual inspection of the native window, because the computer-use review denied access; frontend behavior tests independently verify loading/success/error rendering. `cargo audit` exits 0 with two target-specific warnings (`glib` unsound iterator, `proc-macro-error` unmaintained) from Tauri's Linux GTK dependency graph; target trees confirm both are absent from macOS and Windows. Windows 11 build/runtime is NOT RUN because no Windows runner is available. Post-merge frontend build/tests, Rust tests/Clippy, and diff integrity passed on `develop`.
 
 ## Security Considerations
 
@@ -60,8 +60,8 @@ Update README and contributor navigation; add local setup, development commands,
 
 ## Review Findings
 
-Pending PR review.
+The PR #9 reviewer reported one Low evidence-record finding, resolved by commit `e399ffd`; read-only re-review found no remaining findings.
 
 ## Known Limitations
 
-No product inspection functionality is part of W005. Windows execution is not available on the current host. The public repository has no declared license, so dependency licenses can be inventoried but not assessed against a project license. CI and release signing remain future work.
+No product inspection functionality is part of W005. Visual inspection of the native window was blocked by computer-use access review; real command invocation was verified from the running Tauri dev app. Windows execution is not available on the current host. The public repository has no declared license, so direct dependency licenses were inventoried but not assessed against a project license. CI and release signing remain future work.
