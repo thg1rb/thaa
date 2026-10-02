@@ -54,4 +54,4 @@
 
 ## Current state
 
-The requirements, architecture, security, and testing baselines are established. W005 adds only the Tauri/React application shell and a harmless metadata IPC smoke path; product inspection features remain unimplemented. See `work/` for work item status.
+The requirements, architecture, security, and testing baselines are established. W005 adds the Tauri/React application shell and a harmless metadata IPC smoke path. W006 adds shared domain foundations; operating-system inspection and user-facing product capabilities remain unimplemented. See `work/` for work item status.

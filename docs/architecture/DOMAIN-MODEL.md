@@ -1,72 +1,111 @@
 # Domain Model
 
-**Applies to:** `THAA-REQ-0.1` · **Status:** Initial architecture baseline
+**Applies to:** `THAA-REQ-0.1` · **Status:** Initial model implemented in W006
 
-The domain uses normalized, platform-neutral values. The following are conceptual contracts, not production Rust declarations; implementation may refine names without changing frozen requirement meaning.
+The domain uses normalized, platform-neutral Rust values under
+`src-tauri/src/domain/`. It has no Tauri, frontend, OS API, provider-output,
+or shell dependency. These types are foundations for future providers and use
+cases; they do not perform inspection or implement a user-facing capability.
 
 ## Listener
 
-`NetworkListener` represents one observed listening TCP endpoint:
+`NetworkListener` represents one observed listening TCP endpoint. W006 defines
+`NetworkProtocol::Tcp` as the only protocol in the current P0 model, an
+`IpAddr` when the local address is known, a `NonZeroU16` local port, and an
+optional `ProcessId` owner. No owner is valid unresolved data; it is distinct
+from a failed provider query. Port zero cannot represent an observed listener.
 
-- protocol (`TCP` for the P0 requirement)
-- local IP address and port, kept separate so IPv4/IPv6 are unambiguous
-- owner resolution: known process identity or explicitly unresolved
-- observed binding scope, derived from the address only when determinable
-
-P0 collection returns listening TCP endpoints, so listener state is implicit; do not introduce a state enum that only has one possible value. If a later provider genuinely returns multiple states, extend the model with evidence and tests.
-
-An unresolved PID is not an error and must not be replaced by a guessed owner. Duplicate platform rows may be normalized in infrastructure only when endpoint and ownership semantics are preserved.
+`ListenerState` is omitted because provider results are defined as listening
+TCP endpoints. A binding scope is derived from the optional address instead of
+stored alongside it, avoiding contradictory address/scope values.
 
 ## Process identity and information
 
-`ProcessIdentity` is a target handle, not merely a display name. It contains the OS process identifier plus the identity evidence observed with it, such as normalized process name, executable path, and start time when available. Evidence fields can be absent; they are not assumed universally available.
+`ProcessId` is a distinct `u32` value to prevent confusion with other integer
+values. It does not reserve zero as an absence sentinel; absent IDs use
+`Option<ProcessId>`.
 
-`ProcessInfo` associates that identity with process metadata. P0 fields include process name, executable path, command/arguments, and working directory where available. PID belongs to identity. Working directory is P0 context; project root and Git context are P1 and are not part of this baseline's P0 use case.
+`ProcessIdentity` contains the PID and field-availability values for observed
+identity evidence: process name, executable path, and start time. Names use
+`OsString` and filesystem paths use `PathBuf`, avoiding a forced UTF-8
+conversion. Start time is identity evidence only here; resource reporting and
+uptime remain outside W006. Structural equality is value equality, not an
+authorization check for destructive actions.
+
+`ProcessInfo` associates the identity with command argument elements and
+working-directory metadata. Arguments are stored as `Vec<OsString>`, not
+reconstructed into a shell string. A provider that cannot reliably normalize
+arguments reports them unavailable. Project root and Git context remain P1
+and are not part of the P0 model.
 
 ## Per-field availability
 
-Each optional metadata field uses a value-or-unavailable representation:
+`FieldAvailability<T>` is the field-level value-or-unavailable representation:
 
 - `Available(value)` when observed
-- `Unavailable(reason)` for permission denied, unsupported, inaccessible/protected, or provider limitation
+- `Unavailable(reason)` for permission denied, unsupported, inaccessible, or provider limitation
 
-Never fabricate an empty string, zero, or guessed value to mean unavailable. A field-specific permission restriction is metadata, not a failure of the entire process query. Whole-query provider/OS failures are application errors. A process that ended during inspection has a distinct process-disappeared outcome.
+An empty observed string remains a value; it is not an absence sentinel. Field
+permission or support limitations do not fail the entire query. Process
+disappearance and whole-query provider/OS failures belong to future
+provider/application error contracts and are not represented by this enum.
 
 At the transport boundary, expose only a stable category and safe user message. Keep native details in bounded, privacy-aware diagnostics; do not forward command arguments, raw stacks, or secret-bearing strings.
 
 ## Platform capabilities
 
-`PlatformCapabilities` is a small description of supported operations relevant to P0: command-line access, working-directory access, parent-process access, graceful stop, and force stop. Represent support as available/unsupported (and permission restrictions where they are target-specific).
-
-Separate platform-wide support from per-process outcomes. A global capability does not promise that every process is readable or actionable. The observed field/action result is authoritative for a particular process. Do not grow this into a registry for hypothetical P1–P3 features.
+`PlatformCapabilities` currently describes platform-wide support for command
+argument reads, working-directory reads, graceful stop, and force stop using
+`CapabilitySupport::{Supported, Unsupported}`. Parent-process access is P1
+and is not included. These flags do not assert that a particular process is
+readable or actionable; per-process outcomes remain authoritative.
 
 ## Binding scope
 
-A pure classifier maps a normalized local address to:
+`classify_binding` is a pure function over `Option<IpAddr>`:
 
-- `LoopbackOnly` for loopback addresses such as `127.0.0.1` and `::1`
-- `PotentiallyReachable` for wildcard or non-loopback interface addresses such as `0.0.0.0`, `::`, or a specific non-loopback address
-- `Unknown` when the address or classification evidence is unavailable
+- `LoopbackOnly` for IPv4/IPv6 loopback addresses
+- `PotentiallyReachable` for unspecified or other non-loopback addresses
+- `Unknown` when the address is unavailable
 
-`PotentiallyReachable` means bound beyond loopback; it does not claim LAN reachability or Internet exposure. Classification is separate from socket collection and must be unit-testable without OS access. This supports FR-003 and PR-009; the fuller P2 network-awareness feature remains deferred.
+`PotentiallyReachable` means only that the binding extends beyond loopback. It
+does not establish interface reachability, LAN access, or Internet exposure.
+The classifier does no interface enumeration and supports FR-003/PR-009
+without implementing collection or the fuller P2 network-awareness feature.
 
-## Process actions and results
+## Future process actions and results
 
-Product-level actions are `Stop` and `ForceStop`; do not expose Unix signal names. A stop request carries the previously observed `ProcessIdentity`. Immediately before action, the application asks the platform boundary to resolve the current process and compare every available stable identity signal. If signals conflict, reject the action. If the platform cannot establish a sufficiently safe target, report an action rejection/unsupported outcome instead of silently acting on PID alone. Never target by process name or silently escalate graceful stop to force stop.
+W006 does not implement process actions or action-result types. When those are
+introduced, product-level actions are `Stop` and `ForceStop`; do not expose
+Unix signal names. A stop request carries the previously observed
+`ProcessIdentity`. Immediately before action, the application asks the
+platform boundary to resolve the current process and compare every available
+stable identity signal. If signals conflict, reject the action. If the
+platform cannot establish a sufficiently safe target, report an action
+rejection/unsupported outcome instead of silently acting on PID alone. Never
+target by process name or silently escalate graceful stop to force stop.
 
 `ProcessActionResult` distinguishes completed, rejected, disappeared, permission-denied, unsupported, and provider/OS failure outcomes. The UI can then refresh and show the current snapshot instead of assuming the process state.
 
 ## Error boundaries
 
-| Boundary | Examples | Treatment |
-|---|---|---|
+| Boundary                | Examples                                                        | Treatment                                                                             |
+| ----------------------- | --------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
 | Platform/infrastructure | OS API failure, subprocess launch/exit, malformed native output | Map to typed provider error; retain bounded internal context, redact sensitive values |
-| Application | provider failure, process disappeared, action rejected | Orchestrate and preserve semantic category; no platform branching |
-| Transport | invalid input, stable error code and safe message | DTO suitable for frontend; no raw stack/native text |
-| Presentation | understandable permission, unavailable, stale, or failure state | No backend internals; allow retry/refresh when meaningful |
+| Application             | provider failure, process disappeared, action rejected          | Orchestrate and preserve semantic category; no platform branching                     |
+| Transport               | invalid input, stable error code and safe message               | DTO suitable for frontend; no raw stack/native text                                   |
+| Presentation            | understandable permission, unavailable, stale, or failure state | No backend internals; allow retry/refresh when meaningful                             |
 
-Required semantic categories are unsupported capability, permission denied, process disappeared, provider failure, parse failure, OS API failure, action rejected, and invalid input. Do not collapse all metadata absence into an application error.
+Future provider/application/transport layers must preserve semantic categories
+such as unsupported capability, permission denied, process disappeared,
+provider failure, parse failure, OS API failure, action rejected, and invalid
+input. W006 defines only field-level metadata availability; it does not
+implement this full error architecture. Do not collapse all metadata absence
+into an application error.
 
 ## Traceability
 
-The models support FR-002/003/006/008/009/011, NFR-003/004/005/008/009, and PR-002/004/005/006/007/009/011. They define no implementation status and do not move FR-012/013 into P0.
+W006 implements domain foundations for FR-002/003/006 and supports future
+FR-008/009/011 work through identity evidence, capability, and availability
+types. It does not discover listeners/processes, perform actions, or mark any
+functional requirement implemented. It does not move FR-012/013 into P0.

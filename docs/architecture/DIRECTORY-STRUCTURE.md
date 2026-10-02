@@ -34,6 +34,12 @@ src-tauri/
   src/
     lib.rs                # Tauri composition root
     main.rs               # desktop entry point
+    domain/               # shared, platform-neutral domain values and rules
+      mod.rs
+      capabilities.rs
+      metadata.rs
+      network.rs
+      process.rs
     commands/
       mod.rs
       app_info.rs         # thin command and transport DTO
@@ -44,7 +50,9 @@ docs/
   agent/                  # agent policy and project-scoped skill inventory
 ```
 
-The application, domain, provider, and platform adapter modules described by the architecture baseline will be introduced with their corresponding implementation work, not scaffolded empty during W005.
+The domain module now contains the shared models and pure binding classifier
+introduced in W006. Application use cases, provider contracts, and platform
+adapter modules remain for their later work items; no empty trees are created.
 
 The root also owns `rust-toolchain.toml` because it pins the Rust toolchain
 used by this repository's nested Tauri project. Frontend TypeScript/Vite/ESLint
