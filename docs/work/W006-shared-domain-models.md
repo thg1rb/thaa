@@ -2,8 +2,8 @@
 
 ## Status
 
-Ready for review — implementation and local validation complete on
-`feat/shared-domain-models`; PR review and integration remain.
+Done — PR #13 reviewed with no findings and merged into `develop` as merge
+commit `a6779779265d016e0bcec9659996c26dcd5f52c7`.
 
 ## Objective
 
@@ -63,8 +63,7 @@ authorization.
 - [x] Meaningful deterministic unit tests pass.
 - [x] Architecture/testing docs accurately describe foundations without
       claiming product functionality is implemented.
-- [ ] PR review and integration into `develop` are complete before status is
-      changed to Done.
+- [x] PR review and integration into `develop` are complete.
 
 ## Validation
 
@@ -75,8 +74,9 @@ Vitest (3 tests), frontend production build, macOS arm64 Tauri host build
 Markdown files), and `git diff --check`. Frozen requirement, ADR, and
 authoritative prompt files are unchanged. `cargo audit` is NOT RUN because the
 subcommand is not installed. Windows validation is NOT RUN on this macOS host.
-No application feature/provider, live OS inspection, or transport changes
-were introduced.
+Post-merge Rust format, Clippy, and tests passed; post-merge macOS arm64
+Tauri host build passed. No application feature/provider, live OS inspection,
+or transport changes were introduced.
 
 ## Security Considerations
 
@@ -102,7 +102,8 @@ frozen requirements or add P1 project/Git fields to P0 models.
 
 ## Review Findings
 
-Pending PR review by a dedicated read-only reviewer.
+PR #13 received a dedicated read-only review: no findings; no fixes or
+re-review required.
 
 ## Known Limitations
 
