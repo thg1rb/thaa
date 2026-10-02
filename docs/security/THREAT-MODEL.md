@@ -169,7 +169,7 @@ Likelihood and impact are qualitative design-time estimates. Every mitigation an
 - **Mitigation:** Preserve W003's pure binding-scope classification and per-field availability model; use conservative wording; never infer owner/runtime from a port number; distinguish unknown from loopback/broader binding.
 - **Verification:** Unit tables for loopback/wildcard/specific/unknown addresses and metadata/owner-unavailable fixtures; verify exact UI labels when implemented.
 - **Residual risk:** A bound address alone cannot establish firewall, NAT, or remote reachability.
-- **References / status:** FR-002/003/006; NFR-003/005; PR-004/009/010; W003 domain model; TC-PORT-001/002/003. **Not implemented.**
+- **References / status:** FR-002/003/006; NFR-003/005; PR-004/009/010; W003 domain model; TC-PORT-001/002/003; W007 contract semantics TC-PORT-CONTRACT-001/002/003/004. Contract-only evidence exists; native provider/UI mitigation remains **Not implemented.**
 
 ### THR-014 — Malformed or unauthorized Tauri IPC request
 

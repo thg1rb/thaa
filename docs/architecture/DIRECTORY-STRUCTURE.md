@@ -39,10 +39,16 @@ src-tauri/
       capabilities.rs
       metadata.rs
       network.rs
+      port_provider.rs   # stable listening-port contract and query outcomes
       process.rs
     commands/
       mod.rs
       app_info.rs         # thin command and transport DTO
+  tests/
+    common/
+      mod.rs
+      port_provider_contract.rs # reusable native-provider assertions
+    port_provider_contract.rs   # deterministic public-contract tests
   icons/icon.png          # minimal RGBA application icon required by Tauri context
 docs/
   architecture/           # architecture baseline and actual directory shape
@@ -50,9 +56,12 @@ docs/
   agent/                  # agent policy and project-scoped skill inventory
 ```
 
-The domain module now contains the shared models and pure binding classifier
-introduced in W006. Application use cases, provider contracts, and platform
-adapter modules remain for their later work items; no empty trees are created.
+The domain module contains W006 shared models and pure binding classification,
+plus the W007 stable port-provider contract. Application use cases and
+platform adapter implementations remain for later work items; no empty trees
+are created. Rust integration tests under `src-tauri/tests/` exercise the
+public contract as an external crate would. The `tests/common/` assertions can
+be included by later macOS and Windows provider integration-test targets.
 
 The root also owns `rust-toolchain.toml` because it pins the Rust toolchain
 used by this repository's nested Tauri project. Frontend TypeScript/Vite/ESLint

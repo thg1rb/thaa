@@ -2,7 +2,7 @@
 
 **Baseline:** `THAA-REQ-0.1` · **Status:** Planned verification catalog; implementation evidence is recorded per work item
 
-This catalog anchors important future tests and threat mitigations. It does not claim a test or feature has run or been implemented. Frozen requirement-level cases `TC-001`–`TC-011` remain authoritative in [Functional Requirements](../requirements/FUNCTIONAL-REQUIREMENTS.md). The grouped IDs below complement those IDs and intentionally omit trivial unit tests.
+This catalog anchors requirement and threat verification. Per-case status records which deterministic contract checks have run and which provider/platform evidence remains planned; no test status implies a product feature is implemented. Frozen requirement-level cases `TC-001`–`TC-011` remain authoritative in [Functional Requirements](../requirements/FUNCTIONAL-REQUIREMENTS.md). The grouped IDs below complement those IDs and intentionally omit trivial unit tests.
 
 ## Existing P0 acceptance cases
 
@@ -30,6 +30,19 @@ This catalog anchors important future tests and threat mitigations. It does not 
 | TC-REFRESH-001 | Rapid/manual/automatic refresh requests do not overlap; repeated requests coalesce and all consumers share coordinator snapshot | Controlled fake provider/barriers | FR-004, THR-004 | Planned |
 | TC-REFRESH-002 | Older scan result cannot replace a newer requested generation; cancellation waits for provider work to settle | Controlled fake provider/barriers | FR-004, NFR-006 | Planned |
 
+## Port provider contract semantics
+
+These deterministic checks establish W007's shared contract behavior only.
+They do not establish that either operating system can discover live
+listeners.
+
+| ID | Scenario and expected evidence | Fixture | Links | Status |
+|---|---|---|---|---|
+| TC-PORT-CONTRACT-001 | Successful contract call preserves IPv4/IPv6 listeners on the same port and unresolved ownership through a trait object | Test-only provider | FR-002/003, THR-013 | Tested in W007 |
+| TC-PORT-CONTRACT-002 | Complete empty result remains distinct from a query-level error | Test-only provider | FR-001, NFR-005 | Tested in W007 |
+| TC-PORT-CONTRACT-003 | Partial result retains usable listeners and a bounded failure category | Test-only provider | FR-001/002, NFR-005 | Tested in W007 |
+| TC-PORT-CONTRACT-004 | Provider error categories are stable and do not contain platform output | Test-only provider | NFR-003, THR-013 | Tested in W007 |
+
 ## Security verification cases
 
 | ID | Scenario and expected evidence | Links | Status |
@@ -53,7 +66,11 @@ field-unavailable reasons and values). These tests do not complete either
 provider/security contract; both catalog cases remain Planned until their
 provider and native evidence exists.
 
+W007 tests `TC-PORT-CONTRACT-001`–`TC-PORT-CONTRACT-004` through a
+test-only provider implementation. Native listener discovery cases
+`TC-PORT-001`–`TC-PORT-003` remain Planned for W008/W009.
+
 - `TC-001`–`TC-011` remain frozen requirement anchors; this catalog does not redefine acceptance criteria.
-- `TC-PORT-*`, `TC-PROC-*`, `TC-ACTION-*`, `TC-REFRESH-*`, and `TC-SEC-*` are planned contract/security evidence only.
+- `TC-PORT-001`–`TC-PORT-003`, `TC-PROC-*`, `TC-ACTION-*`, `TC-REFRESH-*`, and `TC-SEC-*` remain planned native contract/security evidence; W007’s deterministic contract cases are recorded above.
 - Each implementation PR should reference relevant FR/NFR/PR, case/threat IDs, actual platform result, and limitations.
 - No W004 case is reported as `PASS`; cases are `Planned` or `Deferred` until executable tests exist and run.

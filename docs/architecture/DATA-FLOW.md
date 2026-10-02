@@ -18,13 +18,20 @@ sequenceDiagram
   Coord->>Port: discover listeners
   Port->>OS: native query
   OS-->>Port: platform result
-  Port-->>Coord: normalized listeners + outcomes
+  Port-->>Coord: normalized listeners + completeness, or query error
   Coord-->>UC: committed snapshot
   UC-->>Cmd: transport DTO
   Cmd-->>UI: snapshot
 ```
 
 The application may enrich resolved listener owners through `ProcessProvider`, retaining unavailable metadata rather than failing the whole snapshot. Search/filter is a frontend view operation over returned listener/process presentation data and does not change process state.
+
+For `PortProvider`, a complete empty result means a successful query with no
+listeners; a partial result carries a failure category; a query-level error is
+not converted to an empty list. The provider contract is synchronous, so the
+future coordinator runs it on a blocking worker and does not overlap scans.
+Cancellation stays at orchestration level and cannot start replacement work
+until the prior call settles.
 
 ## Safe process stop
 
