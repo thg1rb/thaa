@@ -1,6 +1,6 @@
 # Testing Strategy
 
-**Applies to:** `THAA-REQ-0.1` and W003 architecture · **Status:** Initial strategy; no application code exists
+**Applies to:** `THAA-REQ-0.1` and W003 architecture · **Status:** Initial strategy; W005 bootstrap checks are established
 
 ## Purpose and evidence
 
@@ -10,14 +10,14 @@ Tests never target arbitrary existing user/system processes. Integration tests c
 
 ## Layers and ownership
 
-| Layer | Primary target | Expected evidence | Typical execution |
-|---|---|---|---|
-| Unit | Pure normalization/classification, identity comparisons, errors, parsing, validation | Deterministic table/fixture tests without live OS state | Shared CI and local |
-| Provider contract | `PortProvider`, `ProcessProvider`, `ProcessController` behavior | Same contract suite against each native implementation; differences explicit | Native macOS and Windows runners |
-| Integration | Real listener/process and OS adapter lifecycle | Controlled listener/child process, permission/error cases, cleanup | Native OS runner/machine |
-| Tauri boundary | Input validation, DTO/enum serialization, error mapping | Invalid input rejected and transport representation stable/safe | Rust boundary tests; exact framework deferred |
-| Frontend | User-visible states/interactions/accessibility | Behavior tests for loading/data/errors/actions/keyboard, limited snapshots | Frontend runner selected at bootstrap |
-| Reliability/performance | Repeated refresh and resource use | Recorded environment, scenario, measurements, failures/limitations | Native systems before release claims |
+| Layer                   | Primary target                                                                       | Expected evidence                                                            | Typical execution                             |
+| ----------------------- | ------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------- | --------------------------------------------- |
+| Unit                    | Pure normalization/classification, identity comparisons, errors, parsing, validation | Deterministic table/fixture tests without live OS state                      | Shared CI and local                           |
+| Provider contract       | `PortProvider`, `ProcessProvider`, `ProcessController` behavior                      | Same contract suite against each native implementation; differences explicit | Native macOS and Windows runners              |
+| Integration             | Real listener/process and OS adapter lifecycle                                       | Controlled listener/child process, permission/error cases, cleanup           | Native OS runner/machine                      |
+| Tauri boundary          | Input validation, DTO/enum serialization, error mapping                              | Invalid input rejected and transport representation stable/safe              | Rust boundary tests; exact framework deferred |
+| Frontend                | User-visible states/interactions/accessibility                                       | Behavior tests for loading/data/errors/actions/keyboard, limited snapshots   | Frontend runner selected at bootstrap         |
+| Reliability/performance | Repeated refresh and resource use                                                    | Recorded environment, scenario, measurements, failures/limitations           | Native systems before release claims          |
 
 Pure behavior belongs below Tauri. Commands should have little direct logic and only boundary-focused tests. Frontend tests must not mock away every behavior; use component/contract-level data to prove user-visible states while backend behavior is separately tested.
 
@@ -70,7 +70,9 @@ Required gate categories when their code exists/configuration is available:
 - **Documentation:** Markdown/link/reference validation.
 - **Platforms:** native contract/integration and app build on macOS and Windows; one platform's pass never implies the other's.
 
-Exact tools and CI workflow are selected in bootstrap/CI work, not installed by W004. Build, required test, native contract, typecheck, lint/static, or Critical/High security failure blocks merge when applicable and configured as required. A missing required platform test is not a pass. Medium findings block if a required safety/acceptance condition remains open; other issues require disposition.
+W005 selects Vitest 4 with jsdom and Testing Library for frontend behavior, Tauri's official mock IPC API for controlled command responses, and Rust's built-in test harness for DTO serialization. Prettier and ESLint 10 provide frontend/config formatting and linting; rustfmt and Clippy provide Rust checks. The Rust/TypeScript smoke DTO is mirrored manually and guarded by the Rust serialized-shape assertion plus frontend response fixture; generated bindings remain deferred until real contract breadth justifies them.
+
+Build, required test, native contract, typecheck, lint/static, or Critical/High security failure blocks merge when applicable and configured as required. A missing required platform test is not a pass. Medium findings block if a required safety/acceptance condition remains open; other issues require disposition.
 
 Report every check as `PASS`, `FAIL`, `BLOCKED`, `NOT APPLICABLE`, or `NOT RUN`. For platform checks record platform/environment, test class, result, and limitation. Never call `NOT RUN` a pass.
 
