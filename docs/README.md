@@ -14,6 +14,13 @@
 - `work/` — active and completed implementation work items.
 - `features/` and `releases/` — add only when maintained feature designs or release notes exist.
 
+## Approved baseline
+
+- [Product Requirements](requirements/PRODUCT-REQUIREMENTS.md)
+- [Functional Requirements](requirements/FUNCTIONAL-REQUIREMENTS.md)
+- [Non-Functional Requirements](requirements/NON-FUNCTIONAL-REQUIREMENTS.md)
+- [Product Rules](requirements/PRODUCT-RULES.md)
+
 ## Current state
 
-The repository is in bootstrap. The authoritative prompt is the only product specification until the requirement baseline is reviewed and frozen. See `work/` after the first work item is established.
+The repository is in pre-implementation baseline work. The authoritative prompt remains the source of product direction; requirement documents record the frozen, traceable implementation baseline. See `work/` for active work status.

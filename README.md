@@ -2,7 +2,7 @@
 
 Thaa is a planned open-source desktop utility for understanding local ports, processes, projects, and development runtimes on macOS and Windows.
 
-> **Project status:** repository bootstrap. Application code and release builds are not available yet.
+> **Project status:** pre-implementation; the initial requirements baseline is being frozen. Application code and release builds are not available yet.
 
 The initial product direction is to help developers find what is listening, identify its process, inspect available working-directory context, and safely act on stale development processes. Project root and Git context are planned for P1 after the cross-platform P0 is stable.
 

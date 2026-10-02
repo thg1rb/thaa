@@ -1,0 +1,44 @@
+# Functional Requirements
+
+**Baseline:** THAA-REQ-0.1 · **Status:** Frozen for initial implementation · **Date:** 2026-10-02
+
+Requirements are derived from the [authoritative prompt](../THAA-DEVELOPMENT-PROMPT.md) and [product scope](PRODUCT-REQUIREMENTS.md). “Where supported” means the app reports capability/unavailability clearly; it must not fabricate a value or silently elevate privileges.
+
+## P0 — Core MVP
+
+| ID | Requirement and acceptance criteria | Source | Planned work | Verification |
+|---|---|---|---|---|
+| FR-001 | Detect listening TCP ports on macOS and Windows. On each native platform, a controlled TCP listener on a random test port is discoverable while running and absent after it closes. | Prompt §13, §39–40 | W007–W009 | TC-001 |
+| FR-002 | Report protocol, local address, and port; map to a PID when the OS/provider can resolve ownership; represent unresolved ownership without inventing a PID. Handle IPv4/IPv6 where supported. | §9, §13 | W007–W009 | TC-002 |
+| FR-003 | Distinguish loopback-only binding from broader binding when determinable; represent unknown binding as unknown. A broader bind is not described as internet exposure. | §13, §16 | W007–W009, W013 | TC-003 |
+| FR-004 | Provide manual refresh and conservative automatic refresh. Scans do not overlap and older scan results cannot overwrite newer results. The default interval is documented and may be adjusted based on measured scan cost before release; user-configurable interval is not required for P0. | §13, §58–60, §77 | W007, W013 | TC-004 |
+| FR-005 | Search/filter visible listeners by port and process name. Filtering does not change process state. | §13 | W013 | TC-005 |
+| FR-006 | Show process name and PID, plus executable path, command/arguments, and working directory when available. Working directory is P0 context; project-root/Git inference remains P1. Unavailable fields are explicit. | §10–11, §13 | W010–W011, W013 | TC-006 |
+| FR-007 | Open a validated local listener URL and copy its URL, port, or PID. Validate intended local host/address and port; format IPv6 correctly; never open arbitrary command-line text as a URL. | §13, §75 | W013 | TC-007 |
+| FR-008 | Allow an explicit graceful-stop request when the platform/provider supports it. Report unsupported capability, permission failure, process disappearance, and result accurately; never silently substitute force stop. | §4.5, §13, §38 | W012, W014 | TC-008 |
+| FR-009 | Provide force stop as a separate, explicit fallback with clear confirmation. Before stopping, verify the process still exists and revalidate identity where feasible; never target all processes by name. | §4.5, §38, §76 | W012, W014 | TC-009 |
+| FR-010 | Provide macOS menu-bar and Windows system-tray access with a quick listener/runtime overview and basic supported actions, using platform-appropriate conventions. | §12–13, §20 | W014 | TC-010 |
+| FR-011 | Provide loading, empty, permission-denied, unavailable-metadata, process-ended-between-refreshes, and understandable error states. Provider failure or disappearing state does not crash the app. | §13, §36, §43 | W008–W014 | TC-011 |
+
+## Later requirements (not P0 acceptance)
+
+| ID | Requirement direction | Source | Planned work | Verification when scheduled |
+|---|---|---|---|---|
+| FR-012 | Detect the nearest plausible project root from working directory using documented marker precedence; do not scan the whole filesystem. | §14, §73 | Later P1 | Project fixtures and path-boundary tests |
+| FR-013 | Show repository root and current Git branch without adding full Git-client functionality. | §14 | Later P1 | Controlled repository/branch fixtures |
+| FR-014 | Report CPU, memory, uptime/start time, parent process/tree, and project-oriented open/reveal actions where available. | §14 | Later P1 | Provider contracts and UI tests |
+| FR-015 | Detect runtime/framework/package-manager/version only from reliable observable evidence; never execute arbitrary project code. | §15, §74 | Later P2 | Evidence fixtures, false-positive/unknown cases |
+| FR-016 | Help resolve a desired-port conflict and explain common bindings factually; do not claim internet exposure from `0.0.0.0`/`::` alone. | §16 | Later P2 | Address classification and copy tests |
+| FR-017 | Add opt-in/configurable favorite/watch/notification behavior and limited container context only after separate requirements and safety review. | §17–18 | Later P3 | Separate acceptance/test plan |
+
+## Traceability
+
+| Requirement IDs | Design/architecture link | Work items | Test cases | Status |
+|---|---|---|---|---|
+| FR-001–FR-004 | W003 provider, normalized listener, binding, refresh contracts | W007–W009, W013 | TC-001–TC-004 | Frozen; not implemented |
+| FR-005–FR-007 | W003 application/IPC and UI boundary | W010–W011, W013 | TC-005–TC-007 | Frozen; not implemented |
+| FR-008–FR-009 | W003 process identity/capability contract; W004 threat model | W012, W014 | TC-008–TC-009 | Frozen; not implemented |
+| FR-010–FR-011 | W003 shared view/error model and platform capability design | W008–W014 | TC-010–TC-011 | Frozen; not implemented |
+| FR-012–FR-017 | P1/P2/P3 design/work item to be created when scheduled | Later work | To be assigned then | Roadmap only; not implemented |
+
+Identifiers represent stable requirement intent. Implementation status changes only when linked tests and review evidence exist. Implementation PRs reference applicable `FR-###`, `NFR-###`, `PR-###`, and `TC-###` IDs.
