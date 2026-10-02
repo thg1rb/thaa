@@ -1,10 +1,10 @@
 # Platform Testing and Parity
 
-**Targets:** macOS and Windows · **Status:** Strategy only; providers and app are not implemented
+**Targets:** macOS and Windows · **Status:** Strategy only; native providers and product inspection are not implemented
 
 ## Execution requirements
 
-Real provider behavior must run on native macOS and Windows environments. Mocks/fakes verify shared application contracts but cannot establish native behavior. Compilation on one platform is not validation of the other. Record platform version/environment, test class, result, and limitation; `NOT RUN` is not `PASS`.
+W007 adds deterministic tests for shared `PortProvider` result/error semantics. Real provider behavior must still run on native macOS and Windows environments. Mocks/fakes verify shared application contracts but cannot establish native behavior. Compilation on one platform is not validation of the other. Record platform version/environment, test class, result, and limitation; `NOT RUN` is not `PASS`.
 
 Tests create their own sockets/processes, use ephemeral ports and controlled children, signal readiness explicitly, bound waits, and clean up in all paths. They must not inspect/terminate arbitrary user processes or need administrator/root privileges in normal cases.
 

@@ -21,11 +21,13 @@ flowchart LR
 
 ## `PortProvider`
 
-Responsibility: return a normalized snapshot of listening TCP endpoints, including local IPv4/IPv6 address, port, and ownership when resolvable.
+Responsibility: return a normalized snapshot of listening TCP endpoints, including local IPv4/IPv6 address, port, and ownership when resolvable. The shared contract is defined in `domain::port_provider`, consistent with W003's rule that stable provider ports belong to the inward-facing domain boundary.
 
-- Input: no user-controlled command text; accept cancellation/deadline context when the implementation's runtime supports it.
-- Output: normalized listener values and explicit unresolved ownership; never leak raw command output to application/domain code.
-- Errors: distinguish permission denial, provider/OS failure, and parse failure. Per-listener unresolved owner is data, not a whole-scan failure. Partial results must carry a bounded diagnostic category if the native source can return both rows and failures.
+- Contract: synchronous, object-safe `PortProvider::listeners(&self)` returns `Result<PortScanResult, PortProviderError>`. It is `Send + Sync` for shared ownership by the future refresh coordinator and dispatch to a blocking worker. The provider contract does not bind callers to an async runtime.
+- Output: `PortScanResult` contains W006 `NetworkListener` values and `PortScanCompleteness`. A complete empty result means the query succeeded and found no listeners. Partial results retain usable rows and a bounded failure category; they must not be presented as complete. `Err` means a usable scan could not be returned.
+- Errors: stable categories distinguish permission denial, unsupported operation, unavailable mechanism, parse failure, operating-system failure, and provider failure. Per-listener unresolved owner remains successful data. Do not leak raw command/API output, native error codes, or secrets through this boundary.
+- Concurrency and cancellation: application refresh coordination invokes blocking implementations away from the UI thread, prevents overlap, and waits for in-flight work to settle. Cancellation stays above this synchronous contract; a future adapter bounds its own operation where possible. No cancellation-token abstraction is introduced in W007.
+- Ordering and duplicates: result order is unspecified; consumers sort for presentation. Preserve semantically distinct endpoints, including same-port records with different addresses or ownership. Providers may coalesce only fully identical normalized rows.
 - Ownership mapping: include PID only when reported by the OS/provider; do not infer from port number or process name.
 - Platform direction: macOS may initially isolate `lsof` invocation and parsing here, with fixed arguments, bounded execution, and a replacement path to native APIs. Windows should use a native networking API (the prompt points to IP Helper / `GetExtendedTcpTable`); PowerShell is not the permanent provider architecture.
 - Safety: no shell interpolation, no arbitrary commands, no privilege escalation.

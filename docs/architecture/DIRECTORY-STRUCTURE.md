@@ -39,6 +39,7 @@ src-tauri/
       capabilities.rs
       metadata.rs
       network.rs
+      port_provider.rs   # stable listening-port contract and query outcomes
       process.rs
     commands/
       mod.rs
@@ -50,9 +51,10 @@ docs/
   agent/                  # agent policy and project-scoped skill inventory
 ```
 
-The domain module now contains the shared models and pure binding classifier
-introduced in W006. Application use cases, provider contracts, and platform
-adapter modules remain for their later work items; no empty trees are created.
+The domain module contains W006 shared models and pure binding classification,
+plus the W007 stable port-provider contract. Application use cases and
+platform adapter implementations remain for later work items; no empty trees
+are created.
 
 The root also owns `rust-toolchain.toml` because it pins the Rust toolchain
 used by this repository's nested Tauri project. Frontend TypeScript/Vite/ESLint
