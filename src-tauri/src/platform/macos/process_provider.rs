@@ -73,25 +73,21 @@ fn read_process_snapshot(process_id: ProcessId) -> Result<ProcessSnapshot, Proce
     // output pointers supplied here, and returns a fixed status code. The shim
     // uses the SDK-defined kinfo_proc structure and validates its length/PID.
     let status = unsafe { thaa_macos_process_start_time(pid, &mut seconds, &mut microseconds) };
-    match status {
-        0 => {}
-        SYSCTL_PROCESS_ABSENT => {
-            return Err(provider_error(ProcessProviderErrorKind::ProcessDisappeared))
-        }
-        SYSCTL_PERMISSION_DENIED => {
-            return Err(provider_error(ProcessProviderErrorKind::PermissionDenied))
-        }
-        _ => {
-            return Err(provider_error(
-                ProcessProviderErrorKind::OperatingSystemFailure,
-            ))
-        }
-    }
+    map_sysctl_status(status).map_err(provider_error)?;
 
     let start_time = normalize_start_time(seconds, microseconds)
         .ok_or_else(|| provider_error(ProcessProviderErrorKind::ParseFailure))?;
 
     Ok(ProcessSnapshot { start_time })
+}
+
+fn map_sysctl_status(status: i32) -> Result<(), ProcessProviderErrorKind> {
+    match status {
+        0 => Ok(()),
+        SYSCTL_PROCESS_ABSENT => Err(ProcessProviderErrorKind::ProcessDisappeared),
+        SYSCTL_PERMISSION_DENIED => Err(ProcessProviderErrorKind::PermissionDenied),
+        _ => Err(ProcessProviderErrorKind::OperatingSystemFailure),
+    }
 }
 
 fn normalize_start_time(seconds: i64, microseconds: i32) -> Option<SystemTime> {
@@ -312,13 +308,36 @@ fn provider_error(kind: ProcessProviderErrorKind) -> ProcessProviderError {
 #[cfg(test)]
 mod tests {
     use super::{
-        normalize_lsof_result, normalize_os_string, normalize_path, normalize_start_time,
-        parse_lsof_metadata, LsofMetadataAvailability, LsofOutput,
+        map_sysctl_status, normalize_lsof_result, normalize_os_string, normalize_path,
+        normalize_start_time, parse_lsof_metadata, LsofMetadataAvailability, LsofOutput,
     };
     use crate::domain::metadata::{FieldAvailability, UnavailableReason};
     use crate::domain::process::ProcessId;
     use std::path::PathBuf;
     use std::time::{Duration, UNIX_EPOCH};
+
+    #[test]
+    fn maps_only_confirmed_sysctl_absence_to_process_disappeared() {
+        use crate::domain::process_provider::ProcessProviderErrorKind;
+
+        assert_eq!(map_sysctl_status(0), Ok(()));
+        assert_eq!(
+            map_sysctl_status(1),
+            Err(ProcessProviderErrorKind::ProcessDisappeared)
+        );
+        assert_eq!(
+            map_sysctl_status(2),
+            Err(ProcessProviderErrorKind::PermissionDenied)
+        );
+        assert_eq!(
+            map_sysctl_status(3),
+            Err(ProcessProviderErrorKind::OperatingSystemFailure)
+        );
+        assert_eq!(
+            map_sysctl_status(99),
+            Err(ProcessProviderErrorKind::OperatingSystemFailure)
+        );
+    }
 
     #[test]
     fn normalizes_sdk_process_start_time_with_microsecond_precision() {

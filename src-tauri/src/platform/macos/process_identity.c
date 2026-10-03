@@ -25,8 +25,15 @@ int thaa_macos_process_start_time(int32_t pid, int64_t *seconds, int32_t *micros
         return 3;
     }
 
-    if (length != sizeof(process) || process.kp_proc.p_pid != pid ||
-        process.kp_proc.p_stat == SZOMB) {
+    if (length == 0) {
+        return 1;
+    }
+
+    if (length != sizeof(process) || process.kp_proc.p_pid != pid) {
+        return 3;
+    }
+
+    if (process.kp_proc.p_stat == SZOMB) {
         return 1;
     }
 
