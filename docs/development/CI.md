@@ -25,9 +25,14 @@ by its lockfile-derived key. Rust dependencies and build artifacts are cached
 with `Swatinem/rust-cache` separately on each operating system. The action
 targets `src-tauri/target`; its key includes the runner OS/architecture, Rust
 toolchain, Cargo manifests and lockfile, and explicit cache key where used.
-Pull requests can restore a compatible base-branch cache but cannot write the
-develop cache. Only trusted pushes to `develop` save Rust caches. A cache miss
-does not skip any check and must build successfully from the lockfile.
+Pull requests can restore a compatible base-branch cache and same-repository
+PR runs may save only to their GitHub `refs/pull/<number>/merge` cache scope.
+GitHub does not make these PR-scoped entries available to `develop` or other
+PRs. Fork PRs do not save caches. Only trusted pushes to `develop` save the
+develop-scoped cache. Manual runs are cache readers. This follows [GitHub's
+cache scope and security model](https://docs.github.com/en/actions/reference/workflows-and-actions/dependency-caching).
+A cache miss does not skip any check and must build successfully from the
+lockfile.
 
 Pull requests run `pnpm tauri build --debug --no-bundle` to validate frontend
 and native application integration with the faster development profile.

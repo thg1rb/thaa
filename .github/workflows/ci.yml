@@ -50,7 +50,7 @@ jobs:
           key: cargo-audit-0.22.2
           cache-all-crates: true
           cache-bin: true
-          save-if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/develop' }}
+          save-if: ${{ (github.event_name == 'push' && github.ref == 'refs/heads/develop') || (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository) }}
 
       - name: Install frontend dependencies
         run: pnpm install --frozen-lockfile
@@ -122,7 +122,7 @@ jobs:
         uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
         with:
           workspaces: src-tauri -> target
-          save-if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/develop' }}
+          save-if: ${{ (github.event_name == 'push' && github.ref == 'refs/heads/develop') || (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository) }}
 
       - name: Install frontend dependencies
         run: pnpm install --frozen-lockfile
@@ -181,7 +181,7 @@ jobs:
         uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
         with:
           workspaces: src-tauri -> target
-          save-if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/develop' }}
+          save-if: ${{ (github.event_name == 'push' && github.ref == 'refs/heads/develop') || (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository) }}
 
       - name: Install frontend dependencies
         run: pnpm install --frozen-lockfile
