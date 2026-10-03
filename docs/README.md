@@ -41,6 +41,7 @@
 
 - [Local setup](development/LOCAL-SETUP.md)
 - [Development commands and checks](development/DEVELOPMENT.md)
+- [Continuous integration](development/CI.md)
 - [Coding standards and formatter ownership](development/CODING-STANDARDS.md)
 - [Git workflow](development/GIT-WORKFLOW.md)
 - [Actual application directory structure](architecture/DIRECTORY-STRUCTURE.md)

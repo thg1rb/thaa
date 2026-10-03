@@ -1,10 +1,10 @@
 # Platform Testing and Parity
 
-**Targets:** macOS and Windows · **Status:** macOS port provider has native W008 evidence; Windows provider remains unimplemented
+**Targets:** macOS and Windows · **Status:** W008.1 establishes GitHub-hosted macOS/Windows build and test runners; Windows provider remains unimplemented
 
 ## Execution requirements
 
-W007 adds deterministic tests for shared `PortProvider` result/error semantics. W008 adds controlled native macOS listener evidence. Real Windows provider behavior still requires a native Windows environment. Mocks/fakes verify shared application contracts but cannot establish native behavior. Compilation on one platform is not validation of the other. Record platform version/environment, test class, result, and limitation; `NOT RUN` is not `PASS`.
+W007 adds deterministic tests for shared `PortProvider` result/error semantics. W008 adds controlled native macOS listener evidence. W008.1 runs existing tests and application builds on GitHub-hosted macOS 15 arm64 and Windows Server 2025 x64 runners. This establishes execution/build environments, not Windows provider behavior. W009 must add native Windows provider integration tests and verify those tests execute on the Windows runner. Mocks/fakes verify shared application contracts but cannot establish native behavior. Compilation on one platform is not validation of the other. Record platform version/environment, test class, result, and limitation; `NOT RUN` is not `PASS`.
 
 Tests create their own sockets/processes, use ephemeral ports and controlled children, signal readiness explicitly, bound waits, and clean up in all paths. They must not inspect/terminate arbitrary user processes or need administrator/root privileges in normal cases.
 
@@ -28,6 +28,18 @@ Tests create their own sockets/processes, use ephemeral ports and controlled chi
 | Permission/error states       | Required                              | Required                              | Denied/unavailable/disappeared/provider failure do not crash               | Not Yet Implemented                                                              |
 
 Do not force identical native behavior where capability differs. The frontend and API must expose the documented capability/outcome; user-facing claims remain limited to evidence.
+
+## CI runner evidence
+
+The GitHub Actions workflow runs the full Rust suite on each native platform.
+The macOS job also checks `/usr/sbin/lsof` and runs W008 controlled-listener
+integration tests. The Windows job runs shared Rust/domain/contract tests and
+builds Thaa with the native Windows toolchain; no Windows provider exists yet,
+so there are no Windows-native listener tests to report. Shared frontend and
+documentation checks run on Ubuntu 24.04 x64. These are GitHub-hosted runners,
+not self-hosted machines; runner/toolchain versions and the actual results
+must be recorded from each workflow run. macOS 15 arm64 CI evidence is distinct
+from the local macOS 27 arm64 evidence below.
 
 ## macOS native scenarios
 
