@@ -50,6 +50,12 @@ permission or support limitations do not fail the entire query. Process
 disappearance and whole-query provider/OS failures belong to future
 provider/application error contracts and are not represented by this enum.
 
+W010's `ProcessProvider` consumes one `ProcessId` and returns `ProcessInfo`.
+Its query-level `ProcessProviderError` distinguishes disappearance and whole
+operation failures from field availability. A successful `ProcessInfo`
+retains the requested PID and may contain unavailable fields. The error
+categories contain stable semantic messages only, never native error text.
+
 At the transport boundary, expose only a stable category and safe user message. Keep native details in bounded, privacy-aware diagnostics; do not forward command arguments, raw stacks, or secret-bearing strings.
 
 ## Platform capabilities
@@ -58,7 +64,9 @@ At the transport boundary, expose only a stable category and safe user message. 
 argument reads, working-directory reads, graceful stop, and force stop using
 `CapabilitySupport::{Supported, Unsupported}`. Parent-process access is P1
 and is not included. These flags do not assert that a particular process is
-readable or actionable; per-process outcomes remain authoritative.
+readable or actionable; per-process outcomes remain authoritative. W010 keeps
+this platform-wide value separate from `ProcessInfo`; no capability query or
+action-support result is added to `ProcessProvider`.
 
 ## Binding scope
 
