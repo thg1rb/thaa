@@ -66,9 +66,10 @@ test. This is macOS-only evidence.
 `platform::windows::port_provider::WindowsPortProvider` implements the same
 contract with Microsoft's `GetExtendedTcpTable`, using
 `TCP_TABLE_OWNER_PID_LISTENER` separately for `AF_INET` and `AF_INET6`. Its
-Windows-only `windows-sys` dependency is limited to Foundation, IpHelper, and
-WinSock APIs. The provider does not use PowerShell, `netstat`, shell execution,
-or process metadata APIs.
+Windows-only `windows-sys` dependency enables Foundation, IpHelper, WinSock,
+and the narrowly scoped System Threading APIs used by the separate process
+adapter. The listener provider itself does not use PowerShell, `netstat`,
+shell execution, or process metadata APIs.
 
 The native buffer uses initialized, `u64`-aligned storage capped at 16 MiB.
 The provider validates sizing results, retries `ERROR_INSUFFICIENT_BUFFER` at
@@ -91,6 +92,32 @@ W009's controlled native tests run in the existing GitHub-hosted
 `windows-2025` job and cover IPv4/IPv6 loopback and wildcard listeners, PID
 ownership, and post-close disappearance. This provider remains replaceable
 without changing the shared `PortProvider` or domain types.
+
+### Windows process implementation evidence (W011.2)
+
+`platform::windows::process_provider::WindowsProcessProvider` implements the
+same W010 contract. It opens one process handle with
+`PROCESS_QUERY_LIMITED_INFORMATION | PROCESS_SYNCHRONIZE`, uses it for
+`QueryFullProcessImageNameW`, `GetProcessTimes`, and nonblocking process-object
+state checks, then closes it through a Windows-only RAII wrapper. The handle
+anchors returned fields to one process object for that inspection; it is
+never retained in shared state. The process name is the file stem of the
+verified image path. Start time is normalized from the documented 1601-UTC
+FILETIME epoch. Structured arguments and working directory remain
+`Unavailable(ProviderLimitation)`: a command-line string does not establish
+target argv boundaries, and no supported public arbitrary-process current
+directory query was selected. PID zero is the System Idle Process and is
+reported `Unsupported`; access-denied open failures remain `PermissionDenied`.
+
+The Windows-only Microsoft `windows-sys` 0.61.2 binding adds only the
+`Win32_System_Threading` feature. The native controlled-child test validates
+image path, basename, creation time, unsupported-field availability, W010
+contract behavior, W011 orchestration, and post-exit disappearance. Its child
+is the integration-test executable; it does not inspect unrelated runner
+processes. This provider does not enumerate processes, inspect remote memory,
+request elevation, or perform process actions. The current application has no
+capability-provider/composition API, so W011.2 records per-field availability
+without adding unused global capability reporting.
 
 ## `ProcessProvider`
 

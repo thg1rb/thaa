@@ -52,6 +52,17 @@ table layouts through safe synthetic byte fixtures. Listener inspection must
 not request elevation or query process metadata beyond the owner PID already
 present in the TCP table.
 
+W011.2's Windows process adapter uses the same target-specific Microsoft
+binding with only `Win32_System_Threading` added. It requests limited query
+and synchronization rights only; it must never request VM access, debug
+privilege, or termination rights. One RAII-owned handle anchors inspection to
+one process object and is closed before return. Keep unsafe calls local and
+document valid-handle, buffer, output-initialization, and lifetime invariants.
+Bound UTF-16 image-path allocation, convert native paths without lossy UTF-8,
+and keep raw Win32 codes out of provider Display output. Command arguments and
+working directories remain unavailable rather than being reconstructed or
+inferred; do not read a remote PEB or process memory.
+
 ## Privacy and diagnostics
 
 Do not log by default:

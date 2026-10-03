@@ -17,9 +17,11 @@ Tests create their own sockets/processes, use ephemeral ports and controlled chi
 | Listening TCP discovery       | Required                              | Required                              | Controlled random-port listener appears/disappears                         | macOS native tests (W008); Windows native tests (W009)                   |
 | Protocol, local address, port | Required for discovered listeners     | Required for discovered listeners     | Normalize; cover IPv4 and IPv6 where host supports them                    | macOS IPv4/IPv6 loopback and wildcard (W008); Windows (W009)             |
 | PID ownership                 | Best Effort                           | Best Effort                           | Resolve where native provider reports owner; otherwise explicit unresolved | Controlled test process PID checked on both native providers (W008/W009) |
-| Process PID/name              | Best effort when inspectable          | Best effort when inspectable          | Controlled child contract; denied/protected state explicit                 | macOS implemented/tested (W011.1); Windows Not Yet Implemented           |
-| Executable path/command line  | Best Effort                           | Best Effort                           | Field-level available/unavailable; do not fabricate                        | macOS explicitly unavailable (W011.1); Windows Not Yet Implemented       |
-| Working directory             | Best Effort, P0 where available       | Best Effort, P0 where available       | No project-root/Git inference                                              | macOS implemented/tested (W011.1); Windows Not Yet Implemented           |
+| Process PID/name              | Best effort when inspectable          | Best effort when inspectable          | Controlled child contract; denied/protected state explicit                 | macOS implemented/tested (W011.1); Windows W011.2 native CI pending      |
+| Executable path               | Best Effort                           | Best Effort                           | Field-level available/unavailable; do not fabricate                        | macOS explicitly unavailable (W011.1); Windows W011.2 native CI pending  |
+| Start time                    | Best Effort                           | Best Effort                           | Normalize process creation evidence                                        | macOS implemented/tested (W011.1); Windows W011.2 native CI pending      |
+| Structured command arguments  | Best Effort                           | Best Effort                           | Preserve real argument boundaries or report unavailable                    | Unavailable on both selected providers (W011.1/W011.2)                   |
+| Working directory             | Best Effort, P0 where available       | Best Effort, P0 where available       | No project-root/Git inference                                              | macOS implemented/tested (W011.1); Windows W011.2 limitation documented  |
 | Parent PID                    | Best Effort, later P1 context         | Best Effort, later P1 context         | No P1 feature implementation in W004                                       | Not Yet Implemented                                                      |
 | Loopback/broader binding      | Required when address is determinable | Required when address is determinable | Same pure classifier and conservative labels                               | Not Yet Implemented                                                      |
 | Graceful stop                 | Capability-based                      | Capability-based                      | Explicit action/result, never silently force                               | Not Yet Implemented                                                      |
@@ -62,8 +64,15 @@ is insufficient.
 W009 validates native listener discovery and PID mapping on the GitHub-hosted
 Windows 2025 x64 runner, with controlled IPv4/IPv6 loopback and wildcard
 listeners plus post-close absence. Listener discovery does not validate
-process metadata or actions; those remain future work. PowerShell is not the
-provider mechanism. Compilation alone is insufficient.
+process actions. W011.2 adds process inspection evidence on `windows-2025`
+x64 using a test-owned child running the integration-test executable. It
+validates PID, executable path against the known test binary, its derived
+file-stem name, creation time, explicit `ProviderLimitation` for arguments and
+working directory, shared W010 assertions, W011 orchestration, and
+`ProcessDisappeared` after the child exits. It requests no elevation and does
+not inspect unrelated runner processes. These fields remain unsupported by
+the public-API implementation. PowerShell is not used by the provider.
+Compilation alone is insufficient.
 
 ## Shared race and long-running scenarios
 
