@@ -2,8 +2,9 @@
 
 ## Status
 
-Review complete — implementation and native macOS validation are complete;
-PR integration and post-merge verification remain outstanding.
+Done — PR #17 passed dedicated read-only review and was merged into `develop`
+as merge commit `768eccb2d440116583d320f43c3bd4872b2ec8e5`; post-merge Rust,
+native macOS, Clippy, and Tauri build checks passed.
 
 ## Objective
 
@@ -87,15 +88,20 @@ category. Raw stdout/stderr and native error details are not exposed.
       evidence from Windows implementation/support.
 - [x] Dedicated read-only PR review completed; the Low flaky-absence-test
       finding was fixed and the re-review returned no remaining findings.
-- [ ] PR merged into `develop` and post-merge checks completed.
+- [x] PR merged into `develop` and post-merge Rust/native/build checks passed.
 
 ## Validation
 
 Host environment: macOS 27.0 arm64, `/usr/sbin/lsof` 4.91. Native tests use
 test-owned ephemeral listeners and assert only their own endpoint; they do not
-stop or alter discovered processes. Detailed command results will be recorded
-in the PR/final report. Windows validation is NOT RUN. `cargo audit` is NOT RUN
-if unavailable. No application UI or product IPC is changed.
+stop or alter discovered processes. Before and after merge, `cargo fmt
+--check`, `cargo clippy --all-targets -- -D warnings`, `cargo test` (24 unit,
+3 native macOS integration, 4 contract tests), host `pnpm tauri build
+--no-bundle`, frontend format/lint/typecheck/tests/build, `pnpm audit`,
+Markdown local-link checks, frozen requirements/ADR integrity, and
+`git diff --check` passed. `cargo audit` is NOT RUN because cargo-audit is not
+installed. Windows validation is NOT RUN. No application UI or product IPC is
+changed.
 
 ## Security Considerations
 
