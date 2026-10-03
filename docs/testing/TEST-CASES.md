@@ -23,6 +23,9 @@ This catalog anchors requirement and threat verification. Per-case status record
 | TC-PORT-PARSE-001 | Verified NUL-delimited lsof records normalize IPv4/IPv6, family-specific wildcards, PID/file boundaries, and reject malformed required fields          | Deterministic parser byte fixtures                         | FR-001/002, THR-013         | Tested in W008                                                                 |
 | TC-PORT-MAC-001   | Native provider discovers controlled IPv4 loopback listener and PID, then complete scan observes its closure                                           | Native macOS, test-owned ephemeral socket                  | FR-001/002, THR-013         | Tested in W008 on macOS 27.0 arm64                                             |
 | TC-PORT-MAC-002   | Native provider discovers controlled IPv4/IPv6 wildcard and IPv6 loopback endpoints                                                                    | Native macOS where address families are available          | FR-001/003, THR-013         | Tested in W008 on macOS 27.0 arm64                                             |
+| TC-PORT-WIN-001   | Native provider discovers controlled IPv4 loopback/wildcard listeners with correct ephemeral port and owner PID                                        | Native Windows; test-owned ephemeral sockets               | FR-001/002, THR-013         | Implemented in W009; native CI evidence pending                                |
+| TC-PORT-WIN-002   | Native provider discovers controlled IPv6 loopback/wildcard listeners with correct address, port, and owner PID                                        | Native Windows where supported                             | FR-001/002/003, THR-013     | Implemented in W009; native CI evidence pending                                |
+| TC-PORT-WIN-003   | Controlled listener disappears from a subsequent native scan after its socket closes                                                                   | Native Windows; bounded retry using test-owned socket      | FR-001, THR-013             | Implemented in W009; native CI evidence pending                                |
 | TC-PROC-001       | Controlled child resolves to expected PID/name and supported metadata                                                                                  | Native macOS and Windows                                   | FR-006, THR-001             | Planned                                                                        |
 | TC-PROC-002       | Denied, unsupported, protected, or unavailable metadata has explicit field status; query failure stays distinct                                        | Fake and safe native denial where reproducible             | FR-006/011, THR-005/006     | Planned                                                                        |
 | TC-PROC-003       | Process exit between observation and inspection returns process-disappeared, without crash/fabricated fields                                           | Fake + controlled child                                    | FR-011, THR-004             | Planned                                                                        |
@@ -71,9 +74,11 @@ provider and native evidence exists.
 
 W007 tests `TC-PORT-CONTRACT-001`–`TC-PORT-CONTRACT-004` through a
 test-only provider implementation. W008 adds parser unit tests and native
-macOS evidence for the cases above. The corresponding Windows discovery and
-ownership evidence remains NOT RUN and cross-platform parity is incomplete
-until W009 runs its native contract tests.
+macOS evidence for the cases above. W009 adds native Windows listener/PID/
+disappearance tests and runs the shared contract suite on the Windows host.
+Provider discovery infrastructure is covered on both platforms; frozen
+user-facing `TC-001`–`TC-011` remain unimplemented until application, refresh,
+and UI work is completed.
 
 - `TC-001`–`TC-011` remain frozen requirement anchors; this catalog does not redefine acceptance criteria.
 - Windows portions of `TC-PORT-001`–`TC-PORT-003`, `TC-PROC-*`, `TC-ACTION-*`, `TC-REFRESH-*`, and `TC-SEC-*` remain planned native contract/security evidence; W007’s deterministic contract cases are recorded above.

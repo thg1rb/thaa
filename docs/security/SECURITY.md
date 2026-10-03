@@ -42,6 +42,16 @@ Prefer safe Rust APIs and documented native interfaces. Keep unavoidable `unsafe
 
 Native/FFI changes require security review before merge. W004 does not choose native crates or APIs.
 
+W009's Windows listener adapter uses only the documented `GetExtendedTcpTable`
+API and Microsoft-maintained `windows-sys` bindings. Keep the dependency under
+`cfg(windows)` and enable only required features. Native buffers must remain
+bounded and correctly aligned; check all size arithmetic and validate the
+reported entry count against physically available row bytes before parsing.
+Preserve these invariants in every unsafe block comment and test malformed
+table layouts through safe synthetic byte fixtures. Listener inspection must
+not request elevation or query process metadata beyond the owner PID already
+present in the TCP table.
+
 ## Privacy and diagnostics
 
 Do not log by default:
