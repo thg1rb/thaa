@@ -31,6 +31,12 @@ Use deterministic input tables for IPv4/IPv6 loopback, wildcard, specific non-lo
 
 W007 and W010 contract tests use deterministic provider doubles to verify shared port/process semantics without live OS access. Future native implementations must run equivalent behavior assertions on macOS and Windows. Process-provider semantics include requested PID preservation, normalized `ProcessInfo`, explicit per-field unavailability, and query-level disappearance/failure. Native process integration will use only test-created child processes and must cover identity, supported metadata, and unavailable outcomes. Controller contracts use only a test-created child process and cover graceful/force stop, mismatch, disappearance, permission denial, unsupported action, and revalidation failure.
 
+W011 application tests use a deterministic `ProcessProvider` double to verify
+first-seen deduplication, per-PID success/error preservation, continued
+inspection after errors, mismatched identity handling, partial metadata, and
+empty input. They do not invoke native process APIs or establish live process
+inspection.
+
 Mocks/fakes establish application orchestration deterministically but do not replace native integration. Compilation alone is not platform validation. Do not claim parity where an OS cannot provide a capability; document and test the supported/unavailable result.
 
 ## Tauri and frontend

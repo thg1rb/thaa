@@ -1,3 +1,4 @@
+pub mod application;
 mod commands;
 pub mod domain;
 pub mod platform;

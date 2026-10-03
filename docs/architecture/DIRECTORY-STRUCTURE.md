@@ -34,6 +34,9 @@ src-tauri/
   src/
     lib.rs                # Tauri composition root
     main.rs               # desktop entry point
+    application/           # shared use-case orchestration
+      mod.rs
+      process_inspection.rs # per-PID inspection using ProcessProvider
     domain/               # shared, platform-neutral domain values and rules
       mod.rs
       capabilities.rs
@@ -69,10 +72,12 @@ docs/
   agent/                  # agent policy and project-scoped skill inventory
 ```
 
-The domain module contains W006 shared models and pure binding classification,
-plus the W007 `PortProvider` and W010 `ProcessProvider` contracts. The W010
-process contract returns `ProcessInfo` and keeps platform-wide capabilities
-separate. W008's `lsof` field parser stays
+The application module owns shared orchestration and depends on domain
+contracts; W011 process inspection deduplicates requested PIDs per invocation
+and preserves each per-PID outcome. The domain module contains W006 shared
+models and pure binding classification, plus the W007 `PortProvider` and W010
+`ProcessProvider` contracts. The W010 process contract returns `ProcessInfo`
+and keeps platform-wide capabilities separate. W008's `lsof` field parser stays
 private to the macOS adapter; W009's Win32 types, bounded aligned buffers, and
 table parser stay private to the Windows adapter. Rust integration tests
 under `src-tauri/tests/` exercise the public contract as an external crate

@@ -31,6 +31,12 @@ Own normalized values, invariants, small pure classifications, capability concep
 
 Own use-case orchestration: inspect listeners, enrich them with process information, request refresh, and coordinate safe process actions. It depends on domain contracts and contains no native API code. Before a stop action it asks `ProcessController` to verify current identity evidence as part of its action operation, so no separate asynchronous inspection sits between verification and the native action.
 
+W011 implements `application::process_inspection::inspect_processes` as a
+small shared use case over caller-supplied process IDs and the W010
+`ProcessProvider`. Each distinct PID is inspected once in first-seen order;
+success or query error stays attached to that PID. It performs no listener
+lookup, refresh scheduling, caching, or process action.
+
 ### Infrastructure and platform adapters
 
 Shared infrastructure contains platform-neutral serialization or utilities only where needed. Platform adapters implement ports, translate native results into normalized values, and keep parsing/native error details local. macOS and Windows code live in separate modules selected at composition time.

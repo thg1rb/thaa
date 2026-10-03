@@ -48,6 +48,20 @@ They do not establish that either platform can inspect a live process.
 | TC-PROC-CONTRACT-003 | Missing/disappeared process and whole-query permission/provider failures remain operation-level outcomes | Test-only provider | FR-011, NFR-005, THR-004/005 | Tested in W010 |
 | TC-PROC-CONTRACT-004 | Native paths, structured arguments, and hostile-looking metadata are preserved as inert data             | Test-only provider | FR-006, PR-007, THR-001      | Tested in W010 |
 
+## Shared process inspection semantics (W011)
+
+These deterministic cases validate application orchestration over the W010
+contract. They do not establish native process inspection.
+
+| ID                  | Scenario and expected evidence                                                                    | Fixture                   | Links                        | Status         |
+| ------------------- | ------------------------------------------------------------------------------------------------- | ------------------------- | ---------------------------- | -------------- |
+| TC-PROC-INSPECT-001 | Multiple process IDs produce associated successful per-ID results in first-seen order             | Test-only provider double | FR-006                       | Tested in W011 |
+| TC-PROC-INSPECT-002 | Duplicate IDs are inspected once and output retains first-seen unique order                       | Call-counting test double | FR-006, NFR-005              | Tested in W011 |
+| TC-PROC-INSPECT-003 | Disappearance, permission denial, and provider errors remain attached to their IDs; later IDs run | Mixed-result test double  | FR-011, NFR-005, THR-004/005 | Tested in W011 |
+| TC-PROC-INSPECT-004 | Successful partial metadata remains success; empty input yields no calls/results                  | Test-only provider double | FR-006, FR-011               | Tested in W011 |
+| TC-PROC-INSPECT-005 | Mismatched returned identity becomes a provider failure for the requested ID                      | Contract-violating fake   | FR-006, THR-013              | Tested in W011 |
+| TC-PROC-INSPECT-006 | Hostile-looking argument values pass through as inert structured metadata                         | Test-only provider double | FR-006, PR-007, THR-001      | Tested in W011 |
+
 ## Port provider contract semantics
 
 These deterministic checks establish W007's shared contract behavior only.
@@ -87,9 +101,11 @@ provider and native evidence exists.
 W007 tests `TC-PORT-CONTRACT-001`–`TC-PORT-CONTRACT-004` through a
 test-only provider implementation. W010 tests
 `TC-PROC-CONTRACT-001`–`TC-PROC-CONTRACT-004` through a deterministic process
-provider double. These contract tests do not establish native process
-inspection. `TC-PROC-001`–`TC-PROC-003` native/functional evidence remains
-planned for later work. W008 adds parser unit tests and native
+provider double. W011 tests `TC-PROC-INSPECT-001`–`TC-PROC-INSPECT-006` through
+the application use case and deterministic provider double. These contract
+and orchestration tests do not establish native process inspection.
+`TC-PROC-001`–`TC-PROC-003` native/functional evidence remains planned for
+later work. W008 adds parser unit tests and native
 macOS evidence for the cases above. W009 adds native Windows listener/PID/
 disappearance tests and runs the shared contract suite on the Windows host.
 Provider discovery infrastructure is covered on both platforms; frozen
