@@ -42,6 +42,16 @@ jobs:
           rustc --version
           cargo --version
 
+      - name: Set up Rust cache
+        id: rust-cache
+        uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+        with:
+          workspaces: src-tauri -> target
+          key: cargo-audit-0.22.2
+          cache-all-crates: true
+          cache-bin: true
+          save-if: ${{ (github.event_name == 'push' && github.ref == 'refs/heads/develop') || (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository) }}
+
       - name: Install frontend dependencies
         run: pnpm install --frozen-lockfile
 
@@ -67,7 +77,13 @@ jobs:
         run: pnpm audit --audit-level high
 
       - name: Install pinned RustSec audit tool
-        run: cargo install cargo-audit --version 0.22.2 --locked
+        shell: bash
+        run: |
+          if cargo audit --version 2>/dev/null | grep -Fxq 'cargo-audit 0.22.2'; then
+            echo 'Using cached cargo-audit 0.22.2'
+          else
+            cargo install cargo-audit --version 0.22.2 --locked
+          fi
 
       - name: Rust dependency audit for supported targets
         run: |
@@ -101,6 +117,13 @@ jobs:
           rustc --version
           cargo --version
 
+      - name: Set up Rust cache
+        id: rust-cache
+        uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+        with:
+          workspaces: src-tauri -> target
+          save-if: ${{ (github.event_name == 'push' && github.ref == 'refs/heads/develop') || (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository) }}
+
       - name: Install frontend dependencies
         run: pnpm install --frozen-lockfile
 
@@ -118,7 +141,12 @@ jobs:
       - name: Rust and macOS native tests
         run: cargo test --manifest-path src-tauri/Cargo.toml -- --show-output
 
-      - name: Tauri macOS build
+      - name: Tauri macOS debug build (pull request)
+        if: ${{ github.event_name == 'pull_request' }}
+        run: pnpm tauri build --debug --no-bundle
+
+      - name: Tauri macOS release build (develop/manual)
+        if: ${{ github.event_name != 'pull_request' }}
         run: pnpm tauri build --no-bundle
 
   windows-validation:
@@ -148,6 +176,13 @@ jobs:
           rustc --version
           cargo --version
 
+      - name: Set up Rust cache
+        id: rust-cache
+        uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+        with:
+          workspaces: src-tauri -> target
+          save-if: ${{ (github.event_name == 'push' && github.ref == 'refs/heads/develop') || (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository) }}
+
       - name: Install frontend dependencies
         run: pnpm install --frozen-lockfile
 
@@ -160,5 +195,10 @@ jobs:
       - name: Shared Rust and provider contract tests
         run: cargo test --manifest-path src-tauri/Cargo.toml -- --show-output
 
-      - name: Tauri Windows build
+      - name: Tauri Windows debug build (pull request)
+        if: ${{ github.event_name == 'pull_request' }}
+        run: pnpm tauri build --debug --no-bundle
+
+      - name: Tauri Windows release build (develop/manual)
+        if: ${{ github.event_name != 'pull_request' }}
         run: pnpm tauri build --no-bundle

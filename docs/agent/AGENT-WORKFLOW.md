@@ -28,3 +28,14 @@ Open a PR to `develop`. A dedicated review-only Sub-agent checks the diff, code,
 ## Definition of Done
 
 A work item is complete only when applicable acceptance criteria, tests, platform validation, formatting/lint/type/static checks, security review, documentation updates, read-only review findings, and integration into `develop` are complete. A successful local build alone is insufficient.
+
+For a work item completed through a reviewed PR, record `Status: Done on merge`
+and the PR link in the work-item document on the task branch after acceptance
+criteria, validation, and review are complete. That status takes effect when
+the linked PR merges to `develop`; the PR and Git history preserve integration
+evidence. Do not open a second PR solely to replace this status with `Done`, add
+a merge hash, or repeat validation results. After merge, verify the integrated
+branch and report any required post-merge checks. Open follow-up work only for
+a real defect, required documentation correction, or new implementation; do
+not treat routine administrative closeout as a separate change. The required
+implementation PR and read-only Sub-agent review remain mandatory.
