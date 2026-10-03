@@ -41,6 +41,7 @@ src-tauri/
       network.rs
       port_provider.rs   # stable listening-port contract and query outcomes
       process.rs
+      process_provider.rs # read-only one-process inspection contract and errors
     platform/             # OS-specific adapters; conditionals stop here
       mod.rs
       macos/               # compiled only for macOS
@@ -57,7 +58,9 @@ src-tauri/
     common/
       mod.rs
       port_provider_contract.rs # reusable native-provider assertions
+      process_provider_contract.rs # reusable native process assertions
     port_provider_contract.rs   # deterministic public-contract tests
+    process_provider_contract.rs # deterministic process contract tests
     macos_port_provider.rs       # controlled native listener tests (macOS only)
   icons/icon.png          # minimal RGBA application icon required by Tauri context
 docs/
@@ -67,7 +70,9 @@ docs/
 ```
 
 The domain module contains W006 shared models and pure binding classification,
-plus the W007 stable port-provider contract. W008's `lsof` field parser stays
+plus the W007 `PortProvider` and W010 `ProcessProvider` contracts. The W010
+process contract returns `ProcessInfo` and keeps platform-wide capabilities
+separate. W008's `lsof` field parser stays
 private to the macOS adapter; W009's Win32 types, bounded aligned buffers, and
 table parser stay private to the Windows adapter. Rust integration tests
 under `src-tauri/tests/` exercise the public contract as an external crate

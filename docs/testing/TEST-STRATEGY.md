@@ -10,14 +10,14 @@ Tests never target arbitrary existing user/system processes. Integration tests c
 
 ## Layers and ownership
 
-| Layer                   | Primary target                                                                       | Expected evidence                                                            | Typical execution                             |
-| ----------------------- | ------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------- | --------------------------------------------- |
-| Unit                    | Pure normalization/classification, identity comparisons, errors, parsing, validation | Deterministic table/fixture tests without live OS state                      | Shared CI and local                           |
-| Provider contract       | `PortProvider`, `ProcessProvider`, `ProcessController` behavior                      | Same contract suite against each native implementation; differences explicit | Native macOS and Windows runners              |
-| Integration             | Real listener/process and OS adapter lifecycle                                       | Controlled listener/child process, permission/error cases, cleanup           | Native OS runner/machine                      |
-| Tauri boundary          | Input validation, DTO/enum serialization, error mapping                              | Invalid input rejected and transport representation stable/safe              | Rust boundary tests; exact framework deferred |
-| Frontend                | User-visible states/interactions/accessibility                                       | Behavior tests for loading/data/errors/actions/keyboard, limited snapshots   | Frontend runner selected at bootstrap         |
-| Reliability/performance | Repeated refresh and resource use                                                    | Recorded environment, scenario, measurements, failures/limitations           | Native systems before release claims          |
+| Layer                   | Primary target                                                                       | Expected evidence                                                                                                        | Typical execution                             |
+| ----------------------- | ------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------- |
+| Unit                    | Pure normalization/classification, identity comparisons, errors, parsing, validation | Deterministic table/fixture tests without live OS state                                                                  | Shared CI and local                           |
+| Provider contract       | `PortProvider`, `ProcessProvider`, `ProcessController` behavior                      | Deterministic doubles for shared semantics; same contract suite against each native implementation; differences explicit | Shared CI and native macOS/Windows runners    |
+| Integration             | Real listener/process and OS adapter lifecycle                                       | Controlled listener/child process, permission/error cases, cleanup                                                       | Native OS runner/machine                      |
+| Tauri boundary          | Input validation, DTO/enum serialization, error mapping                              | Invalid input rejected and transport representation stable/safe                                                          | Rust boundary tests; exact framework deferred |
+| Frontend                | User-visible states/interactions/accessibility                                       | Behavior tests for loading/data/errors/actions/keyboard, limited snapshots                                               | Frontend runner selected at bootstrap         |
+| Reliability/performance | Repeated refresh and resource use                                                    | Recorded environment, scenario, measurements, failures/limitations                                                       | Native systems before release claims          |
 
 Pure behavior belongs below Tauri. Commands should have little direct logic and only boundary-focused tests. Frontend tests must not mock away every behavior; use component/contract-level data to prove user-visible states while backend behavior is separately tested.
 
@@ -29,7 +29,7 @@ Use deterministic input tables for IPv4/IPv6 loopback, wildcard, specific non-lo
 
 ## Provider contracts and native integration
 
-Run equivalent provider behavior contracts against `MacOSPortProvider` and `WindowsPortProvider` on their native OS. Contracts cover controlled random-port TCP listener discovery/close, normalized protocol/address/port, ownership where available, controlled process identity and supported metadata, and explicit unavailable outcomes. Controller contracts use only a test-created child process and cover graceful/force stop, mismatch, disappearance, permission denial, unsupported action, and revalidation failure.
+W007 and W010 contract tests use deterministic provider doubles to verify shared port/process semantics without live OS access. Future native implementations must run equivalent behavior assertions on macOS and Windows. Process-provider semantics include requested PID preservation, normalized `ProcessInfo`, explicit per-field unavailability, and query-level disappearance/failure. Native process integration will use only test-created child processes and must cover identity, supported metadata, and unavailable outcomes. Controller contracts use only a test-created child process and cover graceful/force stop, mismatch, disappearance, permission denial, unsupported action, and revalidation failure.
 
 Mocks/fakes establish application orchestration deterministically but do not replace native integration. Compilation alone is not platform validation. Do not claim parity where an OS cannot provide a capability; document and test the supported/unavailable result.
 

@@ -94,11 +94,14 @@ without changing the shared `PortProvider` or domain types.
 
 ## `ProcessProvider`
 
-Responsibility: inspect one process identity and return normalized metadata/capability outcomes. It does not select UI presentation or perform actions.
+Responsibility: inspect one process identifier and return normalized process metadata. Platform-wide capabilities and process-action outcomes remain separate. It does not select UI presentation or perform actions.
 
-- Input: observed process identifier and identity evidence when available.
-- Output: identity plus field-level metadata availability for name, executable path, command/arguments, working directory, and only other fields required by scheduled requirements.
-- Errors: per-field permission/unsupported/inaccessible states remain field-level; a disappeared process and provider failure remain query-level semantic outcomes.
+- Contract: synchronous, object-safe `ProcessProvider::inspect(ProcessId)` returns `Result<ProcessInfo, ProcessProviderError>` and is `Send + Sync`, matching W007's provider composition convention.
+- Input: one observed `ProcessId`; process names are never lookup keys.
+- Output: W006 `ProcessInfo`, whose identity PID must match the requested PID and whose name, executable path, start time, command arguments, and working directory preserve field-level availability.
+- Errors: a missing process or detected exit during inspection is `ProcessDisappeared`. Per-field permission/unsupported/inaccessible states remain successful field availability while process existence is established; whole-query denial and provider/OS failures are operation errors.
+- PID is a lookup key, not durable process identity. Returned identity evidence can support later reasoning, but equality is not authorization for a destructive action.
+- Platform-wide `PlatformCapabilities` is separate from this per-process result. W010 adds no capability query or action support to `ProcessProvider`.
 - Do not implement CPU/memory/uptime, process tree, project-root, or Git enrichment as part of P0 unless their requirement work is separately scheduled.
 
 ## `ProcessController`

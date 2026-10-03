@@ -8,6 +8,7 @@ use thaa_lib::domain::port_provider::{PortProvider, PortScanCompleteness};
 
 /// Requires a successful query and returns the matching listener together
 /// with scan completeness so callers cannot discard partial-result status.
+#[allow(dead_code)] // Shared by separate integration-test targets with different cases.
 pub(crate) fn assert_listener_discovered(
     provider: &dyn PortProvider,
     address: IpAddr,

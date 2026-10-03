@@ -26,6 +26,8 @@ sequenceDiagram
 
 The application may enrich resolved listener owners through `ProcessProvider`, retaining unavailable metadata rather than failing the whole snapshot. Search/filter is a frontend view operation over returned listener/process presentation data and does not change process state.
 
+W010 defines the platform-neutral `ProcessProvider::inspect(ProcessId)` contract. A successful query returns W006 `ProcessInfo`, including explicit per-field availability; a missing process or detected disappearance during inspection is a stable query-level error. The provider returns one process only, does not enumerate processes, and does not perform identity authorization or actions. The application combines port ownership PIDs with process metadata later; neither port provider performs process enrichment. Platform-wide capabilities remain separate from per-process metadata.
+
 For `PortProvider`, a complete empty result means a successful query with no
 listeners; a partial result carries a failure category; a query-level error is
 not converted to an empty list. The provider contract is synchronous, so the
