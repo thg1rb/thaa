@@ -67,13 +67,13 @@ At the transport boundary, expose only a stable category and safe user message. 
 
 ## Platform capabilities
 
-`PlatformCapabilities` currently describes platform-wide support for command
-argument reads, working-directory reads, graceful stop, and force stop using
+`PlatformCapabilities` describes platform-wide support for command argument
+reads, working-directory reads, graceful stop, and force stop using
 `CapabilitySupport::{Supported, Unsupported}`. Parent-process access is P1
 and is not included. These flags do not assert that a particular process is
-readable or actionable; per-process outcomes remain authoritative. W010 keeps
-this platform-wide value separate from `ProcessInfo`; no capability query or
-action-support result is added to `ProcessProvider`.
+readable or actionable; per-process outcomes remain authoritative. The
+`PlatformCapabilitiesProvider` port in `domain::capabilities` exposes this value independently of
+`ProcessProvider`.
 
 ## Binding scope
 
@@ -88,19 +88,31 @@ does not establish interface reachability, LAN access, or Internet exposure.
 The classifier does no interface enumeration and supports FR-003/PR-009
 without implementing collection or the fuller P2 network-awareness feature.
 
-## Future process actions and results
+## Identity-bound process actions
 
-W006 does not implement process actions or action-result types. When those are
-introduced, product-level actions are `Stop` and `ForceStop`; do not expose
-Unix signal names. A stop request carries the previously observed
-`ProcessIdentity`. Immediately before action, the application asks the
-platform boundary to resolve the current process and compare every available
-stable identity signal. If signals conflict, reject the action. If the
-platform cannot establish a sufficiently safe target, report an action
-rejection/unsupported outcome instead of silently acting on PID alone. Never
-target by process name or silently escalate graceful stop to force stop.
+W012.0 adds `ProcessActionTarget`, which can only be created from an observed
+identity with positive PID and available start time. If executable path was
+observed it is carried as additional evidence. Process name, arguments, and
+working directory are mutable or presentation-oriented and are excluded.
+Fresh identity validation requires the same PID and start time, and the same
+executable path when one was observed. Missing or conflicting evidence fails
+closed. Structural equality of `ProcessIdentity` remains distinct from this
+explicit policy check.
 
-`ProcessActionResult` distinguishes completed, rejected, disappeared, permission-denied, unsupported, and provider/OS failure outcomes. The UI can then refresh and show the current snapshot instead of assuming the process state.
+`ProcessController` accepts only this target plus one `ProcessAction`
+(`GracefulStop` or `ForceStop`); it has no PID-only operation. Platform
+controllers own revalidation adjacent to the native action. `Requested` means
+the OS accepted a request and does not assert that exit completed;
+`AlreadyExited` is explicit. Errors are stable and platform-neutral. W012.0
+does not implement a controller or call a destructive API.
+
+PID is not durable identity. macOS uses SDK-defined `kinfo_proc.p_starttime`
+from `sysctl(KERN_PROC_PID)` with microsecond timeval precision; the later
+signal still targets a positive PID, leaving a residual check-to-signal race.
+Windows can compare creation time and executable identity through the same
+process handle used for `TerminateProcess`, narrowing PID reuse across the
+operation. Neither policy authorizes future action without fresh platform
+validation.
 
 ## Error boundaries
 

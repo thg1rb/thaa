@@ -44,6 +44,8 @@ src-tauri/
       network.rs
       port_provider.rs   # stable listening-port contract and query outcomes
       process.rs
+      process_action.rs   # identity-bound target and shared action values
+      process_controller.rs # platform-neutral action and capability ports
       process_provider.rs # read-only one-process inspection contract and errors
     platform/             # OS-specific adapters; conditionals stop here
       mod.rs
@@ -51,7 +53,8 @@ src-tauri/
         mod.rs
         lsof.rs            # bounded invocation helper and private byte parser
         port_provider.rs   # MacOSPortProvider implementing domain contract
-        process_provider.rs # MacOSProcessProvider; bounded ps/lsof metadata
+        process_provider.rs # MacOSProcessProvider; sysctl identity and lsof metadata
+        process_identity.c # SDK-defined KERN_PROC_PID start-time extraction
       windows/             # compiled only for Windows
         mod.rs
         port_provider.rs   # GetExtendedTcpTable adapter and checked row parsing

@@ -13,6 +13,7 @@ use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use thaa_lib::application::process_inspection::inspect_processes;
 use thaa_lib::domain::metadata::{FieldAvailability, UnavailableReason};
 use thaa_lib::domain::process::ProcessId;
+use thaa_lib::domain::process_provider::ProcessProvider;
 use thaa_lib::platform::macos::process_provider::MacOSProcessProvider;
 
 struct FixtureDirectory(PathBuf);
@@ -72,6 +73,10 @@ fn inspects_controlled_non_gui_child_and_reports_disappearance_after_exit() {
         FieldAvailability::Available(start_time)
             if start_time > UNIX_EPOCH && start_time <= SystemTime::now() + Duration::from_secs(1)
     ));
+    let repeated = provider
+        .inspect(process_id)
+        .expect("same live process keeps the same SDK start-time identity");
+    assert_eq!(repeated.identity.start_time, info.identity.start_time);
     assert_eq!(
         info.identity.executable_path,
         FieldAvailability::Unavailable(UnavailableReason::ProviderLimitation)

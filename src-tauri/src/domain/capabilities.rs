@@ -18,3 +18,8 @@ pub struct PlatformCapabilities {
     pub graceful_stop: CapabilitySupport,
     pub force_stop: CapabilitySupport,
 }
+
+/// Consumer-facing access to platform-wide capabilities.
+pub trait PlatformCapabilitiesProvider: Send + Sync {
+    fn capabilities(&self) -> PlatformCapabilities;
+}

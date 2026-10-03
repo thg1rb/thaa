@@ -37,6 +37,12 @@ inspection after errors, mismatched identity handling, partial metadata, and
 empty input. They do not invoke native process APIs or establish live process
 inspection.
 
+W012.0 unit tests validate identity-bound action targets and stable outcomes
+with no destructive OS calls. Its macOS native provider regression test also
+queries a test-owned child through the SDK-backed `KERN_PROC_PID` start-time
+path; it does not signal that child. Actual controller/action tests remain
+future work and must use controlled child processes only.
+
 Mocks/fakes establish application orchestration deterministically but do not replace native integration. Compilation alone is not platform validation. Do not claim parity where an OS cannot provide a capability; document and test the supported/unavailable result.
 
 ## Tauri and frontend

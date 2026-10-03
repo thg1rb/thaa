@@ -12,22 +12,22 @@ Tests create their own sockets/processes, use ephemeral ports and controlled chi
 
 "Required" is an expected P0 behavior on each native platform; "Best Effort" allows explicit unavailable/permission outcomes where the OS prevents observation; "Capability-based" requires correct disclosure and behavior only when the platform supports the action; "Unsupported" means the platform cannot provide the capability and must report that accurately. Implementation status is recorded per platform in the final column; expected capability is not a claim of cross-platform completion.
 
-| Capability                    | macOS expectation                     | Windows expectation                   | Shared evidence                                                            | Implementation status                                                    |
-| ----------------------------- | ------------------------------------- | ------------------------------------- | -------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
-| Listening TCP discovery       | Required                              | Required                              | Controlled random-port listener appears/disappears                         | macOS native tests (W008); Windows native tests (W009)                   |
-| Protocol, local address, port | Required for discovered listeners     | Required for discovered listeners     | Normalize; cover IPv4 and IPv6 where host supports them                    | macOS IPv4/IPv6 loopback and wildcard (W008); Windows (W009)             |
-| PID ownership                 | Best Effort                           | Best Effort                           | Resolve where native provider reports owner; otherwise explicit unresolved | Controlled test process PID checked on both native providers (W008/W009) |
-| Process PID/name              | Best effort when inspectable          | Best effort when inspectable          | Controlled child contract; denied/protected state explicit                 | macOS implemented/tested (W011.1); Windows implemented/tested (W011.2)   |
-| Executable path               | Best Effort                           | Best Effort                           | Field-level available/unavailable; do not fabricate                        | macOS explicitly unavailable (W011.1); Windows implemented/tested        |
-| Start time                    | Best Effort                           | Best Effort                           | Normalize process creation evidence                                        | macOS implemented/tested (W011.1); Windows implemented/tested (W011.2)   |
-| Structured command arguments  | Best Effort                           | Best Effort                           | Preserve real argument boundaries or report unavailable                    | Unavailable on both selected providers (W011.1/W011.2)                   |
-| Working directory             | Best Effort, P0 where available       | Best Effort, P0 where available       | No project-root/Git inference                                              | macOS implemented/tested (W011.1); Windows ProviderLimitation tested     |
-| Parent PID                    | Best Effort, later P1 context         | Best Effort, later P1 context         | No P1 feature implementation in W004                                       | Not Yet Implemented                                                      |
-| Loopback/broader binding      | Required when address is determinable | Required when address is determinable | Same pure classifier and conservative labels                               | Not Yet Implemented                                                      |
-| Graceful stop                 | Capability-based                      | Capability-based                      | Explicit action/result, never silently force                               | Not Yet Implemented                                                      |
-| Force stop                    | Capability-based, explicit fallback   | Capability-based, explicit fallback   | Explicit confirmation and revalidated identity                             | Not Yet Implemented                                                      |
-| Tray access                   | macOS menu bar                        | Windows system tray                   | Platform-specific UX with shared snapshot                                  | Not Yet Implemented                                                      |
-| Permission/error states       | Required                              | Required                              | Denied/unavailable/disappeared/provider failure do not crash               | Not Yet Implemented                                                      |
+| Capability                    | macOS expectation                     | Windows expectation                              | Shared evidence                                                            | Implementation status                                                    |
+| ----------------------------- | ------------------------------------- | ------------------------------------------------ | -------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| Listening TCP discovery       | Required                              | Required                                         | Controlled random-port listener appears/disappears                         | macOS native tests (W008); Windows native tests (W009)                   |
+| Protocol, local address, port | Required for discovered listeners     | Required for discovered listeners                | Normalize; cover IPv4 and IPv6 where host supports them                    | macOS IPv4/IPv6 loopback and wildcard (W008); Windows (W009)             |
+| PID ownership                 | Best Effort                           | Best Effort                                      | Resolve where native provider reports owner; otherwise explicit unresolved | Controlled test process PID checked on both native providers (W008/W009) |
+| Process PID/name              | Best effort when inspectable          | Best effort when inspectable                     | Controlled child contract; denied/protected state explicit                 | macOS implemented/tested (W011.1); Windows implemented/tested (W011.2)   |
+| Executable path               | Best Effort                           | Best Effort                                      | Field-level available/unavailable; do not fabricate                        | macOS explicitly unavailable (W011.1); Windows implemented/tested        |
+| Start time                    | Best Effort                           | Best Effort                                      | Normalize process creation evidence                                        | macOS implemented/tested (W011.1); Windows implemented/tested (W011.2)   |
+| Structured command arguments  | Best Effort                           | Best Effort                                      | Preserve real argument boundaries or report unavailable                    | Unavailable on both selected providers (W011.1/W011.2)                   |
+| Working directory             | Best Effort, P0 where available       | Best Effort, P0 where available                  | No project-root/Git inference                                              | macOS implemented/tested (W011.1); Windows ProviderLimitation tested     |
+| Parent PID                    | Best Effort, later P1 context         | Best Effort, later P1 context                    | No P1 feature implementation in W004                                       | Not Yet Implemented                                                      |
+| Loopback/broader binding      | Required when address is determinable | Required when address is determinable            | Same pure classifier and conservative labels                               | Not Yet Implemented                                                      |
+| Graceful stop                 | Mechanism feasible; controller absent | Unsupported for arbitrary discovered processes   | Explicit action/result, never silently force                               | W012.0 policy only; no controller                                        |
+| Force stop                    | Mechanism feasible; residual PID race | Mechanism feasible with same-handle revalidation | Explicit confirmation and revalidated identity                             | W012.0 policy only; no controller                                        |
+| Tray access                   | macOS menu bar                        | Windows system tray                              | Platform-specific UX with shared snapshot                                  | Not Yet Implemented                                                      |
+| Permission/error states       | Required                              | Required                                         | Denied/unavailable/disappeared/provider failure do not crash               | Not Yet Implemented                                                      |
 
 Do not force identical native behavior where capability differs. The frontend and API must expose the documented capability/outcome; user-facing claims remain limited to evidence.
 
@@ -54,10 +54,13 @@ behavior remain future environment-specific checks. W011.1 additionally
 validates a test-owned non-GUI `/bin/sleep` child on macOS 27.0 arm64: PID,
 name, start time, working directory, explicitly unavailable executable/argv,
 W010 contract behavior, W011 orchestration, and post-exit disappearance.
-Process inspection uses bounded `/bin/ps` and `/usr/sbin/lsof` calls without
-elevation. Other macOS versions and sandbox/distribution compatibility remain
-unverified. W012 action behavior is separate future work. Compilation alone
-is insufficient.
+W012.0 validates the same child through SDK-backed `sysctl(KERN_PROC_PID)`
+start-time reads before and after metadata collection; the local SDK returned
+`kinfo_proc` with timeval microseconds. The macOS 15 CI test is required to
+confirm hosted-SDK execution. The provider uses bounded `/usr/sbin/lsof` for
+metadata and requests no elevation. Other macOS versions and
+sandbox/distribution compatibility remain unverified. W012.0 does not perform
+process actions. Compilation alone is insufficient.
 
 ## Windows native scenarios
 

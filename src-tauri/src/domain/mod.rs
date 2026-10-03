@@ -5,4 +5,6 @@ pub mod metadata;
 pub mod network;
 pub mod port_provider;
 pub mod process;
+pub mod process_action;
+pub mod process_controller;
 pub mod process_provider;
