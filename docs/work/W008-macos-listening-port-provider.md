@@ -2,8 +2,8 @@
 
 ## Status
 
-Ready for review — implementation and native macOS validation are complete;
-PR review and integration remain outstanding.
+Review complete — implementation and native macOS validation are complete;
+PR integration and post-merge verification remain outstanding.
 
 ## Objective
 
@@ -85,7 +85,8 @@ category. Raw stdout/stderr and native error details are not exposed.
       the host macOS environment.
 - [x] Architecture and platform-testing documentation distinguish macOS
       evidence from Windows implementation/support.
-- [ ] Dedicated read-only PR review completed and findings resolved.
+- [x] Dedicated read-only PR review completed; the Low flaky-absence-test
+      finding was fixed and the re-review returned no remaining findings.
 - [ ] PR merged into `develop` and post-merge checks completed.
 
 ## Validation
@@ -128,8 +129,10 @@ The dedicated read-only review reported one Low finding: the post-close
 assertion required a globally Complete scan, so an unrelated scoped IPv6 row
 could make the controlled IPv4 test flaky. The main Agent changed the targeted
 absence assertion to accept `Complete` or only the known
-`Partial(Unsupported)` scoped-address limitation while still failing on other
-partial causes. Re-review is pending.
+`Partial(Unsupported)` scoped-address limitation when the result contains an
+unresolved-address row, while still failing on other partial causes. The
+review-only re-review confirmed the correction and returned no remaining
+findings.
 
 ## Known Limitations
 
