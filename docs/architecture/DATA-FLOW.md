@@ -112,7 +112,13 @@ precise start-time identity, compares it with the identity-bound target, then
 issues exactly one positive-PID `kill(2)` request (`SIGTERM` for Graceful Stop
 or `SIGKILL` for Force Stop). It returns `Requested` on acceptance and leaves
 exit confirmation to later observation. The sysctl-to-signal PID race remains
-documented; Windows force-stop remains pending W012.2.
+documented. W012.2 implements Windows Force Stop only: it opens one process
+HANDLE, revalidates required creation-time and originally observed executable
+identity through that HANDLE, and calls `TerminateProcess` through the same
+HANDLE. Windows Graceful Stop remains explicitly unsupported. Neither
+controller waits for exit; a later fresh observation confirms it. The Windows
+same-object HANDLE property avoids retargeting a reused PID during the action
+sequence, while macOS retains its documented check-to-signal PID race.
 
 ## Refresh ownership and invariants
 
