@@ -55,4 +55,4 @@
 
 ## Current state
 
-The requirements, architecture, security, and testing baselines are established. W005 adds the Tauri/React application shell and a harmless metadata IPC smoke path. W006 adds shared domain foundations, W007 the provider contract, and W008 a macOS-only listening TCP provider. Windows provider parity, frontend port presentation, process inspection/actions, and other user-facing product capabilities remain unimplemented. See `work/` for work item status.
+The requirements, architecture, security, and testing baselines are established. W008/W009 implement native listener providers; W011 implements shared process inspection with native macOS/Windows providers; W012.1 adds an identity-checked macOS process controller. Windows process actions, Tauri process/action IPC, frontend listener/process presentation, and other user-facing product capabilities remain unimplemented. See `work/` for current work-item status.

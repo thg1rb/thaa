@@ -53,8 +53,10 @@ src-tauri/
         mod.rs
         lsof.rs            # bounded invocation helper and private byte parser
         port_provider.rs   # MacOSPortProvider implementing domain contract
-        process_provider.rs # MacOSProcessProvider; sysctl identity and lsof metadata
-        process_identity.c # SDK-defined KERN_PROC_PID start-time extraction
+        process_provider.rs # MacOSProcessProvider; lsof metadata normalization
+        process_controller.rs # identity-bound SIGTERM/SIGKILL requests and capabilities
+        process_identity.rs # shared SDK-backed KERN_PROC_PID identity query
+        process_identity.c # SDK-defined start-time query and fixed-signal shim
       windows/             # compiled only for Windows
         mod.rs
         port_provider.rs   # GetExtendedTcpTable adapter and checked row parsing
@@ -68,6 +70,7 @@ src-tauri/
       port_provider_contract.rs # reusable native-provider assertions
       process_provider_contract.rs # reusable native process assertions
     port_provider_contract.rs   # deterministic public-contract tests
+    macos_process_controller.rs # controlled-child SIGTERM/SIGKILL tests (macOS only)
     process_provider_contract.rs # deterministic process contract tests
     macos_port_provider.rs       # controlled native listener tests (macOS only)
   icons/icon.png          # minimal RGBA application icon required by Tauri context

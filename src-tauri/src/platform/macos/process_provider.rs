@@ -5,7 +5,7 @@ use std::io;
 use std::os::unix::ffi::OsStringExt;
 use std::path::PathBuf;
 use std::process::Command;
-use std::time::{Duration, SystemTime, UNIX_EPOCH};
+use std::time::Duration;
 
 use crate::domain::metadata::{FieldAvailability, UnavailableReason};
 use crate::domain::process::{ProcessId, ProcessIdentity, ProcessInfo};
@@ -14,17 +14,13 @@ use crate::domain::process_provider::{
 };
 
 use super::lsof::{run_bounded, LsofOutput, RunError, RunLimits};
+use super::process_identity::{
+    read_process_snapshot as read_snapshot, ProcessIdentityError, ProcessSnapshot,
+};
 
 const LSOF_PATH: &str = "/usr/sbin/lsof";
 const COMMAND_TIMEOUT: Duration = Duration::from_secs(10);
 const MAX_CAPTURE_BYTES: usize = 256 * 1024;
-const SYSCTL_PROCESS_ABSENT: i32 = 1;
-const SYSCTL_PERMISSION_DENIED: i32 = 2;
-
-unsafe extern "C" {
-    fn thaa_macos_process_start_time(pid: i32, seconds: *mut i64, microseconds: *mut i32) -> i32;
-}
-
 /// Read-only, best-effort process metadata inspection for macOS.
 #[derive(Debug, Clone, Copy, Default)]
 pub struct MacOSProcessProvider;
@@ -58,44 +54,20 @@ impl ProcessProvider for MacOSProcessProvider {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-struct ProcessSnapshot {
-    start_time: SystemTime,
-}
-
 fn read_process_snapshot(process_id: ProcessId) -> Result<ProcessSnapshot, ProcessProviderError> {
-    let pid = i32::try_from(process_id.get())
-        .map_err(|_| provider_error(ProcessProviderErrorKind::Unsupported))?;
-    let mut seconds = 0_i64;
-    let mut microseconds = 0_i32;
-
-    // SAFETY: the C shim accepts one positive PID, writes only the two valid
-    // output pointers supplied here, and returns a fixed status code. The shim
-    // uses the SDK-defined kinfo_proc structure and validates its length/PID.
-    let status = unsafe { thaa_macos_process_start_time(pid, &mut seconds, &mut microseconds) };
-    map_sysctl_status(status).map_err(provider_error)?;
-
-    let start_time = normalize_start_time(seconds, microseconds)
-        .ok_or_else(|| provider_error(ProcessProviderErrorKind::ParseFailure))?;
-
-    Ok(ProcessSnapshot { start_time })
-}
-
-fn map_sysctl_status(status: i32) -> Result<(), ProcessProviderErrorKind> {
-    match status {
-        0 => Ok(()),
-        SYSCTL_PROCESS_ABSENT => Err(ProcessProviderErrorKind::ProcessDisappeared),
-        SYSCTL_PERMISSION_DENIED => Err(ProcessProviderErrorKind::PermissionDenied),
-        _ => Err(ProcessProviderErrorKind::OperatingSystemFailure),
-    }
-}
-
-fn normalize_start_time(seconds: i64, microseconds: i32) -> Option<SystemTime> {
-    if seconds < 0 || !(0..1_000_000).contains(&microseconds) {
-        return None;
-    }
-    let nanos = u32::try_from(microseconds).ok()?.checked_mul(1_000)?;
-    UNIX_EPOCH.checked_add(Duration::new(seconds as u64, nanos))
+    read_snapshot(process_id).map_err(|error| {
+        let kind = match error {
+            ProcessIdentityError::InvalidPid => ProcessProviderErrorKind::Unsupported,
+            ProcessIdentityError::ProcessDisappeared => {
+                ProcessProviderErrorKind::ProcessDisappeared
+            }
+            ProcessIdentityError::PermissionDenied => ProcessProviderErrorKind::PermissionDenied,
+            ProcessIdentityError::OperatingSystemFailure => {
+                ProcessProviderErrorKind::OperatingSystemFailure
+            }
+        };
+        provider_error(kind)
+    })
 }
 
 fn invoke_lsof(process_id: ProcessId) -> Result<LsofOutput, RunError> {
@@ -308,48 +280,12 @@ fn provider_error(kind: ProcessProviderErrorKind) -> ProcessProviderError {
 #[cfg(test)]
 mod tests {
     use super::{
-        map_sysctl_status, normalize_lsof_result, normalize_os_string, normalize_path,
-        normalize_start_time, parse_lsof_metadata, LsofMetadataAvailability, LsofOutput,
+        normalize_lsof_result, normalize_os_string, normalize_path, parse_lsof_metadata,
+        LsofMetadataAvailability, LsofOutput,
     };
     use crate::domain::metadata::{FieldAvailability, UnavailableReason};
     use crate::domain::process::ProcessId;
     use std::path::PathBuf;
-    use std::time::{Duration, UNIX_EPOCH};
-
-    #[test]
-    fn maps_only_confirmed_sysctl_absence_to_process_disappeared() {
-        use crate::domain::process_provider::ProcessProviderErrorKind;
-
-        assert_eq!(map_sysctl_status(0), Ok(()));
-        assert_eq!(
-            map_sysctl_status(1),
-            Err(ProcessProviderErrorKind::ProcessDisappeared)
-        );
-        assert_eq!(
-            map_sysctl_status(2),
-            Err(ProcessProviderErrorKind::PermissionDenied)
-        );
-        assert_eq!(
-            map_sysctl_status(3),
-            Err(ProcessProviderErrorKind::OperatingSystemFailure)
-        );
-        assert_eq!(
-            map_sysctl_status(99),
-            Err(ProcessProviderErrorKind::OperatingSystemFailure)
-        );
-    }
-
-    #[test]
-    fn normalizes_sdk_process_start_time_with_microsecond_precision() {
-        assert_eq!(
-            normalize_start_time(1_700_000_000, 123_456),
-            Some(UNIX_EPOCH + Duration::new(1_700_000_000, 123_456_000))
-        );
-        assert!(normalize_start_time(-1, 0).is_none());
-        assert!(normalize_start_time(1, -1).is_none());
-        assert!(normalize_start_time(1, 1_000_000).is_none());
-    }
-
     #[test]
     fn parses_lsof_process_and_cwd_records_with_nul_fields() {
         let pid = ProcessId::new(42);

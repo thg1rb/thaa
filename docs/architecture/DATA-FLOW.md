@@ -107,6 +107,13 @@ confirmed, and offered only when supported. An unsupported graceful request
 must return `Unsupported`; it must never be translated into forced
 termination. Capability reporting does not guarantee per-target permission.
 
+W012.1's macOS adapter implements the final native step only: it re-reads
+precise start-time identity, compares it with the identity-bound target, then
+issues exactly one positive-PID `kill(2)` request (`SIGTERM` for Graceful Stop
+or `SIGKILL` for Force Stop). It returns `Requested` on acceptance and leaves
+exit confirmation to later observation. The sysctl-to-signal PID race remains
+documented; Windows force-stop remains pending W012.2.
+
 ## Refresh ownership and invariants
 
 One application-level `RefreshCoordinator` owns the canonical scan state for all consumers, including the main window and tray. UI surfaces subscribe/request snapshots; they do not start independent scanners.

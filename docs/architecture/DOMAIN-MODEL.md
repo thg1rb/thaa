@@ -104,7 +104,8 @@ explicit policy check.
 controllers own revalidation adjacent to the native action. `Requested` means
 the OS accepted a request and does not assert that exit completed;
 `AlreadyExited` is explicit. Errors are stable and platform-neutral. W012.0
-does not implement a controller or call a destructive API.
+introduced these values without an implementation; W012.1 adds the native
+macOS controller below the unchanged shared contract.
 
 PID is not durable identity. macOS uses SDK-defined `kinfo_proc.p_starttime`
 from `sysctl(KERN_PROC_PID)` with microsecond timeval precision; the later
@@ -113,6 +114,14 @@ Windows can compare creation time and executable identity through the same
 process handle used for `TerminateProcess`, narrowing PID reuse across the
 operation. Neither policy authorizes future action without fresh platform
 validation.
+
+W012.1 implements macOS Graceful Stop as a `SIGTERM` request and Force Stop as
+a separate `SIGKILL` request. It shares the provider's precise start-time
+query, requires a positive representable PID, and refuses a mismatched or
+unavailable identity. `Requested` means `kill(2)` accepted the signal; it does
+not confirm exit. The syscall still targets a PID after a separate `sysctl`
+query, so a narrow PID reuse race remains. Windows action implementation is
+still deferred to W012.2.
 
 ## Error boundaries
 
