@@ -58,8 +58,13 @@ Windows job took 9m52s total (Clippy 2m19s, tests 1m39s, Tauri release build
 4m52s); the macOS job took 5m10s (Clippy 1m02s, tests 51s, Tauri release
 build 2m48s). The Shared Quality job took 3m32s, including 2m49s to compile
 `cargo-audit`; pnpm installation took about 2s in the native jobs and was not
-the bottleneck. W008.2 records cold-cache and three warm-run timings in its
-work item after the new cache has executed on GitHub Actions.
+the bottleneck. W008.2's [work item](../work/W008.2-ci-performance-hardening.md)
+records cold PR and integrated develop cache-seed runs, plus three sequential
+warm release-profile runs. Warm median job times were 2m55s on macOS, 3m59s
+on Windows, and 39s for Shared Quality. Warm median release Tauri build steps
+were 95s on macOS and 84s on Windows. These are observations from hosted
+runners, not guaranteed timings; the work item links every source run and
+reports cache restoration and runner variance.
 
 ## Workflow security
 
