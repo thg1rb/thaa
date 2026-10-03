@@ -124,7 +124,12 @@ contract docs, accepted ADRs, and `THAA-REQ-0.1` remain unchanged.
 
 ## Review Findings
 
-Pending dedicated read-only review after PR creation.
+The dedicated read-only review reported one Low finding: the post-close
+assertion required a globally Complete scan, so an unrelated scoped IPv6 row
+could make the controlled IPv4 test flaky. The main Agent changed the targeted
+absence assertion to accept `Complete` or only the known
+`Partial(Unsupported)` scoped-address limitation while still failing on other
+partial causes. Re-review is pending.
 
 ## Known Limitations
 

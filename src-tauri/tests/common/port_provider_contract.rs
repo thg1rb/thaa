@@ -35,6 +35,7 @@ pub(crate) fn assert_listener_discovered(
 
 /// Requires a complete successful query and asserts a controlled endpoint is
 /// absent, such as after its test-owned socket has been closed.
+#[allow(dead_code)] // Shared by separate integration-test targets with different cases.
 pub(crate) fn assert_listener_absent(
     provider: &dyn PortProvider,
     address: IpAddr,
