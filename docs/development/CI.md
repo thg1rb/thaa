@@ -66,7 +66,8 @@ work item after the new cache has executed on GitHub Actions.
 The workflow grants only `contents: read` and does not persist the checkout
 credential in local Git configuration. It does not use project secrets,
 `pull_request_target`, shell commands built from PR values, release signing, or
-write-capable actions. External Actions are pinned to full commit SHAs and
+actions with repository write permission. The Rust cache action only writes
+the isolated cache scopes allowed by its event condition. External Actions are pinned to full commit SHAs and
 their upstream source, revision, purpose, and trust rationale are recorded
 below. The repository does not currently enforce SHA pinning in GitHub
 settings, so these pins are maintained in the workflow and reviewed in PRs.
