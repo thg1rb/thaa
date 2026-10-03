@@ -33,6 +33,11 @@ future coordinator runs it on a blocking worker and does not overlap scans.
 Cancellation stays at orchestration level and cannot start replacement work
 until the prior call settles.
 
+W008 implements the macOS adapter with one bounded, direct `/usr/sbin/lsof`
+invocation and a private machine-field parser. It returns normalized W006
+listeners; no Tauri command or UI currently invokes this provider. This is
+macOS implementation evidence only. Windows remains unimplemented.
+
 ## Safe process stop
 
 ```mermaid

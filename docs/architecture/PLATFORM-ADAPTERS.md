@@ -32,6 +32,35 @@ Responsibility: return a normalized snapshot of listening TCP endpoints, includi
 - Platform direction: macOS may initially isolate `lsof` invocation and parsing here, with fixed arguments, bounded execution, and a replacement path to native APIs. Windows should use a native networking API (the prompt points to IP Helper / `GetExtendedTcpTable`); PowerShell is not the permanent provider architecture.
 - Safety: no shell interpolation, no arbitrary commands, no privilege escalation.
 
+### macOS implementation evidence (W008)
+
+`platform::macos::port_provider::MacOSPortProvider` implements the shared
+contract using `/usr/sbin/lsof`. The executable path is the macOS system
+location verified on the W008 host; the provider does not search user-writable
+directories or depend on a GUI process `PATH`. It clears inherited environment
+variables and sets `LC_ALL=C`. One direct `Command` invocation uses static
+arguments `-nP -F0pftPn -a -iTCP -sTCP:LISTEN`: numeric address/port output,
+NUL field terminators, only the required fields, ANDed TCP/listening filters.
+The output parser is private to the macOS adapter and converts records to W006
+values before returning them. No shell, `sudo`, repeat mode, or native FFI is
+used.
+
+The provider bounds execution to 30 seconds and combined captured stdout/stderr
+to 16 MiB. It treats exit status 1 with empty stdout and stderr as the verified
+no-match result on the W008 host; nonzero results with usable rows become
+partial results, and malformed required records fail parsing rather than being
+silently dropped. Scoped IPv6 addresses cannot fit the W006 `IpAddr` model, so
+their listener is retained with unknown address and the scan is marked partial
+with `Unsupported`. This is an explicit model limitation, not an Internet
+reachability claim. User-level `lsof` visibility remains subject to macOS
+permissions. The contract can later be implemented using Darwin APIs without
+changing callers.
+
+W008 verified this behavior on macOS 27.0 arm64 with system `lsof` 4.91.
+Controlled IPv4 loopback, IPv4 wildcard, IPv6 loopback, and IPv6 wildcard
+listeners were discovered, with PID ownership checked for the IPv4 loopback
+test. This is macOS-only evidence; Windows remains unimplemented and untested.
+
 ## `ProcessProvider`
 
 Responsibility: inspect one process identity and return normalized metadata/capability outcomes. It does not select UI presentation or perform actions.
