@@ -12,24 +12,10 @@ use thaa_lib::domain::port_provider::{PortProvider, PortProviderErrorKind, PortS
 use thaa_lib::domain::process::ProcessId;
 use thaa_lib::platform::windows::port_provider::WindowsPortProvider;
 
-fn assert_supported_completeness(
-    provider: &WindowsPortProvider,
-    completeness: PortScanCompleteness,
-) {
+fn assert_supported_completeness(completeness: PortScanCompleteness) {
     match completeness {
         PortScanCompleteness::Complete => {}
-        PortScanCompleteness::Partial(PortProviderErrorKind::Unsupported) => {
-            let result = provider
-                .listeners()
-                .expect("the second scan should still be usable");
-            assert!(
-                result
-                    .listeners
-                    .iter()
-                    .any(|listener| listener.local_address.is_none()),
-                "Unsupported partial result should be explained by scoped IPv6 rows"
-            );
-        }
+        PortScanCompleteness::Partial(PortProviderErrorKind::Unsupported) => {}
         other => panic!("unexpected scan completeness: {other:?}"),
     }
 }
@@ -48,7 +34,7 @@ fn assert_controlled_listener(
     assert_eq!(listener.local_address, Some(address.ip()));
     assert_eq!(listener.local_port, port);
     assert_eq!(listener.owner_pid, Some(ProcessId::new(std::process::id())));
-    assert_supported_completeness(provider, completeness);
+    assert_supported_completeness(completeness);
     listener
 }
 
@@ -58,7 +44,7 @@ fn wait_for_listener_absence(provider: &WindowsPortProvider, address: IpAddr, po
         let result = provider
             .listeners()
             .expect("provider query should succeed after closing the controlled listener");
-        assert_supported_completeness(provider, result.completeness);
+        assert_supported_completeness(result.completeness);
         let still_present = result.listeners.iter().any(|listener| {
             listener.protocol == NetworkProtocol::Tcp
                 && listener.local_address == Some(address)

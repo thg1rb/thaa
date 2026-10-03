@@ -2,9 +2,9 @@
 
 ## Status
 
-In Progress — implementation is on `feat/windows-listening-port-provider`.
-Use `Done on merge` only after the reviewed PR merges and required post-merge
-CI passes.
+Done on merge — implementation and read-only review are complete on PR #23;
+the reviewed PR head must merge to `develop` and pass post-merge CI for this
+status to take effect.
 
 ## Objective
 
@@ -141,7 +141,12 @@ Do not alter frozen requirements or accepted ADRs.
 
 ## Review Findings
 
-Pending mandatory read-only review after the PR exists.
+The read-only reviewer reported one Low reliability finding: the Windows
+integration helper performed a second scan to explain `Partial(Unsupported)`,
+which could observe a different system snapshot. The helper now accepts the
+documented partial status without making a second scan; controlled endpoint,
+address, port, and PID assertions remain against the original scan. Re-review
+of the final PR head is required.
 
 ## Known Limitations
 
