@@ -41,6 +41,12 @@ src-tauri/
       network.rs
       port_provider.rs   # stable listening-port contract and query outcomes
       process.rs
+    platform/             # OS-specific adapters; conditionals stop here
+      mod.rs
+      macos/               # compiled only for macOS
+        mod.rs
+        lsof.rs            # bounded invocation helper and private byte parser
+        port_provider.rs   # MacOSPortProvider implementing domain contract
     commands/
       mod.rs
       app_info.rs         # thin command and transport DTO
@@ -49,6 +55,7 @@ src-tauri/
       mod.rs
       port_provider_contract.rs # reusable native-provider assertions
     port_provider_contract.rs   # deterministic public-contract tests
+    macos_port_provider.rs       # controlled native listener tests (macOS only)
   icons/icon.png          # minimal RGBA application icon required by Tauri context
 docs/
   architecture/           # architecture baseline and actual directory shape
@@ -57,11 +64,13 @@ docs/
 ```
 
 The domain module contains W006 shared models and pure binding classification,
-plus the W007 stable port-provider contract. Application use cases and
-platform adapter implementations remain for later work items; no empty trees
-are created. Rust integration tests under `src-tauri/tests/` exercise the
-public contract as an external crate would. The `tests/common/` assertions can
-be included by later macOS and Windows provider integration-test targets.
+plus the W007 stable port-provider contract. W008 adds the first concrete
+platform adapter under `platform/macos`; its `lsof` field parser is private to
+that adapter. No application use case, Windows adapter, process provider, or
+empty future tree is created. Rust integration tests under `src-tauri/tests/`
+exercise the public contract as an external crate would. The `tests/common/`
+assertions are reused by the macOS native integration target and are available
+to the future Windows target.
 
 The root also owns `rust-toolchain.toml` because it pins the Rust toolchain
 used by this repository's nested Tauri project. Frontend TypeScript/Vite/ESLint

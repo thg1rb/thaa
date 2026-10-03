@@ -22,9 +22,9 @@ Rust commands can also be run from `src-tauri/` without the manifest argument. U
 
 ## Tests and validation
 
-Vitest, jsdom, and Testing Library cover user-visible bootstrap states; Tauri's official mock IPC API supplies controlled responses. Rust's built-in test runner checks serialized DTO shape. This does not test OS inspection: no provider or product feature exists yet. See [test strategy](../testing/TEST-STRATEGY.md) for future contracts and native platform evidence expectations.
+Vitest, jsdom, and Testing Library cover user-visible bootstrap states; Tauri's official mock IPC API supplies controlled responses. Rust's built-in test runner covers domain/provider behavior. W008 adds deterministic `lsof` parser tests and controlled macOS native listener integration tests. Windows native provider behavior remains unimplemented and unvalidated. See [test strategy](../testing/TEST-STRATEGY.md) and [platform testing](../testing/PLATFORM-TESTING.md) for current evidence and remaining expectations.
 
-Before a W005-equivalent code PR, run formatting, lint, typecheck, Rust Clippy/tests, frontend tests/build, dependency review, and a native Tauri build on the available platform. Report unavailable-platform checks as `NOT RUN`; do not infer parity from compilation on the other OS.
+For code PRs, run formatting, lint, typecheck, Rust Clippy/tests, frontend tests/build, dependency review, and a native Tauri build on the available platform. Provider work also requires the relevant real OS integration tests. Report unavailable-platform checks as `NOT RUN`; do not infer parity from compilation on the other OS.
 
 ## Source formatting
 
