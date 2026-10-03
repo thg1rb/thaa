@@ -13,7 +13,6 @@ use windows_sys::Win32::Foundation::{
 };
 use windows_sys::Win32::System::Threading::{
     GetProcessTimes, OpenProcess, QueryFullProcessImageNameW, WaitForSingleObject,
-    PROCESS_QUERY_LIMITED_INFORMATION,
 };
 
 use crate::domain::metadata::{FieldAvailability, UnavailableReason};
