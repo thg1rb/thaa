@@ -2,9 +2,7 @@
 
 ## Status
 
-In Progress — implementation is on `feat/process-provider-contract`.
-Change to `Done on merge` on the accepted PR head after review and required CI
-are complete.
+Done on merge — PR #24 is the reviewed implementation and integration record.
 
 ## Objective
 
@@ -60,27 +58,33 @@ support to this contract. Cancellation remains above the synchronous provider.
 
 ## Acceptance Criteria
 
-- [ ] `ProcessProvider` is defined under the shared domain boundary and
+- [x] `ProcessProvider` is defined under the shared domain boundary and
       consumes one `ProcessId`.
-- [ ] Successful output reuses W006 `ProcessInfo` and preserves the requested
+- [x] Successful output reuses W006 `ProcessInfo` and preserves the requested
       PID and field-level availability.
-- [ ] Process disappearance, whole-query denial, and other provider failures
+- [x] Process disappearance, whole-query denial, and other provider failures
       are distinct, stable, and privacy-safe.
-- [ ] Contract remains synchronous, object-safe, `Send + Sync`, and free of
+- [x] Contract remains synchronous, object-safe, `Send + Sync`, and free of
       platform/runtime types.
-- [ ] Deterministic tests cover full and partial metadata, disappearance,
+- [x] Deterministic tests cover full and partial metadata, disappearance,
       permission/provider failure, native path and structured argument
       preservation, and hostile-looking metadata as inert data.
-- [ ] Reusable assertions are available to future macOS and Windows native
+- [x] Reusable assertions are available to future macOS and Windows native
       provider test targets.
-- [ ] Documentation distinguishes contract foundations from live process
+- [x] Documentation distinguishes contract foundations from live process
       inspection; no functional requirement is marked implemented.
-- [ ] Read-only review, all required CI, and post-merge integration pass.
+- [x] Read-only review completed with no findings; Shared Quality, macOS Native
+      Validation, and Windows Native Validation passed on PR #24.
+- [ ] Post-merge develop CI and clean-tree verification complete.
 
 ## Validation
 
-Record exact Rust, frontend, audit, documentation, and three-job CI results
-here after they run. Local and CI provider-contract tests use only a test
+Local checks passed: Rust format, Clippy (`-D warnings`), Rust tests, frontend
+format/lint/typecheck/tests/build, macOS Tauri no-bundle build, pnpm audit,
+Markdown links, and diff integrity. Local RustSec was not run because
+`cargo-audit` is not installed; Shared Quality passed its pinned RustSec audit
+step. PR #24 passed Shared Quality, macOS Native Validation, and Windows
+Native Validation. Local and CI provider-contract tests use only a test
 double; they do not establish native macOS or Windows process inspection.
 
 ## Security Considerations
@@ -107,7 +111,9 @@ contract. Do not alter frozen requirements or accepted ADRs.
 
 ## Review Findings
 
-Pending mandatory read-only review after the PR exists.
+Mandatory read-only review completed with no findings. The reviewer confirmed
+alignment with W003/W006/W007, deterministic tests, and no native inspection,
+process control, or frontend behavior.
 
 ## Known Limitations
 
