@@ -58,6 +58,9 @@ jobs:
       - name: Format check
         run: pnpm format:check
 
+      - name: W013 documentation format
+        run: pnpm docs:format:check
+
       - name: Lint
         run: pnpm lint
 

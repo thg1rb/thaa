@@ -18,7 +18,8 @@
     "lint": "eslint src vite.config.ts vitest.config.ts eslint.config.js",
     "typecheck": "tsc --noEmit -p tsconfig.json --pretty false && tsc --noEmit -p tsconfig.node.json --pretty false",
     "test": "vitest run",
-    "docs:check": "node scripts/check-markdown-links.mjs"
+    "docs:check": "node scripts/check-markdown-links.mjs",
+    "docs:format:check": "prettier --check docs/architecture/ARCHITECTURE.md docs/architecture/DATA-FLOW.md docs/architecture/DIRECTORY-STRUCTURE.md docs/development/CI.md docs/requirements/FUNCTIONAL-REQUIREMENTS.md docs/security/THREAT-MODEL.md docs/testing/TEST-CASES.md docs/testing/TEST-STRATEGY.md docs/work/W013-first-usable-runtime-inspector.md"
   },
   "dependencies": {
     "@tauri-apps/api": "^2",

@@ -37,6 +37,15 @@ small shared use case over caller-supplied process IDs and the W010
 success or query error stays attached to that PID. It performs no listener
 lookup, refresh scheduling, caching, or process action.
 
+W013 adds `application::runtime_inspection::RuntimeInspector`, which performs
+one port query, enriches unique owner PIDs through W011, preserves every
+listener row and its per-process result, and commits one generation-scoped
+snapshot. The same coordinator serves the main window and tray. Synchronous
+native work is dispatched to Tauri's blocking pool; React receives explicit
+transport DTOs and cannot send a PID as action authorization. Backend-held
+snapshot references resolve to W012 identity-bound targets, after which the
+platform controller still performs final native identity revalidation.
+
 ### Infrastructure and platform adapters
 
 Shared infrastructure contains platform-neutral serialization or utilities only where needed. Platform adapters implement ports, translate native results into normalized values, and keep parsing/native error details local. macOS and Windows code live in separate modules selected at composition time.

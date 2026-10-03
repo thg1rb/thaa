@@ -55,4 +55,4 @@
 
 ## Current state
 
-The requirements, architecture, security, and testing baselines are established. W008/W009 implement native listener providers; W011 implements shared process inspection with native macOS/Windows providers; W012.1 adds the identity-checked macOS process controller and W012.2 adds Windows Force Stop through same-HANDLE identity revalidation. Windows generic Graceful Stop is unsupported. Tauri process/action IPC, frontend listener/process presentation, and other user-facing product capabilities remain unimplemented. See `work/` for current work-item status.
+The requirements, architecture, security, and testing baselines are established. W013 integrates native listener discovery, process inspection, identity-checked actions, refresh, Tauri IPC, a React runtime list, and tray access into the First Usable Build. Windows generic Graceful Stop remains unsupported by design. Search/filter and P1 context remain deferred. See `work/` for current work-item status.

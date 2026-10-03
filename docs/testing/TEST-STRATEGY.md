@@ -82,7 +82,18 @@ Required gate categories when their code exists/configuration is available:
 - **Documentation:** Markdown/link/reference validation.
 - **Platforms:** native contract/integration and app build on macOS and Windows; one platform's pass never implies the other's.
 
-W005 selects Vitest 4 with jsdom and Testing Library for frontend behavior, Tauri's official mock IPC API for controlled command responses, and Rust's built-in test harness for DTO serialization. Prettier and ESLint 10 provide frontend/config formatting and linting; rustfmt and Clippy provide Rust checks. The Rust/TypeScript smoke DTO is mirrored manually and guarded by the Rust serialized-shape assertion plus frontend response fixture; generated bindings remain deferred until real contract breadth justifies them.
+W005 selected Vitest 4 with jsdom and Testing Library for frontend behavior, Tauri's official mock IPC API for controlled command responses, and Rust's built-in test harness for DTO serialization. W013 replaces the app-info smoke command with explicit runtime/action DTOs and a typed frontend client; generated bindings remain deferred until real contract breadth justifies them.
+
+W013 replaces the app-info smoke flow with explicit runtime/action DTOs and a
+typed `runtimeApi` client. Rust application tests cover snapshot composition
+and refresh coordination with deterministic provider doubles; native CI runs a
+controlled loopback-listener snapshot integration on macOS and Windows.
+Frontend behavior tests cover loading, complete empty, partial, provider error
+and retry, process metadata failure, capability-specific actions, Force Stop
+confirmation, and follow-up refresh. Native action integration tests remain
+test-owned children in the platform controller suites. Manual GUI/keyboard
+validation is separate evidence and is not inferred from component tests or a
+Tauri build.
 
 Build, required test, native contract, typecheck, lint/static, or Critical/High security failure blocks merge when applicable and configured as required. A missing required platform test is not a pass. Medium findings block if a required safety/acceptance condition remains open; other issues require disposition.
 
@@ -95,9 +106,8 @@ validation on macOS 15 arm64, and Windows validation on Windows Server 2025
 x64. Shared CI runs frontend formatting, lint/typecheck, tests/build,
 documentation links, and dependency audits. Native runners run Rust
 format/Clippy/tests and a Tauri build; macOS tests include the W008 controlled
-listener integration. Windows currently validates shared contracts and the
-application build only; W009 must add and execute Windows native provider
-tests. See [CI](../development/CI.md) and [Platform Testing](PLATFORM-TESTING.md)
+listener integration. W013 adds the native runtime snapshot integration to
+both macOS and Windows runners. See [CI](../development/CI.md) and [Platform Testing](PLATFORM-TESTING.md)
 for the actual runner/evidence boundaries. Automated checks supplement, never
 replace, the mandatory read-only Sub-agent PR review. Branch protection is not
 configured yet, so PR reviewers must verify the relevant workflow run directly.
