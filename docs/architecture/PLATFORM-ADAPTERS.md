@@ -59,7 +59,38 @@ changing callers.
 W008 verified this behavior on macOS 27.0 arm64 with system `lsof` 4.91.
 Controlled IPv4 loopback, IPv4 wildcard, IPv6 loopback, and IPv6 wildcard
 listeners were discovered, with PID ownership checked for the IPv4 loopback
-test. This is macOS-only evidence; Windows remains unimplemented and untested.
+test. This is macOS-only evidence.
+
+### Windows implementation evidence (W009)
+
+`platform::windows::port_provider::WindowsPortProvider` implements the same
+contract with Microsoft's `GetExtendedTcpTable`, using
+`TCP_TABLE_OWNER_PID_LISTENER` separately for `AF_INET` and `AF_INET6`. Its
+Windows-only `windows-sys` dependency is limited to Foundation, IpHelper, and
+WinSock APIs. The provider does not use PowerShell, `netstat`, shell execution,
+or process metadata APIs.
+
+The native buffer uses initialized, `u64`-aligned storage capped at 16 MiB.
+The provider validates sizing results, retries `ERROR_INSUFFICIENT_BUFFER` at
+most three times after the sizing call, and validates table entry counts and
+row extents before reading any field. The unsafe boundary is limited to the
+documented API calls and a bounded byte-slice view; parsing and normalization
+use checked safe byte access. API error codes map to stable W007 categories.
+
+IPv4 addresses are interpreted from their in-memory network bytes; TCP ports
+are converted from network byte order. IPv6 addresses use the API's 16-byte
+array. A nonzero IPv6 scope ID cannot be represented by W006 `IpAddr`, so the
+listener remains present with an unknown address and an explicit partial
+`Unsupported` result, consistent with W008. The API-reported PID is preserved,
+including zero, because W006 defines no PID sentinel. A successful empty pair
+of tables is a complete empty result. If one address-family query fails, rows
+from the other family are preserved as partial; if both fail, the IPv4 error
+is returned deterministically.
+
+W009's controlled native tests run in the existing GitHub-hosted
+`windows-2025` job and cover IPv4/IPv6 loopback and wildcard listeners, PID
+ownership, and post-close disappearance. This provider remains replaceable
+without changing the shared `PortProvider` or domain types.
 
 ## `ProcessProvider`
 

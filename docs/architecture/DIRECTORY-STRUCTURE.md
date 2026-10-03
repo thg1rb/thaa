@@ -47,6 +47,9 @@ src-tauri/
         mod.rs
         lsof.rs            # bounded invocation helper and private byte parser
         port_provider.rs   # MacOSPortProvider implementing domain contract
+      windows/             # compiled only for Windows
+        mod.rs
+        port_provider.rs   # GetExtendedTcpTable adapter and checked row parsing
     commands/
       mod.rs
       app_info.rs         # thin command and transport DTO
@@ -64,13 +67,11 @@ docs/
 ```
 
 The domain module contains W006 shared models and pure binding classification,
-plus the W007 stable port-provider contract. W008 adds the first concrete
-platform adapter under `platform/macos`; its `lsof` field parser is private to
-that adapter. No application use case, Windows adapter, process provider, or
-empty future tree is created. Rust integration tests under `src-tauri/tests/`
-exercise the public contract as an external crate would. The `tests/common/`
-assertions are reused by the macOS native integration target and are available
-to the future Windows target.
+plus the W007 stable port-provider contract. W008's `lsof` field parser stays
+private to the macOS adapter; W009's Win32 types, bounded aligned buffers, and
+table parser stay private to the Windows adapter. Rust integration tests
+under `src-tauri/tests/` exercise the public contract as an external crate
+would. `tests/common/` assertions are reused by both native provider targets.
 
 The root also owns `rust-toolchain.toml` because it pins the Rust toolchain
 used by this repository's nested Tauri project. Frontend TypeScript/Vite/ESLint

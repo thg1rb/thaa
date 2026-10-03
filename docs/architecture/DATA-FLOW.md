@@ -34,9 +34,13 @@ Cancellation stays at orchestration level and cannot start replacement work
 until the prior call settles.
 
 W008 implements the macOS adapter with one bounded, direct `/usr/sbin/lsof`
-invocation and a private machine-field parser. It returns normalized W006
-listeners; no Tauri command or UI currently invokes this provider. This is
-macOS implementation evidence only. Windows remains unimplemented.
+invocation and a private machine-field parser. W009 implements the Windows
+adapter with bounded `GetExtendedTcpTable` queries for IPv4 and IPv6 owner-PID
+listener rows. Both return normalized W006 listeners through the same W007
+contract; neither is currently invoked by a Tauri command or UI. W009's
+Windows behavior is validated on the native hosted Windows runner. These
+providers establish listener-discovery infrastructure, not the user-facing
+Port Monitoring feature.
 
 ## Safe process stop
 
