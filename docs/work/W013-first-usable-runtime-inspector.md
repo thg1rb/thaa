@@ -2,8 +2,9 @@
 
 ## Status
 
-In progress. First usable runtime flow is implemented locally; review, required
-CI, interactive macOS validation, PR, and integration remain outstanding.
+In progress. First usable runtime flow is implemented and PR #32 is open. The
+read-only review is complete with one P2 fix and a clean re-review; final-head
+CI and interactive macOS validation remain outstanding.
 
 ## Objective
 
@@ -191,7 +192,10 @@ be recorded before setting `Done on merge`.
 
 ## Review Findings
 
-Pending mandatory read-only review after PR creation.
+The read-only review found that an action-triggered observation could be
+dropped while another UI refresh was running. The frontend now queues one
+follow-up scan after the active scan, and a deferred-promise test verifies the
+post-action result is applied. Re-review at `e0561b1` found no remaining issues.
 
 ## Documentation Impact
 
