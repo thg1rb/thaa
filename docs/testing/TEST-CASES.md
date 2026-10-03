@@ -116,10 +116,22 @@ suite. W008 adds parser unit tests and native
 macOS evidence for the cases above. W009 adds native Windows listener/PID/
 disappearance tests and runs the shared contract suite on the Windows host.
 Provider discovery infrastructure is covered on both platforms; frozen
-user-facing `TC-001`–`TC-011` remain unimplemented until application, refresh,
-and UI work is completed.
+user-facing `TC-001`–`TC-011` receive integrated validation in W013; FR-005
+search/filter remains assigned to W014.
 
 - `TC-001`–`TC-011` remain frozen requirement anchors; this catalog does not redefine acceptance criteria.
-- Windows portions of `TC-PORT-001`–`TC-PORT-003`, `TC-PROC-*`, `TC-ACTION-*`, `TC-REFRESH-*`, and `TC-SEC-*` remain planned native contract/security evidence; W007’s deterministic contract cases are recorded above.
+- Windows portions of `TC-PORT-001`–`TC-PORT-003`, `TC-PROC-*`, and `TC-ACTION-*` have native CI evidence as recorded above. Remaining security cases still require their scheduled fixtures.
 - Each implementation PR should reference relevant FR/NFR/PR, case/threat IDs, actual platform result, and limitations.
 - No W004 case is reported as `PASS`; cases are `Planned` or `Deferred` until executable tests exist and run.
+
+## Runtime snapshot / UI integration (W013)
+
+| ID             | Scenario and expected evidence                                                                                                               | Fixture                        | Links                       | Status                                                                                                       |
+| -------------- | -------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------ | --------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| TC-RUNTIME-001 | One snapshot retains distinct listeners, deduplicates owners, preserves unknown owners/process errors, partial scan status, and capabilities | Deterministic providers        | FR-001–004, FR-006, TC-011  | Rust unit tests implemented; local pass, CI pending                                                          |
+| TC-RUNTIME-002 | Controlled loopback listener appears with correct port and owner process, then disappears from a subsequent snapshot                         | Test-owned TCP listener        | FR-001/002/006, THR-013     | macOS local pass; Windows CI pending                                                                         |
+| TC-REFRESH-001 | Concurrent initialization shares one scan; repeated refresh coalesces without overlap; superseded snapshot cannot commit                     | Barrier/call-count provider    | FR-004, NFR-005/006         | Sharing, coalescing, and supersession unit tests pass locally; CI pending                                    |
+| TC-IPC-001     | DTO field names/enums remain stable; action uses opaque backend reference and URL resolves only current observed listener                    | DTO fixtures and command tests | FR-007–009, THR-003/007/014 | DTO shape and reference validation tests pass locally; command boundary tests pending                        |
+| TC-UI-001      | Loading, success, empty, partial, safe error/retry, process metadata failure, and capability-specific controls are observable                | Vitest / Testing Library       | FR-003/004/006/008–011      | Twelve frontend behavior tests pass locally; CI pending                                                      |
+| TC-UI-002      | Force Stop requires confirmation, requested action is not called exit, and successful/already-exited outcomes request a fresh snapshot       | Mock Tauri IPC                 | FR-009/011, THR-003/004     | Confirmation, requested, mismatch, already-exited, permission, and refresh behavior pass locally; CI pending |
+| TC-TRAY-001    | Tray menu presents a compact shared snapshot projection and refresh/show/quit behavior                                                       | Native app                     | FR-010                      | Implemented; interactive validation pending                                                                  |

@@ -1,8 +1,8 @@
 # Thaa — Local Runtime Inspector
 
-Thaa is a desktop utility in active development for understanding local ports, their owning processes, and development runtimes. The Tauri 2 application shell is now bootstrapped; runtime inspection functionality has not yet been implemented.
+Thaa is a desktop utility for understanding local listening TCP ports and their owning processes. The current First Usable Build provides a runtime list, refresh, local URL/copy actions, and identity-checked process actions supported by the active platform.
 
-The current development shell displays application metadata through a local Tauri IPC smoke path. It does not inspect ports, processes, projects, or runtimes.
+Thaa runs locally. Search/filter, project/Git context, resource metrics, and runtime/framework detection remain future work.
 
 ## Run locally
 
