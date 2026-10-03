@@ -158,6 +158,7 @@ Responsibility: perform an explicitly requested graceful stop or force stop for 
 - `ProcessController` performs authoritative, fresh identity revalidation inside the platform adapter immediately before the native call. Compare PID and start time, plus executable path when it was in the observed target. Process name, command arguments, and working directory are not authorization evidence.
 - Reject a mismatch, missing revalidation evidence, unsupported action, or permission failure. Report an already-exited target distinctly.
 - Never match by name, target a group, or convert graceful-stop failure into implicit force stop. Force stop remains a separately confirmed request.
+- Action availability is capability-gated: macOS reports generic Graceful Stop and Force Stop support; Windows reports generic Graceful Stop unsupported and Force Stop supported. Unsupported Graceful Stop returns `Unsupported`; it never invokes force termination. Capability support is not a per-target permission guarantee.
 - The result `Requested` means the OS accepted a request and does not assert that the process exited. A later fresh inspection confirms state; the controller does not wait or automatically escalate.
 - Windows force-stop must revalidate and act through the same process handle. macOS positive-PID signals require a fresh identity read, but the check-to-signal PID reuse race remains residual. macOS `kill(2)` treats PID zero as the caller's process group, which is why action targets require a positive PID.
 
@@ -165,12 +166,12 @@ Responsibility: perform an explicitly requested graceful stop or force stop for 
 
 `domain::capabilities::PlatformCapabilitiesProvider` returns the existing
 `PlatformCapabilities` value. Support means a platform has a safe general
-mechanism, not that every process can be inspected or acted on. W012.0 policy: macOS
-graceful/force mechanisms are supported when start-time identity evidence is
-available; Windows graceful stop is unsupported for arbitrary discovered
-runtimes, while force stop is supported subject to rights and same-handle
-revalidation. Per-target permission and identity outcomes remain
-authoritative.
+mechanism, not that every process can be inspected or acted on. W012.0.1
+requirements: macOS graceful/force mechanisms are supported; Windows graceful
+stop is unsupported for arbitrary discovered runtimes, while force stop is
+supported subject to rights and same-handle revalidation. Per-target permission
+and identity outcomes remain authoritative. The interfaces exist, but no
+platform capability provider or process controller is implemented yet.
 
 ## Contract testability
 

@@ -205,11 +205,20 @@ may appear in detail views.
 
 Stopping processes is destructive.
 
-Prefer:
+**Graceful Stop** requests process shutdown through the platform mechanism
+intended to allow normal cleanup. Expose it only when the active platform
+capabilities report generic graceful-stop support. Unsupported means
+unavailable; it must never trigger a force-stop substitute.
 
-1. graceful stop
-2. clear confirmation where appropriate
-3. force stop only as an explicit fallback
+**Force Stop** requests forced termination through the platform mechanism.
+Keep it a separate, explicit, clearly confirmed action, and expose it only
+when force-stop capability is reported. It may be offered after a graceful
+request does not complete, but it is never invoked automatically.
+
+Before either action, require an identity-bound target and fresh platform
+revalidation of required identity evidence. Fail closed on missing or changed
+evidence. Never elevate automatically. An accepted OS request is not proof
+that the process has exited; a later observation confirms exit.
 
 Never silently kill unrelated processes.
 
@@ -468,6 +477,9 @@ struct PlatformCapabilities {
 The final shape should be decided during architecture work.
 
 The UI should respond gracefully when a capability is unavailable.
+Capability values describe general platform support; they do not guarantee
+permission for a selected process. The controller must still report
+target-specific unsupported, identity, disappearance, and permission outcomes.
 
 Example:
 
@@ -546,8 +558,8 @@ Required foundation:
 - copy URL
 - copy port
 - copy PID
-- graceful stop
-- explicit force stop fallback
+- capability-supported Graceful Stop
+- separate, explicitly confirmed Force Stop where supported; never an automatic substitute for Graceful Stop
 
 ### Tray
 
@@ -1465,12 +1477,13 @@ Do not log full sensitive command lines unnecessarily.
 
 Before stopping a process:
 
-1. verify PID still exists
-2. where practical revalidate expected identity
-3. do not assume stale scan data is current
-4. clearly distinguish graceful and force stop
-5. handle permission failures
-6. report result accurately
+1. require an identity-bound target; PID or process name alone is insufficient
+2. freshly revalidate the platform-required identity evidence immediately before acting
+3. fail closed if evidence is unavailable or mismatched; do not assume stale scan data is current
+4. expose Graceful Stop only when the platform reports support; unsupported must not fall back to force termination
+5. keep Force Stop separate, explicit, and capability-gated; do not escalate automatically
+6. never request privilege elevation automatically
+7. distinguish an accepted request from confirmed exit, and report permission/disappearance outcomes accurately
 
 Avoid “kill all matching process names” as a default action.
 

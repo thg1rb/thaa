@@ -82,6 +82,10 @@ sequenceDiagram
   participant Cmd as Tauri command
   participant UC as Stop use case
   participant Ctrl as ProcessController
+  participant Cap as PlatformCapabilitiesProvider
+  UI->>Cap: read platform capabilities
+  Cap-->>UI: supported actions
+  UI->>UI: expose only supported actions
   UI->>UI: confirm explicit action
   UI->>Cmd: action + observed identity
   Cmd->>Cmd: validate transport input
@@ -96,6 +100,12 @@ sequenceDiagram
 ```
 
 Confirmation is a frontend usability gate, not a security boundary. The backend validates and revalidates because frontend input is untrusted. A race can remain between revalidation and the native operation; implementations must report the operation outcome and refresh rather than claiming a stronger guarantee.
+
+Graceful Stop requests normal shutdown and is offered only when generic
+platform capability supports it. Force Stop is separate, explicitly
+confirmed, and offered only when supported. An unsupported graceful request
+must return `Unsupported`; it must never be translated into forced
+termination. Capability reporting does not guarantee per-target permission.
 
 ## Refresh ownership and invariants
 

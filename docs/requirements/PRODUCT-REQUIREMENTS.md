@@ -24,7 +24,7 @@ Primary users are developers and students running local services or encountering
 - **Local-first and privacy-first:** no account, cloud backend, telemetry, or remote service is required. Process and filesystem information stays local by default.
 - **Cross-platform by architecture:** macOS and Windows use isolated adapters and shared behavioral contracts.
 - **Progressive disclosure:** essential port/process information is easy to scan; sensitive or advanced command/path information is shown only when useful.
-- **Safe process control:** stopping is explicit, identity is revalidated where feasible, and force stop is a deliberate fallback.
+- **Safe process control:** expose only actions supported by the active platform capability; keep graceful and force stop distinct, and require fresh identity validation. Cross-platform parity means equivalent safe intent where native capabilities exist, not identical action availability.
 - **Explainable and conservative:** show observable evidence; represent missing data honestly; do not claim internet exposure from a wildcard bind alone.
 - **Focused utility:** no general-purpose system monitor, IDE, terminal, Git client, container manager, or automatic project execution.
 
@@ -32,7 +32,7 @@ Primary users are developers and students running local services or encountering
 
 ### P0 — initial core
 
-TCP listener discovery; address, port, and ownership mapping when available; process name/PID and available executable, command, and working-directory metadata; manual and sensible automatic refresh; search/filter; local URL and copy actions; graceful stop with explicit force-stop fallback; macOS menu-bar and Windows system-tray access; and clear loading, empty, permission, unavailable-metadata, process-ended, and error states. See the traceable acceptance criteria in [Functional Requirements](FUNCTIONAL-REQUIREMENTS.md).
+TCP listener discovery; address, port, and ownership mapping when available; process name/PID and available executable, command, and working-directory metadata; manual and sensible automatic refresh; search/filter; local URL and copy actions; capability-supported graceful and force-stop actions with separate semantics; macOS menu-bar and Windows system-tray access; and clear loading, empty, permission, unavailable-metadata, process-ended, and error states. Graceful Stop requests normal shutdown and is unavailable when the platform does not support it. Force Stop is a separate explicit request; it is never substituted automatically. See the traceable acceptance criteria in [Functional Requirements](FUNCTIONAL-REQUIREMENTS.md).
 
 ### P1 — after P0 stability
 
@@ -52,4 +52,4 @@ Unless a later requirement change is approved: cloud accounts/sync, telemetry, A
 
 ## Success and freeze
 
-P0 is successful only when users can find a listener, identify its process when the OS allows it, inspect available metadata, understand local binding conservatively, and safely use the supported actions on both macOS and Windows. The baseline is frozen as THAA-REQ-0.1; changes require a rationale, affected requirement IDs, scope/platform/security/test impact, and review before implementation. See [traceability](FUNCTIONAL-REQUIREMENTS.md#traceability) and [Product Rules](PRODUCT-RULES.md).
+P0 is successful only when users can find a listener, identify its process when the OS allows it, inspect available metadata, understand local binding conservatively, and safely use the actions supported on macOS and Windows. Platform parity means equivalent core intent where native safe capabilities exist; it does not require every platform to expose every action. The baseline identifier remains THAA-REQ-0.1; its W012.0.1 action clarification is recorded in [Product Rules](PRODUCT-RULES.md) and [Functional Requirements](FUNCTIONAL-REQUIREMENTS.md). Other changes require a rationale, affected requirement IDs, scope/platform/security/test impact, and review before implementation. See [traceability](FUNCTIONAL-REQUIREMENTS.md#traceability).
