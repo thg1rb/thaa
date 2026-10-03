@@ -28,6 +28,14 @@ The application may enrich resolved listener owners through `ProcessProvider`, r
 
 W010 defines the platform-neutral `ProcessProvider::inspect(ProcessId)` contract. A successful query returns W006 `ProcessInfo`, including explicit per-field availability; a missing process or detected disappearance during inspection is a stable query-level error. The provider returns one process only, does not enumerate processes, and does not perform identity authorization or actions. The application combines port ownership PIDs with process metadata later; neither port provider performs process enrichment. Platform-wide capabilities remain separate from per-process metadata.
 
+W011 adds the application-layer `inspect_processes` flow for arbitrary
+caller-supplied process IDs. It removes duplicate IDs while retaining
+first-seen order, calls W010 once per distinct ID, and returns a result for
+every ID. Errors do not abort later inspections because W010 does not encode
+whether an error is provider-wide; a successful response with a mismatched PID
+is converted to a per-ID `ProviderFailure`. This flow has no persistent cache
+and is callable by later snapshot orchestration without owning refresh policy.
+
 For `PortProvider`, a complete empty result means a successful query with no
 listeners; a partial result carries a failure category; a query-level error is
 not converted to an empty list. The provider contract is synchronous, so the
