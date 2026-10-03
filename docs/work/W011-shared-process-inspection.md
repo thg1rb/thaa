@@ -2,7 +2,8 @@
 
 ## Status
 
-In Progress — implementation on `feat/shared-process-inspection`.
+Done on merge — [PR #25](https://github.com/thg1rb/thaa/pull/25) is the
+reviewed implementation and integration record.
 
 ## Objective
 
@@ -62,29 +63,36 @@ orchestration. PID remains a lookup key, not process-action authorization.
 
 ## Acceptance Criteria
 
-- [ ] Application-layer use case consumes a borrowed W010 provider and a
+- [x] Application-layer use case consumes a borrowed W010 provider and a
       process-ID slice; output associates each result with its requested ID.
-- [ ] Unique IDs are inspected once in first-seen order; empty input returns
+- [x] Unique IDs are inspected once in first-seen order; empty input returns
       empty output without provider calls.
-- [ ] Success, partial metadata, disappearance, permission denial, and
+- [x] Success, partial metadata, disappearance, permission denial, and
       provider failures remain explicit per-ID results; later IDs are still
       inspected.
-- [ ] Provider identity mismatch becomes a safe per-ID `ProviderFailure`.
-- [ ] Deterministic tests cover all success, duplicates, mixed errors,
+- [x] Provider identity mismatch becomes a safe per-ID `ProviderFailure`.
+- [x] Deterministic tests cover all success, duplicates, mixed errors,
       partial metadata, empty input, mismatch, and hostile argument data.
-- [ ] Application code is synchronous, provider/platform-neutral, uncached,
+- [x] Application code is synchronous, provider/platform-neutral, uncached,
       and has no process-control, refresh, Tauri, or frontend responsibility.
-- [ ] Architecture/testing docs are accurate; frozen requirements are
+- [x] Architecture/testing docs are accurate; frozen requirements are
       unchanged and no native process functionality is claimed.
-- [ ] Read-only review, all three required CI jobs, merge, post-merge CI, and
-      clean synchronized `develop` verification complete.
+- [x] Read-only review completed with no findings; Shared Quality, macOS
+      Native Validation, and Windows Native Validation passed on PR #25.
+- [ ] Merge, post-merge CI, and clean synchronized `develop` verification
+      complete.
 
 ## Validation
 
-Pending implementation. Record actual local Rust/frontend/documentation/audit
-results, PR Shared/macOS/Windows CI, read-only review, and post-merge CI here.
-Tests use provider doubles only and do not establish native process
-inspection.
+Local checks passed: Rust format, Clippy (`-D warnings`), Rust tests (24 unit,
+3 macOS listener integration, 4 port-contract, 8 W011, and 6 W010 tests),
+frontend format/lint/typecheck/tests/build, macOS Tauri no-bundle build,
+`pnpm audit --audit-level high`, Markdown links/formatting, and diff integrity.
+Local RustSec was not run because `cargo-audit` is not installed; Shared
+Quality passed its pinned RustSec audit. PR #25 passed Shared Quality, macOS
+Native Validation, and Windows Native Validation (including shared Rust
+tests and the Windows Tauri debug build). Tests use provider doubles only for
+W011 and do not establish native process inspection.
 
 ## Security Considerations
 
@@ -109,7 +117,9 @@ provider contracts, native adapters, or frontend documentation.
 
 ## Review Findings
 
-Pending mandatory read-only review after the PR exists.
+Mandatory read-only review completed with no findings. The reviewer confirmed
+the application boundary, per-PID error preservation, deduplication and
+ordering, mismatch handling, deterministic tests, and scope.
 
 ## Known Limitations
 
