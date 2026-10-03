@@ -297,6 +297,41 @@ describe("runtime inspector", () => {
     );
   });
 
+  it("runs an action observation after a scan already in progress", async () => {
+    let resolveScan: ((value: ReturnType<typeof snapshot>) => void) | undefined;
+    let refreshCalls = 0;
+    mockIPC((command) => {
+      if (command === "get_runtime_snapshot")
+        return snapshot([row()], undefined, 1);
+      if (command === "request_process_action") return { state: "requested" };
+      if (command === "refresh_runtime_snapshot") {
+        refreshCalls += 1;
+        if (refreshCalls === 1) {
+          return new Promise<ReturnType<typeof snapshot>>((resolve) => {
+            resolveScan = resolve;
+          });
+        }
+        return snapshot([], undefined, 3);
+      }
+      return undefined;
+    });
+    render(<App />);
+    fireEvent.click(await screen.findByRole("button", { name: "Refresh" }));
+    await waitFor(() => expect(refreshCalls).toBe(1));
+    fireEvent.click(screen.getByRole("button", { name: "Stop" }));
+    expect(await screen.findByRole("status")).toHaveTextContent(
+      "Stop request sent",
+    );
+
+    await act(async () => {
+      resolveScan?.(snapshot([row()], undefined, 2));
+    });
+    await waitFor(() => expect(refreshCalls).toBe(2));
+    expect(
+      await screen.findByText("No listening TCP ports found"),
+    ).toBeInTheDocument();
+  });
+
   it("treats an already-exited result as stale data and observes again", async () => {
     let refreshes = 0;
     mockIPC((command) => {

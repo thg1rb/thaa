@@ -82,10 +82,20 @@ export default function App() {
   });
   const mounted = useRef(true);
   const refreshBusy = useRef(false);
+  const queuedActionRefresh = useRef<Promise<void> | null>(null);
+  const resolveQueuedActionRefresh = useRef<(() => void) | null>(null);
   const cancelButton = useRef<HTMLButtonElement>(null);
 
-  const refresh = useCallback(async (initial = false) => {
-    if (refreshBusy.current) return;
+  const refresh = useCallback(async (initial = false, afterCurrent = false) => {
+    if (refreshBusy.current) {
+      if (!afterCurrent) return;
+      if (!queuedActionRefresh.current) {
+        queuedActionRefresh.current = new Promise((resolve) => {
+          resolveQueuedActionRefresh.current = resolve;
+        });
+      }
+      return queuedActionRefresh.current;
+    }
     refreshBusy.current = true;
     setState((current) => ({
       ...current,
@@ -117,6 +127,17 @@ export default function App() {
       }
     } finally {
       refreshBusy.current = false;
+      if (queuedActionRefresh.current) {
+        const queued = queuedActionRefresh.current;
+        const resolve = resolveQueuedActionRefresh.current;
+        queuedActionRefresh.current = null;
+        resolveQueuedActionRefresh.current = null;
+        void refresh().then(
+          () => resolve?.(),
+          () => resolve?.(),
+        );
+        await queued;
+      }
     }
   }, []);
 
@@ -177,7 +198,7 @@ export default function App() {
         notice: message,
       }));
       if (result.state !== "failed") {
-        await refresh();
+        await refresh(false, true);
       }
     } catch {
       setState((current) => ({

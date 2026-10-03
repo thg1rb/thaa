@@ -66,6 +66,8 @@ IPv6 zones are escaped for URL formatting.
 Manual refresh and the ten-second visible-window tick call the shared
 coordinator. Only one synchronous provider scan runs at a time; concurrent
 requests coalesce to the latest generation. Superseded results are discarded.
+If an action completes during an existing UI scan, one follow-up observation
+is queued so that pre-action scan cannot be the only post-action view.
 The last good snapshot stays visible after scan failure with a safe warning.
 Tray activation/refresh requests a new shared snapshot and updates the compact
 menu. No scan is started by the tray as a separate coordinator.
