@@ -78,4 +78,14 @@ Report every check as `PASS`, `FAIL`, `BLOCKED`, `NOT APPLICABLE`, or `NOT RUN`.
 
 ## CI and review relationship
 
-Later shared CI runs formatting, lint/typecheck, shared tests, docs, and dependency checks. Native macOS and Windows runners execute their integration/contracts and builds. W004 specifies categories only; CI implementation is a later work item. Automated checks supplement, never replace, the mandatory read-only Sub-agent PR review.
+W008.1 establishes shared GitHub Actions checks on Ubuntu 24.04, macOS native
+validation on macOS 15 arm64, and Windows validation on Windows Server 2025
+x64. Shared CI runs frontend formatting, lint/typecheck, tests/build,
+documentation links, and dependency audits. Native runners run Rust
+format/Clippy/tests and a Tauri build; macOS tests include the W008 controlled
+listener integration. Windows currently validates shared contracts and the
+application build only; W009 must add and execute Windows native provider
+tests. See [CI](../development/CI.md) and [Platform Testing](PLATFORM-TESTING.md)
+for the actual runner/evidence boundaries. Automated checks supplement, never
+replace, the mandatory read-only Sub-agent PR review. Branch protection is not
+configured yet, so PR reviewers must verify the relevant workflow run directly.
