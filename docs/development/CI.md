@@ -26,7 +26,8 @@ Each job prints toolchain versions so the run log identifies the environment.
 
 ## Workflow security
 
-The workflow grants only `contents: read`. It does not use project secrets,
+The workflow grants only `contents: read` and does not persist the checkout
+credential in local Git configuration. It does not use project secrets,
 `pull_request_target`, shell commands built from PR values, release signing, or
 write-capable actions. External Actions are pinned to full commit SHAs and
 their upstream source, revision, purpose, and trust rationale are recorded
