@@ -67,9 +67,9 @@ Likelihood and impact are qualitative design-time estimates. Every mitigation an
 - **Scenario:** A process exits and its PID is reused before a stop; a name-only operation affects unrelated or multiple processes.
 - **Impact / likelihood:** Critical / Medium.
 - **Mitigation:** One identity-bound `ProcessActionTarget` only; require positive PID and platform-required start-time evidence, plus executable path when it was observed; revalidate inside `ProcessController` immediately before action; reject mismatch or missing evidence. Name, arguments, and working directory are not identity evidence. Expose only supported actions. Graceful Stop requests normal shutdown; Force Stop is separate and confirmed, never an automatic substitute or escalation.
-- **Verification:** Deterministic fake-provider identity mismatch and PID-reuse simulations; controlled child-process integration tests for match, mismatch, and disappearance; verify no unrelated process is targeted.
-- **Residual risk:** PID reuse can occur in the narrow interval after revalidation if the OS lacks atomic compare-and-act. Document per-platform limits and fail closed when confidence is insufficient.
-- **References / status:** FR-008/009; NFR-003/005; PR-005/006; W003 ADR-003 and `ProcessController`; TC-ACTION-001/002/003. **Not implemented.**
+- **Verification:** Deterministic identity/action mapping tests and controlled child-process integration tests for matching identity, mismatch refusal, SIGTERM, SIGKILL, and disappearance. W012.1 local macOS 27 arm64 evidence passes; hosted PR CI remains required. Windows native action remains future work.
+- **Residual risk:** PID reuse can occur in the narrow interval after macOS revalidation and before `kill(2)` because the action is PID-based. The controller minimizes but does not eliminate this race.
+- **References / status:** FR-008/009; NFR-003/005; PR-005/006; W003 ADR-003 and `ProcessController`; TC-ACTION-001/002/003. **macOS implementation present; Windows controller not implemented.**
 
 ### THR-004 — Scan-to-action race or stale ownership
 
@@ -79,7 +79,7 @@ Likelihood and impact are qualitative design-time estimates. Every mitigation an
 - **Mitigation:** Treat snapshots as observations, not authorization. Revalidate required target identity inside `ProcessController` immediately before action; report disappearance/mismatch/permission/unsupported errors distinctly; refresh afterward. Never infer current state from an old snapshot. A successful request is not confirmed exit.
 - **Verification:** Deterministic race fixtures for close/ownership change/process exit and stale refresh generation; safe native integration only with controlled children/listeners.
 - **Residual risk:** OS changes may still race after revalidation; action outcome may not describe later state.
-- **References / status:** FR-004/008/009/011; NFR-005/006; PR-005; W003 ADR-003/004; TC-ACTION-004, TC-REFRESH-001/002. **Not implemented.**
+- **References / status:** FR-004/008/009/011; NFR-005/006; PR-005; W003 ADR-003/004; TC-ACTION-004, TC-REFRESH-001/002. **W012.1 covers macOS controlled process action/disappearance; refresh and Windows action paths remain unimplemented.**
 
 ### THR-005 — Protected/system process action or permission failure
 
@@ -87,9 +87,9 @@ Likelihood and impact are qualitative design-time estimates. Every mitigation an
 - **Scenario:** User selects a protected/system process or inspection/stop is denied; code retries, misreports success, or destabilizes the OS.
 - **Impact / likelihood:** High / Low-to-Medium.
 - **Mitigation:** Do not target known critical OS processes; expose capability/permission outcomes; do not retry with broader rights; no automatic elevation; distinguish requested, rejected, denied, disappeared, and later-observed exit outcomes. Windows generic graceful stop is unsupported under the current model; never substitute force termination.
-- **Verification:** Injected permission/protected outcomes and safely reproducible platform denial cases; verify no escalation and accurate UI status.
+- **Verification:** Deterministic native-result mapping covers permission denial without targeting protected/system processes. Live denial, elevation, and UI behavior remain untested/deferred.
 - **Residual risk:** Platform protection signals differ and may be incomplete; unknown targets still require identity checks and explicit confirmation.
-- **References / status:** FR-008/009/011; NFR-002/005; PR-005/006; TC-PROC-002, TC-ACTION-004. **Not implemented.**
+- **References / status:** FR-008/009/011; NFR-002/005; PR-005/006; TC-PROC-002, TC-ACTION-004. **macOS result mapping implemented; Windows controller and UI behavior remain deferred.**
 
 ### THR-006 — Silent privilege escalation
 

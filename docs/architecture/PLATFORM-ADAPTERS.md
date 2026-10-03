@@ -162,6 +162,27 @@ Responsibility: perform an explicitly requested graceful stop or force stop for 
 - The result `Requested` means the OS accepted a request and does not assert that the process exited. A later fresh inspection confirms state; the controller does not wait or automatically escalate.
 - Windows force-stop must revalidate and act through the same process handle. macOS positive-PID signals require a fresh identity read, but the check-to-signal PID reuse race remains residual. macOS `kill(2)` treats PID zero as the caller's process group, which is why action targets require a positive PID.
 
+### macOS implementation evidence (W012.1)
+
+`platform::macos::MacOSProcessController` implements the W012.0 contract.
+It reuses the same SDK-backed `sysctl(KERN_PROC_PID)` start-time helper as
+`MacOSProcessProvider`, validates the observed PID/start time, and then calls
+the existing macOS C shim with a fixed action selector. The shim maps graceful
+to `SIGTERM`, force to `SIGKILL`, rejects nonpositive PIDs, captures `errno`
+immediately after a failed `kill(2)`, and returns bounded status codes. Rust
+maps `ESRCH` to `AlreadyExited`, `EPERM` to `PermissionDenied`, and `EINVAL`
+or other native errors to `OperatingSystemFailure`. It does not wait, retry,
+escalate, or claim that an accepted request means the process has exited.
+
+The fresh identity query and signal call remain separate PID-based operations.
+The controller performs no unrelated query or logging between comparison and
+signal delivery, but the narrow check-to-signal PID reuse race remains. It
+cannot revalidate an executable path; if a target carries one, shared target
+validation fails closed because the macOS provider does not supply that field.
+The controller and capability provider are implemented but are not composed
+into a Tauri command or user interface. Hosted macOS native action tests are
+required before W012.1 is complete.
+
 ## Capability reporting
 
 `domain::capabilities::PlatformCapabilitiesProvider` returns the existing
@@ -171,7 +192,10 @@ requirements: macOS graceful/force mechanisms are supported; Windows graceful
 stop is unsupported for arbitrary discovered runtimes, while force stop is
 supported subject to rights and same-handle revalidation. Per-target permission
 and identity outcomes remain authoritative. The interfaces exist, but no
-platform capability provider or process controller is implemented yet.
+Windows controller remains unimplemented. W012.1 adds
+`MacOSPlatformCapabilitiesProvider`: command-line support is Unsupported,
+working-directory, graceful-stop, and force-stop support are Supported. These
+are platform-level capabilities, not per-process guarantees.
 
 ## Contract testability
 

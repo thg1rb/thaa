@@ -2,4 +2,6 @@
 
 mod lsof;
 pub mod port_provider;
+pub mod process_controller;
+mod process_identity;
 pub mod process_provider;
