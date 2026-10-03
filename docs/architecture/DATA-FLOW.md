@@ -36,6 +36,13 @@ whether an error is provider-wide; a successful response with a mismatched PID
 is converted to a per-ID `ProviderFailure`. This flow has no persistent cache
 and is callable by later snapshot orchestration without owning refresh policy.
 
+W011.1 implements the first native `ProcessProvider` in the macOS adapter.
+It validates process presence and start-time evidence around a bounded `lsof`
+metadata query. Name and working directory are reported when the utility
+returns unambiguous values; executable path and structured arguments are
+unavailable rather than inferred. No private Apple API is used. W011 remains
+unchanged and can invoke this provider without Tauri or frontend coupling.
+
 For `PortProvider`, a complete empty result means a successful query with no
 listeners; a partial result carries a failure category; a query-level error is
 not converted to an empty list. The provider contract is synchronous, so the

@@ -104,6 +104,22 @@ Responsibility: inspect one process identifier and return normalized process met
 - Platform-wide `PlatformCapabilities` is separate from this per-process result. W010 adds no capability query or action support to `ProcessProvider`.
 - Do not implement CPU/memory/uptime, process tree, project-root, or Git enrichment as part of P0 unless their requirement work is separately scheduled.
 
+W011.1 adds `MacOSProcessProvider` behind this contract. It uses direct,
+bounded `/bin/ps` and `/usr/sbin/lsof` invocations: `ps` establishes the PID,
+process state, and second-resolution start time before and after metadata
+collection; `lsof` supplies the command name and current working directory.
+An absent PID, zombie state, or changed snapshot is `ProcessDisappeared`.
+Executable path and structured argv remain explicitly unavailable because
+this implementation does not use private `libproc` APIs or reconstruct argv
+from display text. These fields are best effort at the shared contract.
+
+The native integration fixture is a test-owned `/bin/sleep` child, not a GUI
+application. The provider is read-only, requests no elevation, clears inherited
+environment variables for subprocesses, bounds time/output, and does not
+expose raw utility output. `/bin/ps` and `/usr/sbin/lsof` are standard system
+utilities, but this mechanism's App Sandbox / Mac App Store suitability has
+not been established; the distribution channel remains a product decision.
+
 ## `ProcessController`
 
 Responsibility: perform an explicitly requested graceful stop or force stop for a revalidated process identity. It is separate from inspection so tests and permissions can distinguish read-only and destructive operations.

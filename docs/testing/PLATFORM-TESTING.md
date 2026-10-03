@@ -17,9 +17,9 @@ Tests create their own sockets/processes, use ephemeral ports and controlled chi
 | Listening TCP discovery       | Required                              | Required                              | Controlled random-port listener appears/disappears                         | macOS native tests (W008); Windows native tests (W009)                   |
 | Protocol, local address, port | Required for discovered listeners     | Required for discovered listeners     | Normalize; cover IPv4 and IPv6 where host supports them                    | macOS IPv4/IPv6 loopback and wildcard (W008); Windows (W009)             |
 | PID ownership                 | Best Effort                           | Best Effort                           | Resolve where native provider reports owner; otherwise explicit unresolved | Controlled test process PID checked on both native providers (W008/W009) |
-| Process PID/name              | Required when inspectable             | Required when inspectable             | Controlled child contract; denied/protected state explicit                 | Not Yet Implemented                                                      |
-| Executable path/command line  | Best Effort                           | Best Effort                           | Field-level available/unavailable; do not fabricate                        | Not Yet Implemented                                                      |
-| Working directory             | Best Effort, P0 where available       | Best Effort, P0 where available       | No project-root/Git inference                                              | Not Yet Implemented                                                      |
+| Process PID/name              | Best effort when inspectable          | Best effort when inspectable          | Controlled child contract; denied/protected state explicit                 | macOS implemented/tested (W011.1); Windows Not Yet Implemented           |
+| Executable path/command line  | Best Effort                           | Best Effort                           | Field-level available/unavailable; do not fabricate                        | macOS explicitly unavailable (W011.1); Windows Not Yet Implemented       |
+| Working directory             | Best Effort, P0 where available       | Best Effort, P0 where available       | No project-root/Git inference                                              | macOS implemented/tested (W011.1); Windows Not Yet Implemented           |
 | Parent PID                    | Best Effort, later P1 context         | Best Effort, later P1 context         | No P1 feature implementation in W004                                       | Not Yet Implemented                                                      |
 | Loopback/broader binding      | Required when address is determinable | Required when address is determinable | Same pure classifier and conservative labels                               | Not Yet Implemented                                                      |
 | Graceful stop                 | Capability-based                      | Capability-based                      | Explicit action/result, never silently force                               | Not Yet Implemented                                                      |
@@ -33,7 +33,7 @@ Do not force identical native behavior where capability differs. The frontend an
 
 The GitHub Actions workflow runs the full Rust suite on each native platform.
 The macOS job also checks `/usr/sbin/lsof` and runs W008 controlled-listener
-integration tests. The Windows job runs shared Rust/domain/contract tests,
+and W011.1 controlled-process integration tests. The Windows job runs shared Rust/domain/contract tests,
 W009 controlled native listener tests, and builds Thaa with the native Windows
 toolchain. Shared frontend and
 documentation checks run on Ubuntu 24.04 x64. These are GitHub-hosted runners,
@@ -48,9 +48,14 @@ mapping to the test process, IPv4 wildcard, IPv6 loopback, IPv6 wildcard, and
 NUL field parser behavior on macOS 27.0 arm64 with `/usr/sbin/lsof` 4.91.
 The provider uses fixed direct arguments and tests its bounded runner. Other
 macOS versions, real permission-denial behavior, and executable-unavailable
-behavior remain future environment-specific checks. Later work validates
-controlled process metadata and graceful/force stop; check process/descriptor
-cleanup. Compilation alone is insufficient.
+behavior remain future environment-specific checks. W011.1 additionally
+validates a test-owned non-GUI `/bin/sleep` child on macOS 27.0 arm64: PID,
+name, start time, working directory, explicitly unavailable executable/argv,
+W010 contract behavior, W011 orchestration, and post-exit disappearance.
+Process inspection uses bounded `/bin/ps` and `/usr/sbin/lsof` calls without
+elevation. Other macOS versions and sandbox/distribution compatibility remain
+unverified. W012 action behavior is separate future work. Compilation alone
+is insufficient.
 
 ## Windows native scenarios
 

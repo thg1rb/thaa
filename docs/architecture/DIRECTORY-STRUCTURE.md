@@ -51,6 +51,7 @@ src-tauri/
         mod.rs
         lsof.rs            # bounded invocation helper and private byte parser
         port_provider.rs   # MacOSPortProvider implementing domain contract
+        process_provider.rs # MacOSProcessProvider; bounded ps/lsof metadata
       windows/             # compiled only for Windows
         mod.rs
         port_provider.rs   # GetExtendedTcpTable adapter and checked row parsing
@@ -77,9 +78,10 @@ contracts; W011 process inspection deduplicates requested PIDs per invocation
 and preserves each per-PID outcome. The domain module contains W006 shared
 models and pure binding classification, plus the W007 `PortProvider` and W010
 `ProcessProvider` contracts. The W010 process contract returns `ProcessInfo`
-and keeps platform-wide capabilities separate. W008's `lsof` field parser stays
-private to the macOS adapter; W009's Win32 types, bounded aligned buffers, and
-table parser stay private to the Windows adapter. Rust integration tests
+and keeps platform-wide capabilities separate. W008's listener `lsof` field
+parser and W011.1's process metadata parsing stay private to the macOS adapter;
+W009's Win32 types, bounded aligned buffers, and table parser stay private to
+the Windows adapter. Rust integration tests
 under `src-tauri/tests/` exercise the public contract as an external crate
 would. `tests/common/` assertions are reused by both native provider targets.
 
