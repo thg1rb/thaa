@@ -120,8 +120,10 @@ a separate `SIGKILL` request. It shares the provider's precise start-time
 query, requires a positive representable PID, and refuses a mismatched or
 unavailable identity. `Requested` means `kill(2)` accepted the signal; it does
 not confirm exit. The syscall still targets a PID after a separate `sysctl`
-query, so a narrow PID reuse race remains. Windows action implementation is
-still deferred to W012.2.
+query, so a narrow PID reuse race remains. W012.2 implements Windows Force Stop
+through the same HANDLE used for identity revalidation, while Graceful Stop
+remains unsupported. Windows also returns `Requested` without waiting for
+exit.
 
 ## Error boundaries
 

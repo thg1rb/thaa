@@ -180,8 +180,34 @@ signal delivery, but the narrow check-to-signal PID reuse race remains. It
 cannot revalidate an executable path; if a target carries one, shared target
 validation fails closed because the macOS provider does not supply that field.
 The controller and capability provider are implemented but are not composed
-into a Tauri command or user interface. Hosted macOS native action tests are
-required before W012.1 is complete.
+into a Tauri command or user interface. Controlled-child tests passed on local
+macOS 27 arm64 and hosted macOS 15 arm64 CI (W012.1, PR #30).
+
+### Windows implementation evidence (W012.2)
+
+`platform::windows::WindowsProcessController` supports Force Stop only.
+Graceful Stop returns `Unsupported` without opening a process handle. Force
+Stop opens the target once with query-limited-information, terminate, and
+synchronize rights; the same RAII-owned HANDLE is used to check liveness, read
+creation time and executable path, compare observed identity, check liveness
+again, and call `TerminateProcess`. It never reopens the PID. A successful
+call returns `Requested`; a bounded test wait is not part of production
+behavior. A failed request does not retry with another handle or broader
+rights. The fixed exit code is `1`.
+
+W011.2's documented Win32 helpers are shared inside the Windows adapter. The
+handle is closed exactly once on every return path and never escapes into
+shared state. The same-HANDLE sequence continues to address the original
+process object if the numeric PID is later reused. This differs from macOS,
+where a fresh `sysctl` identity read is followed by a PID-based signal and a
+narrow residual reuse race remains. Neither implementation confirms exit from
+the controller call. Windows generic graceful stop remains unsupported.
+
+The Windows controller and capability provider are not composed into Tauri or
+a user interface. W012.2 adds controlled-child native tests for accepted
+force request/exit code, identity and executable mismatch refusal, graceful
+unsupported behavior, and already-exited handling; hosted Windows CI evidence
+must be recorded against the final PR head.
 
 ## Capability reporting
 
@@ -191,8 +217,7 @@ mechanism, not that every process can be inspected or acted on. W012.0.1
 requirements: macOS graceful/force mechanisms are supported; Windows graceful
 stop is unsupported for arbitrary discovered runtimes, while force stop is
 supported subject to rights and same-handle revalidation. Per-target permission
-and identity outcomes remain authoritative. The interfaces exist, but no
-Windows controller remains unimplemented. W012.1 adds
+and identity outcomes remain authoritative. W012.1 adds
 `MacOSPlatformCapabilitiesProvider`: command-line support is Unsupported,
 working-directory, graceful-stop, and force-stop support are Supported. These
 are platform-level capabilities, not per-process guarantees.

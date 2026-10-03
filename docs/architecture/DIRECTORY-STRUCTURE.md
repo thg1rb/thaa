@@ -60,7 +60,9 @@ src-tauri/
       windows/             # compiled only for Windows
         mod.rs
         port_provider.rs   # GetExtendedTcpTable adapter and checked row parsing
-        process_provider.rs # documented Win32 metadata and RAII-owned handle
+        process_native.rs  # shared RAII HANDLE, FILETIME/path/lifetime helpers
+        process_provider.rs # documented Win32 metadata through shared helpers
+        process_controller.rs # same-HANDLE identity-checked Force Stop
     commands/
       mod.rs
       app_info.rs         # thin command and transport DTO
@@ -88,9 +90,10 @@ models and pure binding classification, plus the W007 `PortProvider` and W010
 and keeps platform-wide capabilities separate. W008's listener `lsof` field
 parser and W011.1's process metadata parsing stay private to the macOS adapter;
 W009's Win32 types, bounded aligned buffers, and table parser stay private to
-the Windows adapter. W011.2's process HANDLE, Win32 errors, FILETIME
-conversion, and UTF-16 buffer handling also stay private to that adapter. Rust integration tests
-under `src-tauri/tests/` exercise the public contract as an external crate
+the Windows adapter. W011.2/W012.2's process HANDLE, Win32 errors, FILETIME
+conversion, and UTF-16 buffer handling stay private to that adapter.
+Inspection and action share the same internal RAII and identity-query helpers.
+Rust integration tests under `src-tauri/tests/` exercise the public contract as an external crate
 would. `tests/common/` assertions are reused by both native provider targets.
 
 The root also owns `rust-toolchain.toml` because it pins the Rust toolchain
