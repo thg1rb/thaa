@@ -15,10 +15,15 @@ use crate::domain::process_provider::{
 
 use super::lsof::{run_bounded, LsofOutput, RunError, RunLimits};
 
-const PS_PATH: &str = "/bin/ps";
 const LSOF_PATH: &str = "/usr/sbin/lsof";
 const COMMAND_TIMEOUT: Duration = Duration::from_secs(10);
 const MAX_CAPTURE_BYTES: usize = 256 * 1024;
+const SYSCTL_PROCESS_ABSENT: i32 = 1;
+const SYSCTL_PERMISSION_DENIED: i32 = 2;
+
+unsafe extern "C" {
+    fn thaa_macos_process_start_time(pid: i32, seconds: *mut i64, microseconds: *mut i32) -> i32;
+}
 
 /// Read-only, best-effort process metadata inspection for macOS.
 #[derive(Debug, Clone, Copy, Default)]
@@ -27,13 +32,10 @@ pub struct MacOSProcessProvider;
 impl ProcessProvider for MacOSProcessProvider {
     fn inspect(&self, process_id: ProcessId) -> Result<ProcessInfo, ProcessProviderError> {
         let before = read_process_snapshot(process_id)?;
-        if before.is_zombie {
-            return Err(provider_error(ProcessProviderErrorKind::ProcessDisappeared));
-        }
         let lsof_output = invoke_lsof(process_id);
         let after = read_process_snapshot(process_id)?;
 
-        if after.is_zombie || before != after {
+        if before != after {
             return Err(provider_error(ProcessProviderErrorKind::ProcessDisappeared));
         }
 
@@ -58,48 +60,46 @@ impl ProcessProvider for MacOSProcessProvider {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 struct ProcessSnapshot {
-    process_id: ProcessId,
     start_time: SystemTime,
-    is_zombie: bool,
 }
 
 fn read_process_snapshot(process_id: ProcessId) -> Result<ProcessSnapshot, ProcessProviderError> {
-    let output = invoke_ps(process_id).map_err(map_run_error)?;
-    if output.exit_code == Some(1) && output.stdout.is_empty() && output.stderr.is_empty() {
-        return Err(provider_error(ProcessProviderErrorKind::ProcessDisappeared));
-    }
-    if output.exit_code != Some(0) {
-        return Err(map_ps_failure(&output));
+    let pid = i32::try_from(process_id.get())
+        .map_err(|_| provider_error(ProcessProviderErrorKind::Unsupported))?;
+    let mut seconds = 0_i64;
+    let mut microseconds = 0_i32;
+
+    // SAFETY: the C shim accepts one positive PID, writes only the two valid
+    // output pointers supplied here, and returns a fixed status code. The shim
+    // uses the SDK-defined kinfo_proc structure and validates its length/PID.
+    let status = unsafe { thaa_macos_process_start_time(pid, &mut seconds, &mut microseconds) };
+    match status {
+        0 => {}
+        SYSCTL_PROCESS_ABSENT => {
+            return Err(provider_error(ProcessProviderErrorKind::ProcessDisappeared))
+        }
+        SYSCTL_PERMISSION_DENIED => {
+            return Err(provider_error(ProcessProviderErrorKind::PermissionDenied))
+        }
+        _ => {
+            return Err(provider_error(
+                ProcessProviderErrorKind::OperatingSystemFailure,
+            ))
+        }
     }
 
-    parse_ps_snapshot(&output.stdout, process_id)
-        .map_err(|()| provider_error(ProcessProviderErrorKind::ParseFailure))
+    let start_time = normalize_start_time(seconds, microseconds)
+        .ok_or_else(|| provider_error(ProcessProviderErrorKind::ParseFailure))?;
+
+    Ok(ProcessSnapshot { start_time })
 }
 
-fn invoke_ps(process_id: ProcessId) -> Result<LsofOutput, RunError> {
-    let mut command = Command::new(PS_PATH);
-    command
-        .args([
-            "-p",
-            &process_id.get().to_string(),
-            "-o",
-            "pid=",
-            "-o",
-            "state=",
-            "-o",
-            "lstart=",
-        ])
-        .env_clear()
-        .env("LC_ALL", "C")
-        .env("TZ", "UTC");
-
-    run_bounded(
-        command,
-        RunLimits {
-            timeout: COMMAND_TIMEOUT,
-            max_capture_bytes: MAX_CAPTURE_BYTES,
-        },
-    )
+fn normalize_start_time(seconds: i64, microseconds: i32) -> Option<SystemTime> {
+    if seconds < 0 || !(0..1_000_000).contains(&microseconds) {
+        return None;
+    }
+    let nanos = u32::try_from(microseconds).ok()?.checked_mul(1_000)?;
+    UNIX_EPOCH.checked_add(Duration::new(seconds as u64, nanos))
 }
 
 fn invoke_lsof(process_id: ProcessId) -> Result<LsofOutput, RunError> {
@@ -125,109 +125,6 @@ fn invoke_lsof(process_id: ProcessId) -> Result<LsofOutput, RunError> {
             max_capture_bytes: MAX_CAPTURE_BYTES,
         },
     )
-}
-
-fn parse_ps_snapshot(bytes: &[u8], expected_pid: ProcessId) -> Result<ProcessSnapshot, ()> {
-    let text = std::str::from_utf8(bytes).map_err(|_| ())?;
-    let mut lines = text.lines().filter(|line| !line.trim().is_empty());
-    let line = lines.next().ok_or(())?.trim();
-    if lines.next().is_some() {
-        return Err(());
-    }
-
-    let columns: Vec<_> = line.split_ascii_whitespace().collect();
-    if columns.len() != 7 {
-        return Err(());
-    }
-    let observed_pid = columns[0].parse::<u32>().map_err(|_| ())?;
-    if ProcessId::new(observed_pid) != expected_pid {
-        return Err(());
-    }
-    let state = columns[1];
-    if state.is_empty() {
-        return Err(());
-    }
-
-    let start_time = parse_lstart(&columns[2..]).ok_or(())?;
-    Ok(ProcessSnapshot {
-        process_id: expected_pid,
-        start_time,
-        is_zombie: state.starts_with('Z'),
-    })
-}
-
-fn parse_lstart(columns: &[&str]) -> Option<SystemTime> {
-    if columns.len() != 5 {
-        return None;
-    }
-
-    let month = match columns[1] {
-        "Jan" => 1,
-        "Feb" => 2,
-        "Mar" => 3,
-        "Apr" => 4,
-        "May" => 5,
-        "Jun" => 6,
-        "Jul" => 7,
-        "Aug" => 8,
-        "Sep" => 9,
-        "Oct" => 10,
-        "Nov" => 11,
-        "Dec" => 12,
-        _ => return None,
-    };
-    let year = columns[4].parse::<i64>().ok()?;
-    let day = columns[2].parse::<u32>().ok()?;
-    let (hour, minute, second) = parse_clock(columns[3])?;
-    if !(1..=31).contains(&day) || hour > 23 || minute > 59 || second > 60 {
-        return None;
-    }
-
-    let days = days_from_civil(year, month, day)?;
-    let seconds = days
-        .checked_mul(86_400)?
-        .checked_add(i64::from(hour * 3_600 + minute * 60 + second))?;
-    if seconds >= 0 {
-        UNIX_EPOCH.checked_add(Duration::from_secs(seconds as u64))
-    } else {
-        UNIX_EPOCH.checked_sub(Duration::from_secs(seconds.unsigned_abs()))
-    }
-}
-
-fn parse_clock(value: &str) -> Option<(u32, u32, u32)> {
-    let mut parts = value.split(':');
-    let hour = parts.next()?.parse().ok()?;
-    let minute = parts.next()?.parse().ok()?;
-    let second = parts.next()?.parse().ok()?;
-    if parts.next().is_some() {
-        return None;
-    }
-    Some((hour, minute, second))
-}
-
-/// Converts a Gregorian civil date to days from 1970-01-01.
-fn days_from_civil(year: i64, month: u32, day: u32) -> Option<i64> {
-    if !(1..=12).contains(&month) || !(1..=9_999).contains(&year) {
-        return None;
-    }
-    let leap = year % 4 == 0 && (year % 100 != 0 || year % 400 == 0);
-    let month_days = match month {
-        2 if leap => 29,
-        2 => 28,
-        4 | 6 | 9 | 11 => 30,
-        _ => 31,
-    };
-    if day == 0 || day > month_days {
-        return None;
-    }
-
-    let adjusted_year = year - i64::from(month <= 2);
-    let era = adjusted_year.div_euclid(400);
-    let year_of_era = adjusted_year - era * 400;
-    let adjusted_month = i64::from(month) + if month > 2 { -3 } else { 9 };
-    let day_of_year = (153 * adjusted_month + 2) / 5 + i64::from(day) - 1;
-    let day_of_era = year_of_era * 365 + year_of_era / 4 - year_of_era / 100 + day_of_year;
-    Some(era * 146_097 + day_of_era - 719_468)
 }
 
 #[derive(Debug, Default, PartialEq, Eq)]
@@ -408,30 +305,6 @@ fn contains_permission_denial(stderr: &[u8]) -> bool {
         })
 }
 
-fn map_ps_failure(output: &LsofOutput) -> ProcessProviderError {
-    if contains_permission_denial(&output.stderr) {
-        provider_error(ProcessProviderErrorKind::PermissionDenied)
-    } else {
-        provider_error(ProcessProviderErrorKind::OperatingSystemFailure)
-    }
-}
-
-fn map_run_error(error: RunError) -> ProcessProviderError {
-    let kind = match error {
-        RunError::Io(error) if error.kind() == io::ErrorKind::NotFound => {
-            ProcessProviderErrorKind::MechanismUnavailable
-        }
-        RunError::Io(error) if error.kind() == io::ErrorKind::PermissionDenied => {
-            ProcessProviderErrorKind::PermissionDenied
-        }
-        RunError::Io(_) | RunError::TimedOut => ProcessProviderErrorKind::OperatingSystemFailure,
-        RunError::OutputLimitExceeded | RunError::ReaderFailed => {
-            ProcessProviderErrorKind::ProviderFailure
-        }
-    };
-    provider_error(kind)
-}
-
 fn provider_error(kind: ProcessProviderErrorKind) -> ProcessProviderError {
     ProcessProviderError::new(kind)
 }
@@ -439,37 +312,23 @@ fn provider_error(kind: ProcessProviderErrorKind) -> ProcessProviderError {
 #[cfg(test)]
 mod tests {
     use super::{
-        days_from_civil, normalize_lsof_result, normalize_os_string, normalize_path,
-        parse_lsof_metadata, parse_lstart, parse_ps_snapshot, LsofMetadataAvailability, LsofOutput,
+        normalize_lsof_result, normalize_os_string, normalize_path, normalize_start_time,
+        parse_lsof_metadata, LsofMetadataAvailability, LsofOutput,
     };
     use crate::domain::metadata::{FieldAvailability, UnavailableReason};
     use crate::domain::process::ProcessId;
     use std::path::PathBuf;
-    use std::time::{SystemTime, UNIX_EPOCH};
+    use std::time::{Duration, UNIX_EPOCH};
 
     #[test]
-    fn parses_documented_utc_ps_start_time_and_gregorian_leap_day() {
+    fn normalizes_sdk_process_start_time_with_microsecond_precision() {
         assert_eq!(
-            parse_lstart(&["Thu", "Feb", "29", "12:34:56", "2024"]),
-            Some(UNIX_EPOCH + std::time::Duration::from_secs(1_709_210_096))
+            normalize_start_time(1_700_000_000, 123_456),
+            Some(UNIX_EPOCH + Duration::new(1_700_000_000, 123_456_000))
         );
-        assert!(parse_lstart(&["Thu", "Feb", "29", "12:34:56", "2023"]).is_none());
-        assert!(parse_lstart(&["Thu", "Foo", "29", "12:34:56", "2024"]).is_none());
-    }
-
-    #[test]
-    fn parses_ps_identity_and_rejects_mismatched_pid_or_bad_layout() {
-        let pid = ProcessId::new(42);
-        let bytes = b" 42 S Thu Feb 29 12:34:56 2024\n";
-        let parsed = parse_ps_snapshot(bytes, pid).expect("valid ps row");
-        assert_eq!(parsed.process_id, pid);
-        assert_eq!(
-            parsed.start_time,
-            parse_lstart(&["Thu", "Feb", "29", "12:34:56", "2024"]).unwrap()
-        );
-        assert!(!parsed.is_zombie);
-        assert!(parse_ps_snapshot(bytes, ProcessId::new(43)).is_err());
-        assert!(parse_ps_snapshot(b"42 S malformed\n", pid).is_err());
+        assert!(normalize_start_time(-1, 0).is_none());
+        assert!(normalize_start_time(1, -1).is_none());
+        assert!(normalize_start_time(1, 1_000_000).is_none());
     }
 
     #[test]
@@ -576,22 +435,6 @@ mod tests {
         assert_eq!(
             result.working_directory,
             FieldAvailability::Unavailable(UnavailableReason::PermissionDenied)
-        );
-    }
-
-    #[test]
-    fn civil_date_conversion_handles_epoch_and_rejects_invalid_dates() {
-        assert_eq!(days_from_civil(1970, 1, 1), Some(0));
-        assert_eq!(days_from_civil(1969, 12, 31), Some(-1));
-        assert_eq!(days_from_civil(2024, 2, 30), None);
-        let before_epoch = parse_lstart(&["Wed", "Dec", "31", "23:59:59", "1969"]);
-        assert_eq!(
-            before_epoch,
-            UNIX_EPOCH.checked_sub(std::time::Duration::from_secs(1))
-        );
-        assert_eq!(
-            UNIX_EPOCH.checked_add(std::time::Duration::from_secs(0)),
-            Some(SystemTime::UNIX_EPOCH)
         );
     }
 }

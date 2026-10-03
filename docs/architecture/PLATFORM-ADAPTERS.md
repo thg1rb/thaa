@@ -131,35 +131,46 @@ Responsibility: inspect one process identifier and return normalized process met
 - Platform-wide `PlatformCapabilities` is separate from this per-process result. W010 adds no capability query or action support to `ProcessProvider`.
 - Do not implement CPU/memory/uptime, process tree, project-root, or Git enrichment as part of P0 unless their requirement work is separately scheduled.
 
-W011.1 adds `MacOSProcessProvider` behind this contract. It uses direct,
-bounded `/bin/ps` and `/usr/sbin/lsof` invocations: `ps` establishes the PID,
-process state, and second-resolution start time before and after metadata
-collection; `lsof` supplies the command name and current working directory.
-An absent PID, zombie state, or changed snapshot is `ProcessDisappeared`.
-Executable path and structured argv remain explicitly unavailable because
-this implementation does not use private `libproc` APIs or reconstruct argv
-from display text. These fields are best effort at the shared contract.
+W011.1 adds `MacOSProcessProvider` behind this contract. W012.0 replaces its
+second-resolution `/bin/ps lstart` snapshot identity with a narrow
+`sysctl(KERN_PROC_PID)` query compiled against the active macOS SDK's
+`kinfo_proc` definition. The query validates returned size and PID, rejects
+zombie records, and reads `p_starttime` at timeval precision before and after
+the bounded `lsof` metadata query. `lsof` supplies the command name and
+working directory. Executable path and structured argv remain unavailable;
+the provider does not use private `libproc` APIs or reconstruct argv from
+display text. Apple documents `sysctl` process-table selectors in its
+[sysctl manual](https://developer.apple.com/library/archive/documentation/System/Conceptual/ManPages_iPhoneOS/man3/sysctlnametomib.3.html).
 
 The native integration fixture is a test-owned `/bin/sleep` child, not a GUI
 application. The provider is read-only, requests no elevation, clears inherited
 environment variables for subprocesses, bounds time/output, and does not
-expose raw utility output. `/bin/ps` and `/usr/sbin/lsof` are standard system
-utilities, but this mechanism's App Sandbox / Mac App Store suitability has
+expose raw utility output. `/usr/sbin/lsof` is a standard system utility and
+the identity query uses the documented BSD `sysctl` interface, but this
+mechanism's App Sandbox / Mac App Store suitability has
 not been established; the distribution channel remains a product decision.
 
 ## `ProcessController`
 
 Responsibility: perform an explicitly requested graceful stop or force stop for a revalidated process identity. It is separate from inspection so tests and permissions can distinguish read-only and destructive operations.
 
-- Input includes the expected observed identity and one explicit action.
-- `ProcessController` performs the authoritative identity revalidation inside the platform adapter immediately before the native call. It compares all available stable evidence (PID plus name/executable/start time where observable); a separate earlier `ProcessProvider` inspection is not sufficient authorization to act.
-- Reject a mismatch, insufficient target confidence, unsupported action, or permission failure. Report process disappearance distinctly.
+- Input is a `ProcessActionTarget` created from an observed `ProcessIdentity`, plus one explicit `ProcessAction`. The target requires a positive PID and available start time; it carries an executable path when observed. PID zero cannot be represented as an action target.
+- `ProcessController` performs authoritative, fresh identity revalidation inside the platform adapter immediately before the native call. Compare PID and start time, plus executable path when it was in the observed target. Process name, command arguments, and working directory are not authorization evidence.
+- Reject a mismatch, missing revalidation evidence, unsupported action, or permission failure. Report an already-exited target distinctly.
 - Never match by name, target a group, or convert graceful-stop failure into implicit force stop. Force stop remains a separately confirmed request.
-- Keep no avoidable asynchronous work between revalidation and the native action. If the OS does not offer an atomic compare-and-act operation, document that residual race, report the operation result, and require fresh inspection rather than claiming certainty about later state.
+- The result `Requested` means the OS accepted a request and does not assert that the process exited. A later fresh inspection confirms state; the controller does not wait or automatically escalate.
+- Windows force-stop must revalidate and act through the same process handle. macOS positive-PID signals require a fresh identity read, but the check-to-signal PID reuse race remains residual. macOS `kill(2)` treats PID zero as the caller's process group, which is why action targets require a positive PID.
 
 ## Capability reporting
 
-Expose only current/near-term P0-relevant support: command-line, working directory, parent process (near-term P1), graceful stop, and force stop. Keep platform-wide support distinct from per-process permission/result. Frontend presentation uses the returned capability/outcome to disable or explain actions; the backend remains authoritative and revalidates every request.
+`domain::capabilities::PlatformCapabilitiesProvider` returns the existing
+`PlatformCapabilities` value. Support means a platform has a safe general
+mechanism, not that every process can be inspected or acted on. W012.0 policy: macOS
+graceful/force mechanisms are supported when start-time identity evidence is
+available; Windows graceful stop is unsupported for arbitrary discovered
+runtimes, while force stop is supported subject to rights and same-handle
+revalidation. Per-target permission and identity outcomes remain
+authoritative.
 
 ## Contract testability
 

@@ -66,7 +66,7 @@ Likelihood and impact are qualitative design-time estimates. Every mitigation an
 - **Asset / boundary:** User/system safety; stale displayed identity → `ProcessController`.
 - **Scenario:** A process exits and its PID is reused before a stop; a name-only operation affects unrelated or multiple processes.
 - **Impact / likelihood:** Critical / Medium.
-- **Mitigation:** Never target by name/group. Carry observed `ProcessIdentity`; immediately before the native action revalidate PID and all available stable signals (executable, start time, name); reject mismatch or insufficient confidence; keep graceful and force stop explicit.
+- **Mitigation:** Never target by name/group. Carry identity-bound `ProcessActionTarget`; require positive PID and start-time evidence, plus executable path when it was observed; revalidate inside `ProcessController` immediately before action; reject mismatch or missing evidence. Name, arguments, and working directory are not identity evidence. Keep graceful and force stop explicit.
 - **Verification:** Deterministic fake-provider identity mismatch and PID-reuse simulations; controlled child-process integration tests for match, mismatch, and disappearance; verify no unrelated process is targeted.
 - **Residual risk:** PID reuse can occur in the narrow interval after revalidation if the OS lacks atomic compare-and-act. Document per-platform limits and fail closed when confidence is insufficient.
 - **References / status:** FR-008/009; NFR-003/005; PR-005/006; W003 ADR-003 and `ProcessController`; TC-ACTION-001/002/003. **Not implemented.**

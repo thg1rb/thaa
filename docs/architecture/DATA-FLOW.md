@@ -51,6 +51,13 @@ object checks before and after queries report a process that exits during
 inspection as `ProcessDisappeared`. The handle is closed before returning and
 is not stored in shared state. W011 and the W010 contract remain unchanged.
 
+W012.0 defines identity-bound process action values and the
+`ProcessController` and `PlatformCapabilitiesProvider` ports. Action targets
+require a positive PID and observed start time; platform adapters must
+revalidate identity immediately before acting. `Requested` reports request
+acceptance, not confirmed exit. No controller or destructive operation is
+implemented in W012.0.
+
 For `PortProvider`, a complete empty result means a successful query with no
 listeners; a partial result carries a failure category; a query-level error is
 not converted to an empty list. The provider contract is synchronous, so the
