@@ -21,8 +21,40 @@ code and application build run on Windows.
 
 The jobs use `.node-version`, `packageManager` in `package.json`, and
 `rust-toolchain.toml` with the committed lockfiles. pnpm's store may be cached
-by its lockfile-derived key. Build outputs are not shared between runners.
-Each job prints toolchain versions so the run log identifies the environment.
+by its lockfile-derived key. Rust dependencies and build artifacts are cached
+with `Swatinem/rust-cache` separately on each operating system. The action
+targets `src-tauri/target`; its key includes the runner OS/architecture, Rust
+toolchain, Cargo manifests and lockfile, and explicit cache key where used.
+Pull requests can restore a compatible base-branch cache but cannot write the
+develop cache. Only trusted pushes to `develop` save Rust caches. A cache miss
+does not skip any check and must build successfully from the lockfile.
+
+Pull requests run `pnpm tauri build --debug --no-bundle` to validate frontend
+and native application integration with the faster development profile.
+Pushes to `develop` and manual workflow runs use the release profile via
+`pnpm tauri build --no-bundle`. Native formatting, Clippy, Rust tests, and
+macOS provider integration tests remain required on pull requests. Frontend
+lint, typecheck, unit tests, and documentation checks run once in Shared
+Quality; native jobs still install frontend dependencies because Tauri invokes
+the frontend production build.
+
+The Shared Quality job also caches the pinned `cargo-audit` 0.22.2 binary and
+its dependencies. It verifies the binary version on each run and installs that
+exact version if the cache is cold. Both RustSec target audits still execute;
+the cache affects setup time only. Each job prints runner and toolchain
+versions so the run log identifies the environment. Build outputs are never
+shared between operating systems.
+
+### Performance baseline and measurement
+
+The W008.1 baseline comes from [CI run 37093143837](https://github.com/thg1rb/thaa/actions/runs/37093143837),
+which validated PR #20 at `963a01bfb51718c6f116022240489ca09b758b70`. The
+Windows job took 9m52s total (Clippy 2m19s, tests 1m39s, Tauri release build
+4m52s); the macOS job took 5m10s (Clippy 1m02s, tests 51s, Tauri release
+build 2m48s). The Shared Quality job took 3m32s, including 2m49s to compile
+`cargo-audit`; pnpm installation took about 2s in the native jobs and was not
+the bottleneck. W008.2 records cold-cache and three warm-run timings in its
+work item after the new cache has executed on GitHub Actions.
 
 ## Workflow security
 
@@ -34,11 +66,12 @@ their upstream source, revision, purpose, and trust rationale are recorded
 below. The repository does not currently enforce SHA pinning in GitHub
 settings, so these pins are maintained in the workflow and reviewed in PRs.
 
-| Action               | Upstream revision                                     | Purpose and trust rationale                                                              |
-| -------------------- | ----------------------------------------------------- | ---------------------------------------------------------------------------------------- |
-| `actions/checkout`   | `3d3c42e5aac5ba805825da76410c181273ba90b1` (`v7.0.1`) | Official GitHub action to fetch the repository.                                          |
-| `actions/setup-node` | `820762786026740c76f36085b0efc47a31fe5020` (`v7.0.0`) | Official GitHub action to install the Node version declared by the repository.           |
-| `pnpm/action-setup`  | `ea17c68df8912ef543352723c149a84f56e3d413` (`v6.1.0`) | Maintained by the pnpm organization; reads the pinned pnpm version and caches its store. |
+| Action                | Upstream revision                                     | Purpose and trust rationale                                                                                                                                                     |
+| --------------------- | ----------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `actions/checkout`    | `3d3c42e5aac5ba805825da76410c181273ba90b1` (`v7.0.1`) | Official GitHub action to fetch the repository.                                                                                                                                 |
+| `actions/setup-node`  | `820762786026740c76f36085b0efc47a31fe5020` (`v7.0.0`) | Official GitHub action to install the Node version declared by the repository.                                                                                                  |
+| `pnpm/action-setup`   | `ea17c68df8912ef543352723c149a84f56e3d413` (`v6.1.0`) | Maintained by the pnpm organization; reads the pinned pnpm version and caches its store.                                                                                        |
+| `Swatinem/rust-cache` | `6323deb102c322ba6fcbdcafc7e3dddab59af2b6` (`v2.9.2`) | Rust cache action maintained by Swatinem; follows its release commit, keeps OS/toolchain/cache inputs isolated, and stores no secrets. Official Tauri CI also uses this action. |
 
 Rust dependency advisories use RustSec `cargo-audit` version `0.22.2`,
 installed with Cargo's exact-version and lockfile options. The audit runs for
