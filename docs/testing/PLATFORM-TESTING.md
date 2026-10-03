@@ -1,6 +1,6 @@
 # Platform Testing and Parity
 
-**Targets:** macOS and Windows · **Status:** W008/W009 establish native listener evidence; W012.1 macOS action tests pass locally and on hosted PR CI; W012.2 Windows action validation is pending native PR CI; user-facing monitoring/actions remain unimplemented
+**Targets:** macOS and Windows · **Status:** W008/W009 establish native listener evidence; W012.1 macOS action tests pass locally and on hosted PR CI; W012.2 Windows controlled-action tests pass on `windows-2025` PR CI; user-facing monitoring/actions remain unimplemented
 
 ## Execution requirements
 
@@ -12,22 +12,22 @@ Tests create their own sockets/processes, use ephemeral ports and controlled chi
 
 "Required" is an expected P0 behavior on each native platform; "Best Effort" allows explicit unavailable/permission outcomes where the OS prevents observation; "Capability-based" requires correct disclosure and behavior only when the platform supports the action; "Unsupported" means the platform cannot provide the capability and must report that accurately. Implementation status is recorded per platform in the final column; expected capability is not a claim of cross-platform completion.
 
-| Capability                    | macOS expectation                     | Windows expectation                              | Shared evidence                                                            | Implementation status                                                                        |
-| ----------------------------- | ------------------------------------- | ------------------------------------------------ | -------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
-| Listening TCP discovery       | Required                              | Required                                         | Controlled random-port listener appears/disappears                         | macOS native tests (W008); Windows native tests (W009)                                       |
-| Protocol, local address, port | Required for discovered listeners     | Required for discovered listeners                | Normalize; cover IPv4 and IPv6 where host supports them                    | macOS IPv4/IPv6 loopback and wildcard (W008); Windows (W009)                                 |
-| PID ownership                 | Best Effort                           | Best Effort                                      | Resolve where native provider reports owner; otherwise explicit unresolved | Controlled test process PID checked on both native providers (W008/W009)                     |
-| Process PID/name              | Best effort when inspectable          | Best effort when inspectable                     | Controlled child contract; denied/protected state explicit                 | macOS implemented/tested (W011.1); Windows implemented/tested (W011.2)                       |
-| Executable path               | Best Effort                           | Best Effort                                      | Field-level available/unavailable; do not fabricate                        | macOS explicitly unavailable (W011.1); Windows implemented/tested                            |
-| Start time                    | Best Effort                           | Best Effort                                      | Normalize process creation evidence                                        | macOS implemented/tested (W011.1); Windows implemented/tested (W011.2)                       |
-| Structured command arguments  | Best Effort                           | Best Effort                                      | Preserve real argument boundaries or report unavailable                    | Unavailable on both selected providers (W011.1/W011.2)                                       |
-| Working directory             | Best Effort, P0 where available       | Best Effort, P0 where available                  | No project-root/Git inference                                              | macOS implemented/tested (W011.1); Windows ProviderLimitation tested                         |
-| Parent PID                    | Best Effort, later P1 context         | Best Effort, later P1 context                    | No P1 feature implementation in W004                                       | Not Yet Implemented                                                                          |
-| Loopback/broader binding      | Required when address is determinable | Required when address is determinable            | Same pure classifier and conservative labels                               | Not Yet Implemented                                                                          |
-| Graceful stop                 | SIGTERM with residual PID race        | Unsupported for arbitrary discovered processes   | Explicit action/result, never silently force                               | W012.1 controller and controlled-child tests pass local/hosted CI; Windows unsupported       |
-| Force stop                    | SIGKILL with residual PID race        | TerminateProcess through same revalidated HANDLE | Explicit confirmation and revalidated identity                             | W012.1 macOS and W012.2 Windows controller tests; hosted final-head evidence per work record |
-| Tray access                   | macOS menu bar                        | Windows system tray                              | Platform-specific UX with shared snapshot                                  | Not Yet Implemented                                                                          |
-| Permission/error states       | Required                              | Required                                         | Denied/unavailable/disappeared/provider failure do not crash               | Not Yet Implemented                                                                          |
+| Capability                    | macOS expectation                     | Windows expectation                              | Shared evidence                                                            | Implementation status                                                                            |
+| ----------------------------- | ------------------------------------- | ------------------------------------------------ | -------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| Listening TCP discovery       | Required                              | Required                                         | Controlled random-port listener appears/disappears                         | macOS native tests (W008); Windows native tests (W009)                                           |
+| Protocol, local address, port | Required for discovered listeners     | Required for discovered listeners                | Normalize; cover IPv4 and IPv6 where host supports them                    | macOS IPv4/IPv6 loopback and wildcard (W008); Windows (W009)                                     |
+| PID ownership                 | Best Effort                           | Best Effort                                      | Resolve where native provider reports owner; otherwise explicit unresolved | Controlled test process PID checked on both native providers (W008/W009)                         |
+| Process PID/name              | Best effort when inspectable          | Best effort when inspectable                     | Controlled child contract; denied/protected state explicit                 | macOS implemented/tested (W011.1); Windows implemented/tested (W011.2)                           |
+| Executable path               | Best Effort                           | Best Effort                                      | Field-level available/unavailable; do not fabricate                        | macOS explicitly unavailable (W011.1); Windows implemented/tested                                |
+| Start time                    | Best Effort                           | Best Effort                                      | Normalize process creation evidence                                        | macOS implemented/tested (W011.1); Windows implemented/tested (W011.2)                           |
+| Structured command arguments  | Best Effort                           | Best Effort                                      | Preserve real argument boundaries or report unavailable                    | Unavailable on both selected providers (W011.1/W011.2)                                           |
+| Working directory             | Best Effort, P0 where available       | Best Effort, P0 where available                  | No project-root/Git inference                                              | macOS implemented/tested (W011.1); Windows ProviderLimitation tested                             |
+| Parent PID                    | Best Effort, later P1 context         | Best Effort, later P1 context                    | No P1 feature implementation in W004                                       | Not Yet Implemented                                                                              |
+| Loopback/broader binding      | Required when address is determinable | Required when address is determinable            | Same pure classifier and conservative labels                               | Not Yet Implemented                                                                              |
+| Graceful stop                 | SIGTERM with residual PID race        | Unsupported for arbitrary discovered processes   | Explicit action/result, never silently force                               | W012.1 controller and controlled-child tests pass local/hosted CI; Windows unsupported           |
+| Force stop                    | SIGKILL with residual PID race        | TerminateProcess through same revalidated HANDLE | Explicit confirmation and revalidated identity                             | W012.1 macOS; W012.2 Windows controlled child and debug Tauri build PASS, PR #31 run 37123555206 |
+| Tray access                   | macOS menu bar                        | Windows system tray                              | Platform-specific UX with shared snapshot                                  | Not Yet Implemented                                                                              |
+| Permission/error states       | Required                              | Required                                         | Denied/unavailable/disappeared/provider failure do not crash               | Not Yet Implemented                                                                              |
 
 Do not force identical native behavior where capability differs. The frontend and API must expose the documented capability/outcome; user-facing claims remain limited to evidence.
 
@@ -82,10 +82,13 @@ working directory, shared W010 assertions, W011 orchestration, and
 test passed on PR CI run 37113239481. It requests no elevation and does not
 inspect unrelated runner processes. These fields remain unsupported by the
 public-API implementation. PowerShell is not used by the provider.
-W012.2 adds test-owned child tests for force request/exit code, creation-time
-and executable mismatch refusal (with child survival), graceful unsupported,
-already-exited behavior, and capability reporting. The final PR run must show
-these tests executing on `windows-2025`; compilation alone is insufficient.
+W012.2's controlled-child integration tests passed on GitHub-hosted
+`windows-2025` (Windows Server 2025 x64; Rust 1.99.0) in PR #31 run 37123555206. The run executed all seven integration cases in
+`windows_process_controller.rs`, including fixed exit-code verification,
+creation-time and executable mismatch refusal with child survival, Graceful
+Stop unsupported with child survival, already-exited handling, and capabilities.
+Windows Clippy, the full Rust/provider test suite, and the PR debug Tauri build
+also passed. Tests target only children launched by their test fixture.
 
 ## Shared race and long-running scenarios
 
