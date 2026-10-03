@@ -56,6 +56,13 @@ operation failures from field availability. A successful `ProcessInfo`
 retains the requested PID and may contain unavailable fields. The error
 categories contain stable semantic messages only, never native error text.
 
+W011.2's Windows provider reports the executable basename without extension
+as the process name, derived only from a successful executable-path query.
+Windows FILETIME creation timestamps are converted to `SystemTime`; this is
+identity evidence, not authorization. Windows command-line strings are not
+converted into structured argument vectors, and its working-directory field
+is unavailable under the current public-API strategy.
+
 At the transport boundary, expose only a stable category and safe user message. Keep native details in bounded, privacy-aware diagnostics; do not forward command arguments, raw stacks, or secret-bearing strings.
 
 ## Platform capabilities

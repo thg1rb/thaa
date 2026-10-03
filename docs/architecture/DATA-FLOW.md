@@ -43,6 +43,14 @@ returns unambiguous values; executable path and structured arguments are
 unavailable rather than inferred. No private Apple API is used. W011 remains
 unchanged and can invoke this provider without Tauri or frontend coupling.
 
+W011.2 implements the Windows provider with one limited-information process
+handle per requested PID. A verified executable image path, its file-stem
+name, and creation time are normalized into W006 values; structured arguments
+and working directory remain explicitly unavailable. Zero-timeout process
+object checks before and after queries report a process that exits during
+inspection as `ProcessDisappeared`. The handle is closed before returning and
+is not stored in shared state. W011 and the W010 contract remain unchanged.
+
 For `PortProvider`, a complete empty result means a successful query with no
 listeners; a partial result carries a failure category; a query-level error is
 not converted to an empty list. The provider contract is synchronous, so the
