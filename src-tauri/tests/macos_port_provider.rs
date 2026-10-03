@@ -27,14 +27,20 @@ fn discovers_controlled_ipv4_listener_and_pid_then_observes_close() {
     let after_close = provider
         .listeners()
         .expect("provider query should succeed after the controlled listener closes");
-    // Scoped IPv6 rows are retained with unknown address. That specific
-    // partial status from unrelated host listeners does not hide this exact
-    // IPv4 address/port pair; other partial causes still fail this test.
-    assert!(matches!(
-        after_close.completeness,
-        PortScanCompleteness::Complete
-            | PortScanCompleteness::Partial(PortProviderErrorKind::Unsupported)
-    ));
+    // Scoped IPv6 rows are retained with unknown address. Permit that known
+    // partial case only when such a row proves its cause; other partial
+    // causes still fail this test.
+    match after_close.completeness {
+        PortScanCompleteness::Complete => {}
+        PortScanCompleteness::Partial(PortProviderErrorKind::Unsupported) => assert!(
+            after_close
+                .listeners
+                .iter()
+                .any(|listener| listener.local_address.is_none()),
+            "Unsupported partial scan must contain an unresolved-address row"
+        ),
+        completeness => panic!("unexpected post-close scan completeness: {completeness:?}"),
+    }
     assert!(!after_close.listeners.iter().any(|listener| {
         listener.protocol == NetworkProtocol::Tcp
             && listener.local_address == Some(address.ip())
