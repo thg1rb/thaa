@@ -81,23 +81,23 @@ reported PID including zero; W006 defines no zero sentinel.
 
 ## Acceptance Criteria
 
-- [ ] Windows adapter implements W007 without exposing Win32 types above the
+- [x] Windows adapter implements W007 without exposing Win32 types above the
       platform boundary.
-- [ ] IPv4/IPv6 listener tables normalize addresses, ports, and PIDs correctly.
-- [ ] Native buffer is aligned, initialized, bounded, retried finitely, and
+- [x] IPv4/IPv6 listener tables normalize addresses, ports, and PIDs correctly.
+- [x] Native buffer is aligned, initialized, bounded, retried finitely, and
       table rows are bounds-checked before access.
-- [ ] Win32 failure, empty, partial, and malformed-table semantics are
+- [x] Win32 failure, empty, partial, and malformed-table semantics are
       explicit and tested where deterministic.
-- [ ] Unit tests cover address/port conversion, scope degradation, bounds,
+- [x] Unit tests cover address/port conversion, scope degradation, bounds,
       malformed rows, multiple rows, empty results, and error mapping.
-- [ ] Windows native tests discover test-owned IPv4/IPv6 loopback and
+- [x] Windows native tests discover test-owned IPv4/IPv6 loopback and
       wildcard listeners, verify ephemeral ports and current-process PID, and
       observe disappearance after close.
-- [ ] `windows-2025` PR CI executes the Windows integration target; macOS W008
+- [x] `windows-2025` PR CI executes the Windows integration target; macOS W008
       native tests and all existing gates remain passing.
 - [ ] Dedicated read-only security/architecture review is complete, valid
       findings are fixed, and post-merge CI passes.
-- [ ] No Windows discovery requirement is marked fully implemented as a
+- [x] No Windows discovery requirement is marked fully implemented as a
       user-facing feature.
 
 ## Validation
@@ -109,12 +109,20 @@ Windows integration-test source pass `cargo check --tests` and Clippy in a
 temporary Windows-target harness using the project-pinned compiler and
 Microsoft binding. A full-crate Windows-target check is blocked locally by
 the absence of `llvm-rc` required by Tauri's Windows resource build script;
-neither check is native Windows evidence. `pnpm audit`, frontend gates, and
-Markdown link checks pass. Local `cargo audit` is unavailable; the existing
-CI installs pinned cargo-audit and audits both supported targets. Windows
-native execution, Windows Tauri build, and final PR checks remain pending
-GitHub Actions. Do not close W009 until the Windows job runs the controlled
-listener tests successfully and post-merge CI passes.
+neither check is native Windows evidence. Local `pnpm audit`, frontend gates,
+and Markdown link checks pass. Local `cargo audit` is unavailable.
+
+PR #23 ([pull request](https://github.com/thg1rb/thaa/pull/23)) run
+[`37103858238`](https://github.com/thg1rb/thaa/actions/runs/37103858238) on
+the reviewed head passed Shared Quality, macOS native validation, and Windows
+native validation. Shared Quality's pnpm audit found no known vulnerabilities;
+RustSec audited both macOS arm64 and Windows x64 lockfile targets and reported
+the same two already-allowed advisories as the existing baseline. The
+`macos-15-arm64` job ran W008's three controlled native tests and built the
+debug Tauri app. The `windows-2025` x64 job ran all four W009 native tests
+(IPv4/IPv6 loopback and wildcard, PID assertions, and IPv4 close/disappearance)
+and built the debug Tauri app. This PR run is pre-merge evidence; post-merge CI
+must also pass before the `Done on merge` status takes effect.
 
 ## Security Considerations
 
@@ -145,8 +153,9 @@ The read-only reviewer reported one Low reliability finding: the Windows
 integration helper performed a second scan to explain `Partial(Unsupported)`,
 which could observe a different system snapshot. The helper now accepts the
 documented partial status without making a second scan; controlled endpoint,
-address, port, and PID assertions remain against the original scan. Re-review
-of the final PR head is required.
+address, port, and PID assertions remain against the original scan. The
+reviewer re-reviewed the fix and found no further issues. Post-merge CI remains
+the final merge-lifecycle condition.
 
 ## Known Limitations
 
