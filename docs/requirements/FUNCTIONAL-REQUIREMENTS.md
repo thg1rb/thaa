@@ -15,8 +15,8 @@ Requirements are derived from the [authoritative prompt](../THAA-DEVELOPMENT-PRO
 | FR-005 | Search/filter visible listeners by port and process name. Filtering does not change process state. | §13 | W013 | TC-005 |
 | FR-006 | Show process name and PID, plus executable path, command/arguments, and working directory when available. Working directory is P0 context; project-root/Git inference remains P1. Unavailable fields are explicit. | §10–11, §13 | W010–W011, W013 | TC-006 |
 | FR-007 | Open a validated local listener URL and copy its URL, port, or PID. Validate intended local host/address and port; format IPv6 correctly; never open arbitrary command-line text as a URL. | §13, §75 | W013 | TC-007 |
-| FR-008 | Allow an explicit graceful-stop request when the platform/provider supports it. Report unsupported capability, permission failure, process disappearance, and result accurately; never silently substitute force stop. | §4.5, §13, §38 | W012, W014 | TC-008 |
-| FR-009 | Provide force stop as a separate, explicit fallback with clear confirmation. Before stopping, verify the process still exists and revalidate identity where feasible; never target all processes by name. | §4.5, §38, §76 | W012, W014 | TC-009 |
+| FR-008 | Expose Graceful Stop only when the active platform/provider reports generic graceful-stop support. It requests normal process shutdown/cleanup. Report unsupported capability, permission denial, process disappearance, and request result accurately. Unsupported Graceful Stop must not invoke Force Stop. | §4.5, §11, §13, §38 | W012.0.1, W012.1, W014 | TC-008 |
+| FR-009 | Provide Force Stop as a separate, explicitly confirmed action only when supported. Require an identity-bound target and fresh validation of platform-required identity evidence immediately before action; missing or changed evidence refuses action. Never target by PID alone, process name, group, wildcard, or port. Accepted requests are not confirmed exits; do not automatically escalate or elevate. | §4.5, §38, §76 | W012.0.1, W012.1, W012.2, W014 | TC-009 |
 | FR-010 | Provide macOS menu-bar and Windows system-tray access with a quick listener/runtime overview and basic supported actions, using platform-appropriate conventions. | §12–13, §20 | W014 | TC-010 |
 | FR-011 | Provide loading, empty, permission-denied, unavailable-metadata, process-ended-between-refreshes, and understandable error states. Provider failure or disappearing state does not crash the app. | §13, §36, §43 | W008–W014 | TC-011 |
 
@@ -37,7 +37,7 @@ Requirements are derived from the [authoritative prompt](../THAA-DEVELOPMENT-PRO
 |---|---|---|---|---|
 | FR-001–FR-004 | W003 provider, normalized listener, binding, refresh contracts | W007–W009, W013 | TC-001–TC-004 | Frozen; not implemented |
 | FR-005–FR-007 | W003 application/IPC and UI boundary | W010–W011, W013 | TC-005–TC-007 | Frozen; not implemented |
-| FR-008–FR-009 | W003 process identity/capability contract; W004 threat model | W012, W014 | TC-008–TC-009 | Frozen; not implemented |
+| FR-008–FR-009 | W003 process identity/capability contract; W004 threat model; W012.0.1 platform capability clarification | W012.1 (macOS graceful/force), W012.2 (Windows force), W014 | TC-008–TC-009 | Clarified in THAA-REQ-0.1; controllers not implemented. macOS graceful/force supported by current evidence; Windows generic graceful unsupported; Windows force supported subject to same-HANDLE revalidation. |
 | FR-010–FR-011 | W003 shared view/error model and platform capability design | W008–W014 | TC-010–TC-011 | Frozen; not implemented |
 | FR-012–FR-017 | P1/P2/P3 design/work item to be created when scheduled | Later work | To be assigned then | Roadmap only; not implemented |
 
