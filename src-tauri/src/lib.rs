@@ -198,6 +198,7 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             commands::runtime::get_runtime_snapshot,
             commands::runtime::refresh_runtime_snapshot,
+            commands::runtime::get_runtime_process_icons,
             commands::runtime::request_process_action,
             commands::runtime::open_listener_url,
         ])

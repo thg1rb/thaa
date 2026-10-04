@@ -290,10 +290,19 @@ mod tests {
     }
 
     #[test]
-    fn current_executable_icon_is_optional_and_bounded() {
-        let path = std::env::current_exe().expect("test executable path");
-        if let Some(bytes) = WindowsProcessIconProvider.icon_png(&process_with_path(path)) {
-            assert!(crate::application::process_icons::is_bounded_png(&bytes));
-        }
+    fn extracts_a_bounded_icon_from_the_windows_system_icon_resource() {
+        let windows = std::env::var_os("WINDIR").expect("Windows directory");
+        let path = Path::new(&windows).join("System32").join("shell32.dll");
+        let bytes = extract_icon_png(&path).expect("shell32 has an icon resource");
+        assert!(crate::application::process_icons::is_bounded_png(&bytes));
+    }
+
+    #[test]
+    fn missing_executable_metadata_uses_the_fallback_path() {
+        let mut process = process_with_path(Path::new("unused.exe").to_path_buf());
+        process.identity.executable_path = FieldAvailability::Unavailable(
+            crate::domain::metadata::UnavailableReason::ProviderLimitation,
+        );
+        assert!(WindowsProcessIconProvider.icon_png(&process).is_none());
     }
 }

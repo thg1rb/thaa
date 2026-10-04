@@ -35,6 +35,10 @@ export type RuntimeSnapshot = {
   entries: RuntimeEntry[];
   processIcons: ProcessIconAsset[];
 };
+export type RuntimeSnapshotDto = Omit<RuntimeSnapshot, "processIcons">;
+export const withEmptyIconAssets = (
+  snapshot: RuntimeSnapshotDto,
+): RuntimeSnapshot => ({ ...snapshot, processIcons: [] });
 export type RuntimeError = { state: string; message?: string };
 export type Action = "gracefulStop" | "forceStop";
 export type ActionResult =
@@ -46,16 +50,24 @@ export type ActionResult =
 let initialSnapshot: Promise<RuntimeSnapshot> | undefined;
 
 export function getInitialSnapshot() {
-  initialSnapshot ??= invoke<RuntimeSnapshot>("get_runtime_snapshot").finally(
-    () => {
+  initialSnapshot ??= invoke<RuntimeSnapshotDto>("get_runtime_snapshot")
+    .then(withEmptyIconAssets)
+    .finally(() => {
       initialSnapshot = undefined;
-    },
-  );
+    });
   return initialSnapshot;
 }
 
 export function refreshSnapshot() {
-  return invoke<RuntimeSnapshot>("refresh_runtime_snapshot");
+  return invoke<RuntimeSnapshotDto>("refresh_runtime_snapshot").then(
+    withEmptyIconAssets,
+  );
+}
+
+export function getRuntimeProcessIcons(generation: number) {
+  return invoke<ProcessIconAsset[]>("get_runtime_process_icons", {
+    generation,
+  });
 }
 
 export function requestAction(actionTargetRef: string, action: Action) {

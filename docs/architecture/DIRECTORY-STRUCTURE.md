@@ -115,5 +115,7 @@ W013.1 adds `application/process_icons.rs` for the presentation-only icon port,
 PNG bounds, and snapshot asset values. Platform implementations live in
 `platform/macos/process_icon.rs` and `process_icon.m` (public AppKit bridge),
 and `platform/windows/process_icon.rs` (Shell/GDI extraction with local RAII
-resource owners). Icons are snapshot assets and do not modify domain process
-identity or action-target models.
+resource owners). The runtime snapshot returns icon references; the separate
+`get_runtime_process_icons` command resolves bounded assets on a blocking worker
+for the still-current snapshot. Icons do not modify domain process identity or
+action-target models.

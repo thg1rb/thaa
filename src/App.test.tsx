@@ -91,20 +91,19 @@ describe("runtime inspector", () => {
     ).toBeInTheDocument();
   });
 
-  it("renders a resolved process icon from the snapshot presentation asset", async () => {
+  it("renders a resolved process icon from the snapshot icon request", async () => {
     mockIPC((command) =>
       command === "get_runtime_snapshot"
-        ? {
-            ...snapshot([row({ processIconRef: "icon-1-0" })]),
-            processIcons: [
+        ? snapshot([row({ processIconRef: "icon-1-0" })])
+        : command === "get_runtime_process_icons"
+          ? [
               {
                 reference: "icon-1-0",
                 pngBase64:
                   "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+nm4kAAAAASUVORK5CYII=",
               },
-            ],
-          }
-        : undefined,
+            ]
+          : undefined,
     );
     const { container } = render(<App />);
     expect(await screen.findByText(":5173")).toBeInTheDocument();
@@ -114,6 +113,21 @@ describe("runtime inspector", () => {
       expect.stringContaining("data:image/png;base64,"),
     );
     expect(image).toHaveAttribute("alt", "");
+  });
+
+  it("renders runtime rows before the optional icon lookup completes", async () => {
+    mockIPC((command) => {
+      if (command === "get_runtime_snapshot")
+        return snapshot([row({ processIconRef: "icon-1-0" })]);
+      if (command === "get_runtime_process_icons")
+        return new Promise(() => undefined);
+      return undefined;
+    });
+    const { container } = render(<App />);
+    expect(await screen.findByText(":5173")).toBeInTheDocument();
+    expect(
+      container.querySelector('[data-icon-kind="process-fallback"]'),
+    ).toBeInTheDocument();
   });
 
   it("uses the generic fallback when native icon lookup fails", async () => {
@@ -130,11 +144,10 @@ describe("runtime inspector", () => {
   it("falls back when an icon asset cannot be decoded by the frontend", async () => {
     mockIPC((command) =>
       command === "get_runtime_snapshot"
-        ? {
-            ...snapshot([row({ processIconRef: "icon-1-0" })]),
-            processIcons: [{ reference: "icon-1-0", pngBase64: "invalid" }],
-          }
-        : undefined,
+        ? snapshot([row({ processIconRef: "icon-1-0" })])
+        : command === "get_runtime_process_icons"
+          ? [{ reference: "icon-1-0", pngBase64: "invalid" }]
+          : undefined,
     );
     const { container } = render(<App />);
     expect(await screen.findByText(":5173")).toBeInTheDocument();

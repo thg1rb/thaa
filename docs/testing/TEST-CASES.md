@@ -138,8 +138,8 @@ search/filter remains assigned to W014.
 
 ## Process icon enrichment (W013.1)
 
-| ID          | Scenario and expected evidence                                                                     | Fixture                          | Links           | Status                                                                                        |
-| ----------- | -------------------------------------------------------------------------------------------------- | -------------------------------- | --------------- | --------------------------------------------------------------------------------------------- |
-| TC-ICON-001 | Distinct listener rows for one PID share one bounded snapshot icon asset                           | Deterministic providers and PNG  | NFR-001, TC-011 | Rust unit test passes locally; CI pending                                                     |
-| TC-ICON-002 | Invalid, unavailable, or oversized icon data leaves runtime row/action data intact and falls back  | Deterministic provider / adapter | THR-015         | Invalid-data isolation test passes locally; CI pending                                        |
-| TC-ICON-003 | macOS AppKit and Windows Shell/GDI icon extraction cleans native resources and returns bounded PNG | Native CI / controlled process   | THR-015         | macOS controlled CLI fallback test passes; Windows CI and GUI icon success validation pending |
+| ID          | Scenario and expected evidence                                                                  | Fixture                          | Links           | Status                                                                                     |
+| ----------- | ----------------------------------------------------------------------------------------------- | -------------------------------- | --------------- | ------------------------------------------------------------------------------------------ |
+| TC-ICON-001 | Distinct listener rows for one PID share one bounded snapshot icon asset                        | Deterministic providers and PNG  | NFR-001, TC-011 | Rust unit test passes locally; CI pending                                                  |
+| TC-ICON-002 | Invalid/unavailable icon data leaves runtime rows intact; stale generations return no assets    | Deterministic provider / adapter | THR-015         | Failure isolation and stale-generation tests pass locally; CI pending                      |
+| TC-ICON-003 | macOS AppKit fallback and Windows Shell/GDI conversion return bounded PNG and release resources | Native CI / controlled process   | THR-015         | macOS CLI fallback passes locally; Windows `shell32.dll` conversion test pending hosted CI |

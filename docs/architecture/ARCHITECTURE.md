@@ -98,5 +98,6 @@ All process-provided strings and paths are untrusted. Use structured OS APIs or 
 This architecture supports FR-001–FR-011 by establishing shared listener/process/action models, use cases, presentation boundaries, and platform contracts. It supports NFR-001–NFR-010 and PR-001–PR-013 through local-only boundaries, least privilege, explicit availability, privacy constraints, and substitutable native adapters. These requirements remain frozen and unimplemented. P1 project-root and Git context remain outside P0 implementation.
 
 W013.1 adds optional `ProcessIconProvider` enrichment as presentation data.
-It is isolated from process identity and controller contracts; icon failures
-only select a frontend fallback.
+Icon lookup runs after the runtime snapshot returns, through a separate
+generation-scoped command; icon failures only select a frontend fallback. It
+is isolated from process identity and controller contracts.

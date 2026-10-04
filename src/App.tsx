@@ -2,12 +2,15 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { listen } from "@tauri-apps/api/event";
 import {
   getInitialSnapshot,
+  getRuntimeProcessIcons,
   openListenerUrl,
   refreshSnapshot,
   requestAction,
+  withEmptyIconAssets,
   type Action,
   type ActionResult,
   type RuntimeEntry,
+  type RuntimeSnapshotDto,
   type RuntimeSnapshot,
 } from "./runtimeApi";
 import "./App.css";
@@ -85,74 +88,119 @@ export default function App() {
   const queuedActionRefresh = useRef<Promise<void> | null>(null);
   const resolveQueuedActionRefresh = useRef<(() => void) | null>(null);
   const cancelButton = useRef<HTMLButtonElement>(null);
+  const currentSnapshot = useRef<RuntimeSnapshot | null>(null);
+  const iconGeneration = useRef<number | null>(null);
+  const iconRequestInFlight = useRef(false);
 
-  const refresh = useCallback(async (initial = false, afterCurrent = false) => {
-    if (refreshBusy.current) {
-      if (!afterCurrent) return;
-      if (!queuedActionRefresh.current) {
-        queuedActionRefresh.current = new Promise((resolve) => {
-          resolveQueuedActionRefresh.current = resolve;
-        });
-      }
-      return queuedActionRefresh.current;
+  const loadSnapshotIcons = useCallback((snapshot: RuntimeSnapshot) => {
+    if (
+      !snapshot.entries.some((entry) => entry.processIconRef) ||
+      iconGeneration.current === snapshot.generation
+    ) {
+      return;
     }
-    refreshBusy.current = true;
-    setState((current) => ({
-      ...current,
-      loading: initial && !current.snapshot,
-      refreshing: !initial,
-      error: initial && !current.snapshot ? null : current.error,
-    }));
-    try {
-      const snapshot = initial
-        ? await getInitialSnapshot()
-        : await refreshSnapshot();
-      if (mounted.current) {
-        setState((current) => ({
-          ...current,
-          snapshot: newestSnapshot(current.snapshot, snapshot),
-          loading: false,
-          refreshing: false,
-          error: null,
-        }));
-      }
-    } catch (error) {
-      if (mounted.current) {
-        setState((current) => ({
-          ...current,
-          loading: false,
-          refreshing: false,
-          error: friendlyError(error),
-        }));
-      }
-    } finally {
-      refreshBusy.current = false;
-      if (queuedActionRefresh.current) {
-        const queued = queuedActionRefresh.current;
-        const resolve = resolveQueuedActionRefresh.current;
-        queuedActionRefresh.current = null;
-        resolveQueuedActionRefresh.current = null;
-        void refresh().then(
-          () => resolve?.(),
-          () => resolve?.(),
+    if (iconRequestInFlight.current) return;
+    iconRequestInFlight.current = true;
+    iconGeneration.current = snapshot.generation;
+    void getRuntimeProcessIcons(snapshot.generation)
+      .then((processIcons) => {
+        if (
+          !mounted.current ||
+          currentSnapshot.current?.generation !== snapshot.generation
+        )
+          return;
+        const enriched = { ...currentSnapshot.current, processIcons };
+        currentSnapshot.current = enriched;
+        setState((current) =>
+          current.snapshot?.generation === snapshot.generation
+            ? { ...current, snapshot: enriched }
+            : current,
         );
-        await queued;
-      }
-    }
+      })
+      .catch(() => undefined)
+      .finally(() => {
+        iconRequestInFlight.current = false;
+        const latest = currentSnapshot.current;
+        if (latest && latest.generation !== iconGeneration.current)
+          loadSnapshotIcons(latest);
+      });
   }, []);
+
+  const applySnapshot = useCallback(
+    (incoming: RuntimeSnapshot) => {
+      const accepted = newestSnapshot(currentSnapshot.current, incoming);
+      currentSnapshot.current = accepted;
+      setState((current) => ({
+        ...current,
+        snapshot: accepted,
+        error: null,
+        refreshing: false,
+      }));
+      loadSnapshotIcons(accepted);
+    },
+    [loadSnapshotIcons],
+  );
+
+  const refresh = useCallback(
+    async (initial = false, afterCurrent = false) => {
+      if (refreshBusy.current) {
+        if (!afterCurrent) return;
+        if (!queuedActionRefresh.current) {
+          queuedActionRefresh.current = new Promise((resolve) => {
+            resolveQueuedActionRefresh.current = resolve;
+          });
+        }
+        return queuedActionRefresh.current;
+      }
+      refreshBusy.current = true;
+      setState((current) => ({
+        ...current,
+        loading: initial && !current.snapshot,
+        refreshing: !initial,
+        error: initial && !current.snapshot ? null : current.error,
+      }));
+      try {
+        const snapshot = initial
+          ? await getInitialSnapshot()
+          : await refreshSnapshot();
+        if (mounted.current) {
+          applySnapshot(snapshot);
+          setState((current) => ({ ...current, loading: false }));
+        }
+      } catch (error) {
+        if (mounted.current) {
+          setState((current) => ({
+            ...current,
+            loading: false,
+            refreshing: false,
+            error: friendlyError(error),
+          }));
+        }
+      } finally {
+        refreshBusy.current = false;
+        if (queuedActionRefresh.current) {
+          const queued = queuedActionRefresh.current;
+          const resolve = resolveQueuedActionRefresh.current;
+          queuedActionRefresh.current = null;
+          resolveQueuedActionRefresh.current = null;
+          void refresh().then(
+            () => resolve?.(),
+            () => resolve?.(),
+          );
+          await queued;
+        }
+      }
+    },
+    [applySnapshot],
+  );
 
   useEffect(() => {
     mounted.current = true;
     void refresh(true);
     let unlisten: (() => void) | undefined;
     let cancelled = false;
-    void listen<RuntimeSnapshot>("runtime-snapshot-updated", (event) => {
-      setState((current) => ({
-        ...current,
-        snapshot: newestSnapshot(current.snapshot, event.payload),
-        error: null,
-        refreshing: false,
-      }));
+    void listen<RuntimeSnapshotDto>("runtime-snapshot-updated", (event) => {
+      applySnapshot(withEmptyIconAssets(event.payload));
     })
       .then((stop) => {
         if (cancelled) stop();
@@ -164,7 +212,7 @@ export default function App() {
       mounted.current = false;
       unlisten?.();
     };
-  }, [refresh]);
+  }, [applySnapshot, refresh]);
 
   useEffect(() => {
     if (!state.confirming) return;

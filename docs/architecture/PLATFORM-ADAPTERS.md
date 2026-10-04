@@ -238,7 +238,9 @@ These native contracts are future implementation validation, not W003 tests. Com
 
 Icons are optional presentation data provided by `ProcessIconProvider`; this
 port does not extend `ProcessProvider` and contributes nothing to process
-identity or action authorization. macOS resolves an icon through public
+identity or action authorization. Icon lookup runs through a separate
+snapshot-generation command after listener rows return, so slow native image
+lookup cannot hold the runtime scan open. macOS resolves an icon through public
 AppKit `NSRunningApplication` lookup for the requested PID and rasterizes it
 to a fixed 64×64 PNG. GUI application instances may provide an icon; CLI and
 background processes may not. Windows uses the already observed executable
@@ -249,11 +251,12 @@ wrappers. Either adapter may return no icon at any stage.
 Before transport, application code validates PNG structure, dimensions (at
 most 128×128), and per-icon size (64 KiB). A snapshot carries no more than
 128 icons and 2 MiB of source image bytes. Each distinct PID is resolved at
-most once per scan; duplicate listener rows share its snapshot-scoped icon
-reference. There is no cross-scan cache keyed by PID. Errors, unsupported
-paths, stale processes, and absent native icons use the frontend's generic
-process or unknown-owner symbol. These assets are decorative enrichment and
-cannot change listener visibility or action availability.
+most once per snapshot icon request; duplicate listener rows share its
+snapshot-scoped icon reference. Successful assets are cached only for that
+snapshot generation. There is no cross-scan cache keyed by PID. Errors,
+unsupported paths, stale processes, and absent native icons use the frontend's
+generic process or unknown-owner symbol. These assets are decorative enrichment
+and cannot change listener visibility or action availability.
 
 macOS uses the public AppKit application icon surface, not private libproc
 interfaces. Windows uses documented Shell icon extraction and GDI image
