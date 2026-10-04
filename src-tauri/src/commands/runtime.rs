@@ -3,6 +3,7 @@
 use std::sync::Arc;
 use std::time::UNIX_EPOCH;
 
+use base64::Engine;
 use serde::Serialize;
 use tauri::State;
 use tauri_plugin_opener::OpenerExt;
@@ -31,6 +32,13 @@ pub struct RuntimeSnapshotDto {
 }
 
 #[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ProcessIconAssetDto {
+    pub reference: String,
+    pub png_base64: String,
+}
+
+#[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase", tag = "state", content = "reason")]
 pub enum ScanCompletenessDto {
     Complete,
@@ -56,6 +64,7 @@ pub struct RuntimeEntryDto {
     pub process: ProcessDetailsDto,
     pub local_url: Option<String>,
     pub action_target_ref: Option<String>,
+    pub process_icon_ref: Option<String>,
 }
 
 #[derive(Debug, Clone, Copy, Serialize)]
@@ -157,6 +166,23 @@ pub async fn refresh_runtime_snapshot(
     .await
     .map_err(|_| RuntimeCommandErrorDto::ProviderFailure("Runtime inspection failed.".into()))?
     .map_err(scan_error_dto)
+}
+
+/// Resolves optional presentation assets after the runtime rows have returned.
+/// The generation is validated against the current backend snapshot; callers
+/// cannot submit process IDs or filesystem paths for icon extraction.
+#[tauri::command]
+pub async fn get_runtime_process_icons(
+    state: State<'_, RuntimeState>,
+    generation: u64,
+) -> Result<Vec<ProcessIconAssetDto>, String> {
+    let inspector = Arc::clone(&state.0);
+    let assets = tauri::async_runtime::spawn_blocking(move || {
+        process_icon_assets_dto(inspector.process_icons_for_snapshot(generation))
+    })
+    .await
+    .unwrap_or_default();
+    Ok(assets)
 }
 
 #[tauri::command]
@@ -278,10 +304,23 @@ fn snapshot_dto(snapshot: &RuntimeSnapshot) -> RuntimeSnapshotDto {
                         &entry.listener,
                     ),
                     action_target_ref: entry.action_target_ref.clone(),
+                    process_icon_ref: entry.process_icon_ref.clone(),
                 }
             })
             .collect(),
     }
+}
+
+fn process_icon_assets_dto(
+    icons: Vec<crate::application::process_icons::ProcessIconAsset>,
+) -> Vec<ProcessIconAssetDto> {
+    icons
+        .into_iter()
+        .map(|icon| ProcessIconAssetDto {
+            reference: icon.reference,
+            png_base64: base64::engine::general_purpose::STANDARD.encode(icon.png),
+        })
+        .collect()
 }
 
 pub fn snapshot_for_event(snapshot: &RuntimeSnapshot) -> RuntimeSnapshotDto {
@@ -397,11 +436,13 @@ fn listener_url_error(error: ListenerUrlError) -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::{snapshot_dto, valid_reference, ActionDto};
+    use super::{process_icon_assets_dto, snapshot_dto, valid_reference, ActionDto};
+    use crate::application::process_icons::ProcessIconAsset;
     use crate::application::runtime_inspection::{RuntimeEntry, RuntimeSnapshot};
     use crate::domain::capabilities::{CapabilitySupport, PlatformCapabilities};
     use crate::domain::network::{NetworkListener, NetworkProtocol};
     use crate::domain::port_provider::PortScanCompleteness;
+    use base64::Engine;
     use std::net::{IpAddr, Ipv4Addr};
     use std::num::NonZeroU16;
     use std::time::UNIX_EPOCH;
@@ -445,6 +486,7 @@ mod tests {
                 },
                 process: None,
                 action_target_ref: None,
+                process_icon_ref: None,
             }],
         };
         let json = serde_json::to_value(snapshot_dto(&snapshot)).expect("serializes");
@@ -454,6 +496,23 @@ mod tests {
         assert_eq!(json["entries"][0]["process"]["state"], "noOwner");
         assert_eq!(json["capabilities"]["gracefulStop"], false);
         assert_eq!(json["capabilities"]["forceStop"], true);
+        assert_eq!(
+            json["entries"][0]["processIconRef"],
+            serde_json::Value::Null
+        );
         assert_eq!(json["entries"][0]["localUrl"], "http://127.0.0.1:80");
+    }
+
+    #[test]
+    fn icon_asset_dto_encodes_presentation_png_separately() {
+        let assets = process_icon_assets_dto(vec![ProcessIconAsset {
+            reference: "icon-3-0".into(),
+            png: b"png bytes".to_vec(),
+        }]);
+        assert_eq!(assets[0].reference, "icon-3-0");
+        assert_eq!(
+            assets[0].png_base64,
+            base64::engine::general_purpose::STANDARD.encode(b"png bytes")
+        );
     }
 }

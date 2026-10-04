@@ -19,11 +19,19 @@ project structure](https://v2.tauri.app/start/project-structure/).
   .prettierignore         # generated and vendored content exclusions
   .editorconfig           # editor defaults; formatter tools remain authoritative
 src/
-  App.tsx                 # user-facing runtime list and interaction state
-  App.css                 # responsive runtime inspector styling
-  runtimeApi.ts           # typed Tauri DTO client
-  main.tsx                # React entry point
-  App.test.tsx            # observable shell-state tests
+  App.tsx                 # application root and shared provider composition
+  main.tsx                # React entry point and global style import
+  styles/global.css       # design tokens and root/window canvas styles
+  features/runtime-inspector/
+    RuntimeInspectorPage.tsx # page composition and user-action wiring
+    api/runtimeClient.ts  # typed Tauri DTO client and command names
+    hooks/                # refresh, process-action, and entry-action state
+    components/           # header, runtime list/cards, icons, dialogs
+    model/types.ts        # frontend transport/state types
+    runtime-inspector.css # feature presentation styles
+  shared/ui/toast/        # bounded accessible notification system
+  dev/                    # development-only synthetic visual fixture
+  App.test.tsx            # runtime-inspector behavioral tests
   test/setup.ts           # Vitest matcher setup
 src-tauri/
   Cargo.toml              # the application's Rust package
@@ -38,6 +46,7 @@ src-tauri/
     application/           # shared use-case orchestration
       mod.rs
       process_inspection.rs # per-PID inspection using ProcessProvider
+      process_icons.rs      # bounded, snapshot-scoped icon presentation contract
       runtime_inspection.rs # listener/process snapshot and refresh coordinator
     domain/               # shared, platform-neutral domain values and rules
       mod.rs
@@ -59,12 +68,15 @@ src-tauri/
         process_controller.rs # identity-bound SIGTERM/SIGKILL requests and capabilities
         process_identity.rs # shared SDK-backed KERN_PROC_PID identity query
         process_identity.c # SDK-defined start-time query and fixed-signal shim
+        process_icon.rs   # AppKit icon wrapper
+        process_icon.m    # public NSRunningApplication icon bridge
       windows/             # compiled only for Windows
         mod.rs
         port_provider.rs   # GetExtendedTcpTable adapter and checked row parsing
         process_native.rs  # shared RAII HANDLE, FILETIME/path/lifetime helpers
         process_provider.rs # documented Win32 metadata through shared helpers
         process_controller.rs # same-HANDLE identity-checked Force Stop
+        process_icon.rs   # Shell/GDI icon extraction and owned resources
     commands/
       mod.rs
       runtime.rs          # runtime/action commands and transport DTOs
@@ -78,7 +90,8 @@ src-tauri/
     process_provider_contract.rs # deterministic process contract tests
     macos_port_provider.rs       # controlled native listener tests (macOS only)
     runtime_snapshot_native.rs # controlled listener + native process snapshot
-  icons/icon.png          # minimal RGBA application icon required by Tauri context
+  icons/source/           # canonical approved Thaa application and tray masters
+  icons/                  # generated application icons and small native tray images
 docs/
   architecture/           # architecture baseline and actual directory shape
   development/            # setup, workflow, and coding standards
@@ -106,3 +119,12 @@ manifests and source stay together under `src-tauri/`. A Cargo workspace is
 not needed for the current single Rust application. Future domain/application
 modules belong under `src-tauri/src/` unless later evidence justifies a
 workspace.
+
+W013.1 adds `application/process_icons.rs` for the presentation-only icon port,
+PNG bounds, and snapshot asset values. Platform implementations live in
+`platform/macos/process_icon.rs` and `process_icon.m` (public AppKit bridge),
+and `platform/windows/process_icon.rs` (Shell/GDI extraction with local RAII
+resource owners). The runtime snapshot returns icon references; the separate
+`get_runtime_process_icons` command resolves bounded assets on a blocking worker
+for the still-current snapshot. Icons do not modify domain process identity or
+action-target models.

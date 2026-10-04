@@ -16,11 +16,13 @@ fn runtime_inspector() -> Arc<RuntimeInspector> {
     use platform::macos::{
         port_provider::MacOSPortProvider,
         process_controller::{MacOSPlatformCapabilitiesProvider, MacOSProcessController},
+        process_icon::MacOSProcessIconProvider,
         process_provider::MacOSProcessProvider,
     };
-    Arc::new(RuntimeInspector::new(
+    Arc::new(RuntimeInspector::new_with_icons(
         Arc::new(MacOSPortProvider),
         Arc::new(MacOSProcessProvider),
+        Arc::new(MacOSProcessIconProvider),
         Arc::new(MacOSProcessController),
         Arc::new(MacOSPlatformCapabilitiesProvider),
     ))
@@ -31,11 +33,13 @@ fn runtime_inspector() -> Arc<RuntimeInspector> {
     use platform::windows::{
         port_provider::WindowsPortProvider,
         process_controller::{WindowsPlatformCapabilitiesProvider, WindowsProcessController},
+        process_icon::WindowsProcessIconProvider,
         process_provider::WindowsProcessProvider,
     };
-    Arc::new(RuntimeInspector::new(
+    Arc::new(RuntimeInspector::new_with_icons(
         Arc::new(WindowsPortProvider),
         Arc::new(WindowsProcessProvider),
+        Arc::new(WindowsProcessIconProvider),
         Arc::new(WindowsProcessController),
         Arc::new(WindowsPlatformCapabilitiesProvider),
     ))
@@ -138,12 +142,28 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .setup(|app| {
             let menu = build_tray_menu(app.handle())?;
-            let mut tray = TrayIconBuilder::with_id("main-tray")
+            let tray = TrayIconBuilder::with_id("main-tray")
                 .menu(&menu)
                 .tooltip("Thaa — Local Runtime Inspector");
-            if let Some(icon) = app.default_window_icon() {
-                tray = tray.icon(icon.clone());
-            }
+
+            #[cfg(target_os = "macos")]
+            let tray = tray
+                .icon(tauri::include_image!(
+                    "./icons/derived/thaa-tray-template-macos.png"
+                ))
+                .icon_as_template(true);
+
+            #[cfg(target_os = "windows")]
+            let tray = tray.icon(tauri::include_image!(
+                "./icons/derived/thaa-tray-windows.png"
+            ));
+
+            #[cfg(not(any(target_os = "macos", target_os = "windows")))]
+            let tray = if let Some(icon) = app.default_window_icon() {
+                tray.icon(icon.clone())
+            } else {
+                tray
+            };
             tray.show_menu_on_left_click(false)
                 .on_menu_event(|app, event| match event.id().as_ref() {
                     "show" => {
@@ -194,6 +214,7 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             commands::runtime::get_runtime_snapshot,
             commands::runtime::refresh_runtime_snapshot,
+            commands::runtime::get_runtime_process_icons,
             commands::runtime::request_process_action,
             commands::runtime::open_listener_url,
         ])

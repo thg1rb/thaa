@@ -233,3 +233,33 @@ Each provider port must be replaceable by a deterministic fake for application t
 - IPv4 and IPv6 cases run where the native environment supports them; environment limitations are reported, not silently treated as passes.
 
 These native contracts are future implementation validation, not W003 tests. Compilation alone does not establish cross-platform behavior. Architecture supports FR-001/002/006/008/009 and NFR-002/003/005/008/009 without claiming implementation.
+
+### Optional application icon enrichment (W013.1)
+
+Icons are optional presentation data provided by `ProcessIconProvider`; this
+port does not extend `ProcessProvider` and contributes nothing to process
+identity or action authorization. Icon lookup runs through a separate
+snapshot-generation command after listener rows return, so slow native image
+lookup cannot hold the runtime scan open. macOS resolves an icon through public
+AppKit `NSRunningApplication` lookup for the requested PID and rasterizes it
+to a fixed 64×64 PNG. GUI application instances may provide an icon; CLI and
+background processes may not. Windows uses the already observed executable
+path with Shell `ExtractIconExW`, converts the returned icon using GDI, and
+releases HICON, bitmap, and device-context resources through local ownership
+wrappers. Either adapter may return no icon at any stage.
+
+Before transport, application code validates PNG structure, dimensions (at
+most 128×128), and per-icon size (64 KiB). A snapshot carries no more than
+128 icons and 2 MiB of source image bytes. Each distinct PID is resolved at
+most once per snapshot icon request; duplicate listener rows share its
+snapshot-scoped icon reference. Successful assets are cached only for that
+snapshot generation. There is no cross-scan cache keyed by PID. Errors,
+unsupported paths, stale processes, and absent native icons use the frontend's
+generic process or unknown-owner symbol. These assets are decorative enrichment
+and cannot change listener visibility or action availability.
+
+macOS uses the public AppKit application icon surface, not private libproc
+interfaces. Windows uses documented Shell icon extraction and GDI image
+conversion APIs. These checks establish normal development/CI adapter
+behavior only; they do not establish App Store/sandbox or packaged
+distribution behavior.

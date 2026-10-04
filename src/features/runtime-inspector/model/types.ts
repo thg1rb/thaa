@@ -1,7 +1,6 @@
-import { invoke } from "@tauri-apps/api/core";
-
 export type Field<T> =
   { state: "available"; value: T } | { state: "unavailable"; value: string };
+
 export type ProcessInfo = {
   processId: number;
   name: Field<string>;
@@ -10,10 +9,12 @@ export type ProcessInfo = {
   commandArguments: Field<string[]>;
   workingDirectory: Field<string>;
 };
+
 export type ProcessDetails =
   | { state: "noOwner" }
   | { state: "available"; details: ProcessInfo }
   | { state: "unavailable"; details: { processId: number; reason: string } };
+
 export type RuntimeEntry = {
   entryRef: string;
   protocol: "tcp";
@@ -24,14 +25,21 @@ export type RuntimeEntry = {
   process: ProcessDetails;
   localUrl: string | null;
   actionTargetRef: string | null;
+  processIconRef: string | null;
 };
+
+export type ProcessIconAsset = { reference: string; pngBase64: string };
+
 export type RuntimeSnapshot = {
   generation: number;
   observedAtUnixMs: number;
   completeness: { state: "complete" } | { state: "partial"; reason: string };
   capabilities: { gracefulStop: boolean; forceStop: boolean };
   entries: RuntimeEntry[];
+  processIcons: ProcessIconAsset[];
 };
+
+export type RuntimeSnapshotDto = Omit<RuntimeSnapshot, "processIcons">;
 export type RuntimeError = { state: string; message?: string };
 export type Action = "gracefulStop" | "forceStop";
 export type ActionResult =
@@ -40,28 +48,14 @@ export type ActionResult =
   | { state: "refused"; reason: string }
   | { state: "failed"; reason: string };
 
-let initialSnapshot: Promise<RuntimeSnapshot> | undefined;
+export type RefreshSource = "initial" | "manual" | "background" | "action";
+export type RefreshOutcome = "updated" | "failed" | "queued";
 
-export function getInitialSnapshot() {
-  initialSnapshot ??= invoke<RuntimeSnapshot>("get_runtime_snapshot").finally(
-    () => {
-      initialSnapshot = undefined;
-    },
-  );
-  return initialSnapshot;
-}
-
-export function refreshSnapshot() {
-  return invoke<RuntimeSnapshot>("refresh_runtime_snapshot");
-}
-
-export function requestAction(actionTargetRef: string, action: Action) {
-  return invoke<ActionResult>("request_process_action", {
-    actionTargetRef,
-    action,
-  });
-}
-
-export function openListenerUrl(entryRef: string) {
-  return invoke<void>("open_listener_url", { entryRef });
-}
+export type RuntimeInspectorState = {
+  snapshot: RuntimeSnapshot | null;
+  loading: boolean;
+  iconsLoading: boolean;
+  refreshing: boolean;
+  error: string | null;
+  backgroundStale: boolean;
+};

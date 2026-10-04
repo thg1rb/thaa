@@ -19,7 +19,7 @@ Use Node.js 24.x, pnpm 10.29.2, and Rust 1.99.0 as pinned by repository configur
 | `cargo test --manifest-path src-tauri/Cargo.toml`                                | Run Rust tests                                                |
 | `pnpm docs:check`                                                                | Check local Markdown link targets                             |
 
-Rust commands can also be run from `src-tauri/` without the manifest argument. Use `pnpm tauri build --no-bundle` for a host desktop build; packaging is intentionally disabled during W005.
+Rust commands can also be run from `src-tauri/` without the manifest argument. Use `pnpm tauri build --no-bundle` for a host desktop build without creating installers. Tauri bundling is configured for native app/package icon validation; the established CI commands continue to pass `--no-bundle`.
 
 GitHub Actions runs the shared frontend/docs gates and native macOS/Windows
 Rust checks and Tauri builds. See [CI](CI.md) for runner versions, action

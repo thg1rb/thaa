@@ -85,7 +85,7 @@ Required gate categories when their code exists/configuration is available:
 W005 selected Vitest 4 with jsdom and Testing Library for frontend behavior, Tauri's official mock IPC API for controlled command responses, and Rust's built-in test harness for DTO serialization. W013 replaces the app-info smoke command with explicit runtime/action DTOs and a typed frontend client; generated bindings remain deferred until real contract breadth justifies them.
 
 W013 replaces the app-info smoke flow with explicit runtime/action DTOs and a
-typed `runtimeApi` client. Rust application tests cover snapshot composition
+typed `runtimeClient` feature API. Rust application tests cover snapshot composition
 and refresh coordination with deterministic provider doubles; native CI runs a
 controlled loopback-listener snapshot integration on macOS and Windows.
 Frontend behavior tests cover loading, complete empty, partial, provider error

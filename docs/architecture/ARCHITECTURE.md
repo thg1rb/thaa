@@ -62,6 +62,11 @@ Feature-oriented React/TypeScript presentation owns rendering, interaction, acce
 
 Startup is the composition root: select the target platform adapter, construct shared providers/use cases/coordinator, then register thin Tauri commands. Use ordinary Rust constructors and owned/shared handles; no dependency-injection framework is justified.
 
+Native tray branding is selected in this same composition layer: macOS embeds
+the monochrome template asset and enables template rendering, while Windows
+embeds the cyan tray asset. Tauri application bundle icons are generated from
+the canonical app master; branding assets are not runtime process identity.
+
 Proposed source organization once the later application bootstrap begins (do not create these directories in W003):
 
 ```text
@@ -96,3 +101,8 @@ All process-provided strings and paths are untrusted. Use structured OS APIs or 
 ## Requirement support
 
 This architecture supports FR-001–FR-011 by establishing shared listener/process/action models, use cases, presentation boundaries, and platform contracts. It supports NFR-001–NFR-010 and PR-001–PR-013 through local-only boundaries, least privilege, explicit availability, privacy constraints, and substitutable native adapters. These requirements remain frozen and unimplemented. P1 project-root and Git context remain outside P0 implementation.
+
+W013.1 adds optional `ProcessIconProvider` enrichment as presentation data.
+Icon lookup runs after the runtime snapshot returns, through a separate
+generation-scoped command; icon failures only select a frontend fallback. It
+is isolated from process identity and controller contracts.

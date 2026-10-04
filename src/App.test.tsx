@@ -41,6 +41,7 @@ const snapshot = (
   completeness: { state: "complete" as const },
   capabilities,
   entries,
+  processIcons: [] as { reference: string; pngBase64: string }[],
 });
 const row = (overrides: Record<string, unknown> = {}) => ({
   entryRef: "entry-1-0",
@@ -68,17 +69,39 @@ const row = (overrides: Record<string, unknown> = {}) => ({
   },
   localUrl: "http://127.0.0.1:5173",
   actionTargetRef: "target-1-0",
+  processIconRef: null as string | null,
   ...overrides,
 });
 
 describe("runtime inspector", () => {
   it("shows loading then the real listener and process information", async () => {
+    let resolveSnapshot:
+      ((value: ReturnType<typeof snapshot>) => void) | undefined;
     mockIPC((command) =>
-      command === "get_runtime_snapshot" ? snapshot([row()]) : undefined,
+      command === "get_runtime_snapshot"
+        ? new Promise<ReturnType<typeof snapshot>>((resolve) => {
+            resolveSnapshot = resolve;
+          })
+        : undefined,
     );
     render(<App />);
-    expect(screen.getByText("Finding local listeners")).toBeInTheDocument();
-    expect(await screen.findByText("5173")).toBeInTheDocument();
+    expect(screen.getByRole("status")).toHaveTextContent(
+      "Finding local listeners",
+    );
+    expect(document.querySelectorAll(".runtime-card-skeleton")).toHaveLength(3);
+    expect(
+      document.querySelector(".header-count-skeleton"),
+    ).toBeInTheDocument();
+    expect(screen.queryByText("0 listeners")).not.toBeInTheDocument();
+    expect(document.querySelector('[aria-busy="true"]')).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /Force stop/i }),
+    ).not.toBeInTheDocument();
+    await act(async () => resolveSnapshot?.(snapshot([row()])));
+    expect(await screen.findByText(":5173")).toBeInTheDocument();
+    expect(
+      document.querySelector(".runtime-card-skeleton"),
+    ).not.toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "node" })).toBeInTheDocument();
     expect(
       screen.getByText(
@@ -86,6 +109,114 @@ describe("runtime inspector", () => {
           element?.tagName === "P" &&
           element.textContent?.includes("PID 123") === true,
       ),
+    ).toBeInTheDocument();
+  });
+
+  it("renders a resolved process icon from the snapshot icon request", async () => {
+    mockIPC((command) =>
+      command === "get_runtime_snapshot"
+        ? snapshot([row({ processIconRef: "icon-1-0" })])
+        : command === "get_runtime_process_icons"
+          ? [
+              {
+                reference: "icon-1-0",
+                pngBase64:
+                  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+nm4kAAAAASUVORK5CYII=",
+              },
+            ]
+          : undefined,
+    );
+    const { container } = render(<App />);
+    expect(await screen.findByText(":5173")).toBeInTheDocument();
+    const image = container.querySelector(".runtime-app-icon img");
+    expect(image).toHaveAttribute(
+      "src",
+      expect.stringContaining("data:image/png;base64,"),
+    );
+    expect(image).toHaveAttribute("alt", "");
+  });
+
+  it("renders runtime rows before the optional icon lookup completes", async () => {
+    mockIPC((command) => {
+      if (command === "get_runtime_snapshot")
+        return snapshot([row({ processIconRef: "icon-1-0" })]);
+      if (command === "get_runtime_process_icons")
+        return new Promise(() => undefined);
+      return undefined;
+    });
+    const { container } = render(<App />);
+    expect(await screen.findByText(":5173")).toBeInTheDocument();
+    expect(
+      container.querySelector(".process-icon-skeleton"),
+    ).toBeInTheDocument();
+  });
+
+  it("replaces the process icon skeleton with the fallback after lookup failure", async () => {
+    mockIPC((command) => {
+      if (command === "get_runtime_snapshot")
+        return snapshot([row({ processIconRef: "icon-1-0" })]);
+      if (command === "get_runtime_process_icons")
+        throw new Error("icon lookup failed");
+      return undefined;
+    });
+    const { container } = render(<App />);
+    expect(await screen.findByText(":5173")).toBeInTheDocument();
+    await waitFor(() =>
+      expect(
+        container.querySelector('[data-icon-kind="process-fallback"]'),
+      ).toBeInTheDocument(),
+    );
+    expect(
+      container.querySelector(".process-icon-skeleton"),
+    ).not.toBeInTheDocument();
+  });
+
+  it("uses the generic fallback when native icon lookup fails", async () => {
+    mockIPC((command) =>
+      command === "get_runtime_snapshot" ? snapshot([row()]) : undefined,
+    );
+    const { container } = render(<App />);
+    expect(await screen.findByText(":5173")).toBeInTheDocument();
+    expect(
+      container.querySelector('[data-icon-kind="process-fallback"]'),
+    ).toBeInTheDocument();
+  });
+
+  it("falls back when an icon asset cannot be decoded by the frontend", async () => {
+    mockIPC((command) =>
+      command === "get_runtime_snapshot"
+        ? snapshot([row({ processIconRef: "icon-1-0" })])
+        : command === "get_runtime_process_icons"
+          ? [{ reference: "icon-1-0", pngBase64: "invalid" }]
+          : undefined,
+    );
+    const { container } = render(<App />);
+    expect(await screen.findByText(":5173")).toBeInTheDocument();
+    const image = container.querySelector(".runtime-app-icon img");
+    expect(image).toBeInTheDocument();
+    fireEvent.error(image!);
+    expect(
+      container.querySelector('[data-icon-kind="process-fallback"]'),
+    ).toBeInTheDocument();
+  });
+
+  it("shows the unknown-owner fallback without dropping the listener", async () => {
+    mockIPC((command) =>
+      command === "get_runtime_snapshot"
+        ? snapshot([
+            row({
+              processId: null,
+              process: { state: "noOwner" },
+              localUrl: null,
+              actionTargetRef: null,
+            }),
+          ])
+        : undefined,
+    );
+    const { container } = render(<App />);
+    expect(await screen.findByText(":5173")).toBeInTheDocument();
+    expect(
+      container.querySelector('[data-icon-kind="unknown-owner"]'),
     ).toBeInTheDocument();
   });
 
@@ -117,15 +248,15 @@ describe("runtime inspector", () => {
         ),
       });
     });
-    expect(screen.getByText("6000")).toBeInTheDocument();
+    expect(screen.getByText(":6000")).toBeInTheDocument();
 
     await act(async () => {
       resolveInitial?.(
         snapshot([row()], { gracefulStop: true, forceStop: true }, 1),
       );
     });
-    expect(screen.getByText("6000")).toBeInTheDocument();
-    expect(screen.queryByText("5173")).not.toBeInTheDocument();
+    expect(screen.getByText(":6000")).toBeInTheDocument();
+    expect(screen.queryByText(":5173")).not.toBeInTheDocument();
   });
 
   it("renders a complete empty state", async () => {
@@ -136,6 +267,9 @@ describe("runtime inspector", () => {
     expect(
       await screen.findByText("No listening TCP ports found"),
     ).toBeInTheDocument();
+    expect(
+      document.querySelector(".runtime-card-skeleton"),
+    ).not.toBeInTheDocument();
   });
 
   it("keeps partial results visible with a warning", async () => {
@@ -151,7 +285,7 @@ describe("runtime inspector", () => {
     expect(
       await screen.findByText("Some listeners may be missing from this scan."),
     ).toBeInTheDocument();
-    expect(screen.getByText("5173")).toBeInTheDocument();
+    expect(screen.getByText(":5173")).toBeInTheDocument();
   });
 
   it("shows a safe provider error and retries manually", async () => {
@@ -170,11 +304,39 @@ describe("runtime inspector", () => {
       "Thaa could not inspect listening ports",
     );
     expect(
+      document.querySelector(".runtime-card-skeleton"),
+    ).not.toBeInTheDocument();
+    expect(
       screen.queryByText("sensitive native output"),
     ).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Refresh" }));
-    expect(await screen.findByText("5173")).toBeInTheDocument();
+    expect(await screen.findByText(":5173")).toBeInTheDocument();
     expect(scans).toBe(1);
+  });
+
+  it("keeps the current runtime card visible while a manual refresh is pending", async () => {
+    let resolveRefresh:
+      ((value: ReturnType<typeof snapshot>) => void) | undefined;
+    mockIPC((command) => {
+      if (command === "get_runtime_snapshot") return snapshot([row()]);
+      if (command === "refresh_runtime_snapshot")
+        return new Promise<ReturnType<typeof snapshot>>((resolve) => {
+          resolveRefresh = resolve;
+        });
+      return undefined;
+    });
+    render(<App />);
+    expect(await screen.findByText(":5173")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Refresh" }));
+    expect(screen.getByText(":5173")).toBeInTheDocument();
+    expect(
+      document.querySelector(".runtime-card-skeleton"),
+    ).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Refreshing" })).toBeDisabled();
+    await act(async () => resolveRefresh?.(snapshot([])));
+    expect(
+      await screen.findByText("No listening TCP ports found"),
+    ).toBeInTheDocument();
   });
 
   it("exposes only capability-supported actions and confirms force stop", async () => {
@@ -186,7 +348,7 @@ describe("runtime inspector", () => {
       return undefined;
     });
     render(<App />);
-    expect(await screen.findByText("5173")).toBeInTheDocument();
+    expect(await screen.findByText(":5173")).toBeInTheDocument();
     expect(
       screen.queryByRole("button", { name: "Stop" }),
     ).not.toBeInTheDocument();
@@ -194,6 +356,7 @@ describe("runtime inspector", () => {
     expect(screen.getByRole("dialog")).toHaveTextContent(
       "Normal cleanup may not run",
     );
+    expect(screen.getByRole("dialog")).toHaveTextContent("Port 5173");
     fireEvent.click(
       screen.getByRole("dialog").querySelector(".button-danger")!,
     );
@@ -219,7 +382,7 @@ describe("runtime inspector", () => {
         : undefined,
     );
     render(<App />);
-    expect(await screen.findByText("5173")).toBeInTheDocument();
+    expect(await screen.findByText(":5173")).toBeInTheDocument();
     expect(screen.getByText("Permission denied")).toBeInTheDocument();
     expect(
       screen.queryByRole("button", { name: "Force stop" }),
@@ -233,7 +396,7 @@ describe("runtime inspector", () => {
         : undefined,
     );
     render(<App />);
-    expect(await screen.findByText("5173")).toBeInTheDocument();
+    expect(await screen.findByText(":5173")).toBeInTheDocument();
     expect(
       screen.queryByRole("button", { name: "Stop" }),
     ).not.toBeInTheDocument();
@@ -350,7 +513,7 @@ describe("runtime inspector", () => {
       await screen.findByText("No listening TCP ports found"),
     ).toBeInTheDocument();
     expect(screen.getByRole("status")).toHaveTextContent(
-      "This process has already exited",
+      "Process already exited",
     );
     expect(refreshes).toBe(1);
   });
@@ -367,10 +530,23 @@ describe("runtime inspector", () => {
     });
     render(<App />);
     fireEvent.click(await screen.findByRole("button", { name: "Force stop" }));
+    const [cancel, confirm] = screen
+      .getByRole("dialog")
+      .querySelectorAll(".dialog-actions button");
+    if (!cancel || !confirm) {
+      throw new Error("Expected Cancel and Force stop dialog actions");
+    }
+    expect(cancel).toHaveAccessibleName("Cancel");
+    expect(confirm).toHaveAccessibleName("Force stop");
+    expect(cancel.parentElement).toBe(confirm.parentElement);
+    expect(cancel.parentElement).toHaveClass(
+      "dialog-actions",
+      "equal-action-pair",
+    );
     fireEvent.click(
       screen.getByRole("dialog").querySelector(".button-danger")!,
     );
-    expect(await screen.findByRole("status")).toHaveTextContent(
+    expect(await screen.findByRole("alert")).toHaveTextContent(
       "does not have permission",
     );
     expect(screen.getByRole("button", { name: "Force stop" })).toBeEnabled();
