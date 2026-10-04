@@ -17,10 +17,13 @@ pnpm tauri icon src-tauri/icons/derived/thaa-app-icon-production.png
 ```
 
 `scripts/generate-branding-assets.swift` preserves the 1024×1024 app master,
-scales its full artwork to 84% occupancy (860×860, centered with 82px
-transparent margins), and crops tray sources to nontransparent alpha bounds
-before fitting them to compact canvases. The macOS derivative is 36×36 with a
-26px-high glyph; the Windows derivative is 32×32 with a 23px-high glyph.
+scales its full artwork to an 824×824 centered body with 100px transparent
+margins, and crops tray sources to nontransparent alpha bounds before fitting
+them into compact canvases. The macOS derivative is 44×44 with a proportional
+32px-high glyph; the Windows derivative remains 32×32 with a 23px-high glyph.
+The generator checks the expected app bounds and runs an asymmetric
+top/bottom orientation fixture through drawing and PNG encode/decode before
+writing outputs.
 
 Tauri writes official application outputs into `src-tauri/icons/`, including
 desktop application files and additional iOS/Android outputs. Commit the
