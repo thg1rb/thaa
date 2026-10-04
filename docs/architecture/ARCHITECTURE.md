@@ -62,6 +62,11 @@ Feature-oriented React/TypeScript presentation owns rendering, interaction, acce
 
 Startup is the composition root: select the target platform adapter, construct shared providers/use cases/coordinator, then register thin Tauri commands. Use ordinary Rust constructors and owned/shared handles; no dependency-injection framework is justified.
 
+Native tray branding is selected in this same composition layer: macOS embeds
+the monochrome template asset and enables template rendering, while Windows
+embeds the cyan tray asset. Tauri application bundle icons are generated from
+the canonical app master; branding assets are not runtime process identity.
+
 Proposed source organization once the later application bootstrap begins (do not create these directories in W003):
 
 ```text

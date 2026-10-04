@@ -142,12 +142,24 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .setup(|app| {
             let menu = build_tray_menu(app.handle())?;
-            let mut tray = TrayIconBuilder::with_id("main-tray")
+            let tray = TrayIconBuilder::with_id("main-tray")
                 .menu(&menu)
                 .tooltip("Thaa — Local Runtime Inspector");
-            if let Some(icon) = app.default_window_icon() {
-                tray = tray.icon(icon.clone());
-            }
+
+            #[cfg(target_os = "macos")]
+            let tray = tray
+                .icon(tauri::include_image!("./icons/thaa-tray-macos.png"))
+                .icon_as_template(true);
+
+            #[cfg(target_os = "windows")]
+            let tray = tray.icon(tauri::include_image!("./icons/thaa-tray-windows.png"));
+
+            #[cfg(not(any(target_os = "macos", target_os = "windows")))]
+            let tray = if let Some(icon) = app.default_window_icon() {
+                tray.icon(icon.clone())
+            } else {
+                tray
+            };
             tray.show_menu_on_left_click(false)
                 .on_menu_event(|app, event| match event.id().as_ref() {
                     "show" => {

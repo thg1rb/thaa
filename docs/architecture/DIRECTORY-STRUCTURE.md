@@ -90,7 +90,8 @@ src-tauri/
     process_provider_contract.rs # deterministic process contract tests
     macos_port_provider.rs       # controlled native listener tests (macOS only)
     runtime_snapshot_native.rs # controlled listener + native process snapshot
-  icons/icon.png          # minimal RGBA application icon required by Tauri context
+  icons/source/           # canonical approved Thaa application and tray masters
+  icons/                  # generated application icons and small native tray images
 docs/
   architecture/           # architecture baseline and actual directory shape
   development/            # setup, workflow, and coding standards

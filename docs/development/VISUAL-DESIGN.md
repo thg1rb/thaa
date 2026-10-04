@@ -84,6 +84,16 @@ canvas color. The document is the single vertical scroll owner, with vertical
 overscroll suppressed while retaining a matching background at every layer.
 Other platforms retain their native window decorations.
 
+## Native Thaa branding
+
+The canonical application and tray icon masters live in
+`src-tauri/icons/source/`. Tauri-generated application assets and small tray
+derivatives live in `src-tauri/icons/`. The native Rust tray composition uses
+a 36×36 transparent monochrome template image on macOS and a 32×32 transparent
+cyan image on Windows. These are Thaa application-branding assets and remain
+separate from the per-process icons shown in runtime cards. Bundle/executable
+icon metadata does not participate in process identity or action authorization.
+
 ## Frontend responsibilities
 
 `App.tsx` composes shared providers and the runtime-inspector page. The
