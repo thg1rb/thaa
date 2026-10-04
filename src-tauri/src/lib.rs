@@ -148,11 +148,15 @@ pub fn run() {
 
             #[cfg(target_os = "macos")]
             let tray = tray
-                .icon(tauri::include_image!("./icons/thaa-tray-macos.png"))
+                .icon(tauri::include_image!(
+                    "./icons/derived/thaa-tray-template-macos.png"
+                ))
                 .icon_as_template(true);
 
             #[cfg(target_os = "windows")]
-            let tray = tray.icon(tauri::include_image!("./icons/thaa-tray-windows.png"));
+            let tray = tray.icon(tauri::include_image!(
+                "./icons/derived/thaa-tray-windows.png"
+            ));
 
             #[cfg(not(any(target_os = "macos", target_os = "windows")))]
             let tray = if let Some(icon) = app.default_window_icon() {
