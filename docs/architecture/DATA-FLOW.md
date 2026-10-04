@@ -51,6 +51,22 @@ object checks before and after queries report a process that exits during
 inspection as `ProcessDisappeared`. The handle is closed before returning and
 is not stored in shared state. W011 and the W010 contract remain unchanged.
 
+W013 composes one `RuntimeInspector` at startup for the active platform. Each
+refresh calls `PortProvider` once, passes unique listener owner PIDs through
+W011, and retains unknown ownership and process-level errors on their
+listener rows. Partial port scans produce usable partial snapshots; a
+query-level port failure leaves the last successful snapshot available with a
+safe error state. The snapshot includes capability values and opaque
+snapshot-scoped listener/action references. It contains no reusable native
+handle and frontend display paths are not round-tripped as action identity.
+
+Manual refresh and the visible-window ten-second timer request refresh through
+the same non-overlapping coordinator. Concurrent calls coalesce to the latest
+generation and a superseded generation cannot replace the accepted snapshot.
+The compact tray menu is a projection of that same snapshot; tray activation
+requests refresh rather than starting a second scan path. Automatic scanning
+while hidden is not implemented.
+
 W012.0 defines identity-bound process action values and the
 `ProcessController` and `PlatformCapabilitiesProvider` ports. Action targets
 require a positive PID and observed start time; platform adapters must
@@ -119,6 +135,13 @@ HANDLE. Windows Graceful Stop remains explicitly unsupported. Neither
 controller waits for exit; a later fresh observation confirms it. The Windows
 same-object HANDLE property avoids retargeting a reused PID during the action
 sequence, while macOS retains its documented check-to-signal PID race.
+
+W013 maps only opaque action-target references across IPC. The backend resolves
+them against the most recently committed successful snapshot and dispatches
+the explicit action through the capability-aware application boundary. A
+successful action response means `Requested`; UI refresh is a later
+observation and does not optimistically claim process exit. Force Stop requires
+an explicit confirmation. Search/filter remains a view concern in W014.
 
 ## Refresh ownership and invariants
 

@@ -87,9 +87,9 @@ Likelihood and impact are qualitative design-time estimates. Every mitigation an
 - **Scenario:** User selects a protected/system process or inspection/stop is denied; code retries, misreports success, or destabilizes the OS.
 - **Impact / likelihood:** High / Low-to-Medium.
 - **Mitigation:** Do not target known critical OS processes; expose capability/permission outcomes; do not retry with broader rights; no automatic elevation; distinguish requested, rejected, denied, disappeared, and later-observed exit outcomes. Windows generic graceful stop is unsupported under the current model; never substitute force termination.
-- **Verification:** Deterministic native-result mapping covers permission denial without targeting protected/system processes. Live denial, elevation, and UI behavior remain untested/deferred.
+- **Verification:** Deterministic native-result mapping covers permission denial without targeting protected/system processes. W013 presents action outcomes and performs no elevation; interactive UI validation remains pending.
 - **Residual risk:** Platform protection signals differ and may be incomplete; unknown targets still require identity checks and explicit confirmation.
-- **References / status:** FR-008/009/011; NFR-002/005; PR-005/006; TC-PROC-002, TC-ACTION-004. **macOS and Windows controller mappings are platform-specific; Windows generic graceful stop remains unsupported; user-facing behavior is deferred to W013.**
+- **References / status:** FR-008/009/011; NFR-002/005; PR-005/006; TC-PROC-002, TC-ACTION-004. **macOS and Windows controller mappings are platform-specific; W013 capability-gates user-facing actions; Windows generic graceful stop remains unsupported. Interactive validation is pending.**
 
 ### THR-006 — Silent privilege escalation
 

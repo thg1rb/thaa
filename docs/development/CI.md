@@ -7,11 +7,11 @@ requires no project secrets.
 
 ## Jobs and runners
 
-| Job                       | Runner             | Checks                                                                                                                             |
-| ------------------------- | ------------------ | ---------------------------------------------------------------------------------------------------------------------------------- |
-| Shared quality            | `ubuntu-24.04` x64 | Frontend format, lint, typecheck, tests/build, local Markdown links, pnpm audit, RustSec audit for supported macOS/Windows targets |
-| macOS native validation   | `macos-15` arm64   | Rust format/Clippy/tests including W008 controlled `lsof` listener tests, then a Tauri app build                                   |
-| Windows native validation | `windows-2025` x64 | Rust format/Clippy/tests on Windows, then a Tauri app build                                                                        |
+| Job                       | Runner             | Checks                                                                                                                                               |
+| ------------------------- | ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Shared quality            | `ubuntu-24.04` x64 | Frontend format, W013 docs format, lint, typecheck, tests/build, local Markdown links, pnpm audit, RustSec audit for supported macOS/Windows targets |
+| macOS native validation   | `macos-15` arm64   | Rust format/Clippy/tests including W008 controlled listeners and W013 native snapshot integration, then a Tauri app build                            |
+| Windows native validation | `windows-2025` x64 | Rust format/Clippy/tests including W013 native snapshot integration on Windows, then a Tauri app build                                               |
 
 The hosted macOS image is macOS 15 arm64; it is not equivalent to the local
 macOS 27 arm64 development host. Windows CI uses a GitHub-hosted Windows Server

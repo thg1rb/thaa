@@ -7,9 +7,13 @@ fn main() {
         println!("cargo:rerun-if-changed=src/platform/macos/process_identity.c");
     }
 
-    tauri_build::try_build(
-        tauri_build::Attributes::new()
-            .app_manifest(tauri_build::AppManifest::new().commands(&["get_app_info"])),
-    )
+    tauri_build::try_build(tauri_build::Attributes::new().app_manifest(
+        tauri_build::AppManifest::new().commands(&[
+            "get_runtime_snapshot",
+            "refresh_runtime_snapshot",
+            "request_process_action",
+            "open_listener_url",
+        ]),
+    ))
     .expect("failed to build Tauri application");
 }

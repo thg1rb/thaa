@@ -19,8 +19,9 @@ project structure](https://v2.tauri.app/start/project-structure/).
   .prettierignore         # generated and vendored content exclusions
   .editorconfig           # editor defaults; formatter tools remain authoritative
 src/
-  App.tsx                 # bootstrap UI and typed IPC state
-  App.css                 # minimal shell styling
+  App.tsx                 # user-facing runtime list and interaction state
+  App.css                 # responsive runtime inspector styling
+  runtimeApi.ts           # typed Tauri DTO client
   main.tsx                # React entry point
   App.test.tsx            # observable shell-state tests
   test/setup.ts           # Vitest matcher setup
@@ -30,13 +31,14 @@ src-tauri/
   build.rs                # Tauri build and command permission manifest
   tauri.conf.json         # application identity, window, CSP, build settings
   capabilities/
-    main-window.json      # narrow app-info command capability
+    main-window.json      # runtime commands and scoped event-listen capability
   src/
     lib.rs                # Tauri composition root
     main.rs               # desktop entry point
     application/           # shared use-case orchestration
       mod.rs
       process_inspection.rs # per-PID inspection using ProcessProvider
+      runtime_inspection.rs # listener/process snapshot and refresh coordinator
     domain/               # shared, platform-neutral domain values and rules
       mod.rs
       capabilities.rs
@@ -65,7 +67,7 @@ src-tauri/
         process_controller.rs # same-HANDLE identity-checked Force Stop
     commands/
       mod.rs
-      app_info.rs         # thin command and transport DTO
+      runtime.rs          # runtime/action commands and transport DTOs
   tests/
     common/
       mod.rs
@@ -75,6 +77,7 @@ src-tauri/
     macos_process_controller.rs # controlled-child SIGTERM/SIGKILL tests (macOS only)
     process_provider_contract.rs # deterministic process contract tests
     macos_port_provider.rs       # controlled native listener tests (macOS only)
+    runtime_snapshot_native.rs # controlled listener + native process snapshot
   icons/icon.png          # minimal RGBA application icon required by Tauri context
 docs/
   architecture/           # architecture baseline and actual directory shape
