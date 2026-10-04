@@ -816,6 +816,7 @@ h1 {
 }
 
 .dialog-actions {
+  margin-left: auto;
   justify-content: end;
 }
 
