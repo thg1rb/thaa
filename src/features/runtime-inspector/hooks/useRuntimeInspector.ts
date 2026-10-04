@@ -12,6 +12,7 @@ import type {
 const initialState: RuntimeInspectorState = {
   snapshot: null,
   loading: true,
+  iconsLoading: false,
   refreshing: false,
   error: null,
   backgroundStale: false,
@@ -35,10 +36,18 @@ export function useRuntimeInspector() {
     const current = currentSnapshot.current;
     const accepted =
       current && current.generation > incoming.generation ? current : incoming;
+    const hasIconsToResolve = accepted.entries.some(
+      (entry) => entry.processIconRef,
+    );
+    const iconRequestPending =
+      hasIconsToResolve &&
+      (iconGeneration.current !== accepted.generation ||
+        iconRequestInFlight.current);
     currentSnapshot.current = accepted;
     setState((previous) => ({
       ...previous,
       snapshot: accepted,
+      iconsLoading: iconRequestPending,
       error: null,
       backgroundStale: false,
       refreshing: false,
@@ -73,6 +82,13 @@ export function useRuntimeInspector() {
       .finally(() => {
         iconRequestInFlight.current = false;
         const latest = currentSnapshot.current;
+        if (mounted.current && latest?.generation === accepted.generation) {
+          setState((previous) =>
+            previous.snapshot?.generation === accepted.generation
+              ? { ...previous, iconsLoading: false }
+              : previous,
+          );
+        }
         if (latest && latest.generation !== iconGeneration.current) {
           applySnapshot(latest);
         }

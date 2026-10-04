@@ -1,14 +1,27 @@
 import { useState } from "react";
+import { Skeleton } from "../../../shared/ui/skeleton/Skeleton";
 
 export function ProcessIcon({
   source,
   unknown,
+  loading = false,
 }: {
   source: string | undefined;
   unknown: boolean;
+  loading?: boolean;
 }) {
   const [failedSource, setFailedSource] = useState<string | null>(null);
   const resolvedSource = source && source !== failedSource ? source : undefined;
+  if (loading && !unknown) {
+    return (
+      <span
+        className="runtime-app-icon process-icon-loading"
+        aria-hidden="true"
+      >
+        <Skeleton className="process-icon-skeleton" />
+      </span>
+    );
+  }
   if (resolvedSource) {
     return (
       <span className="runtime-app-icon" aria-hidden="true">

@@ -1,13 +1,18 @@
 .toast-viewport {
   position: fixed;
   z-index: 30;
-  top: 126px;
-  right: max(18px, calc((100vw - 1080px) / 2));
-  display: grid;
-  width: min(390px, calc(100vw - 28px));
+  right: max(16px, calc((100vw - 1160px) / 2 + 24px));
+  bottom: max(18px, env(safe-area-inset-bottom));
+  display: flex;
+  flex-direction: column;
+  width: min(390px, calc(100vw - 32px));
+  max-height: calc(100dvh - 36px);
   gap: 10px;
   margin: 0;
-  padding: 0;
+  padding: 0 0 2px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-emphasis) transparent;
   list-style: none;
   pointer-events: none;
 }
@@ -25,6 +30,11 @@
   color: var(--text);
   pointer-events: auto;
   animation: toast-in 180ms var(--motion-ease) both;
+}
+
+.toast-exiting {
+  animation: toast-out 180ms var(--motion-ease) both;
+  pointer-events: none;
 }
 
 .toast-success {
@@ -108,7 +118,7 @@
 @keyframes toast-in {
   from {
     opacity: 0;
-    transform: translateY(-5px);
+    transform: translateX(7px);
   }
   to {
     opacity: 1;
@@ -116,16 +126,28 @@
   }
 }
 
+@keyframes toast-out {
+  from {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(7px);
+  }
+}
+
 @media (max-width: 560px) {
   .toast-viewport {
-    top: 126px;
-    right: 14px;
-    width: calc(100vw - 28px);
+    right: 16px;
+    bottom: max(16px, env(safe-area-inset-bottom));
+    width: calc(100vw - 32px);
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .toast {
-    animation: none;
+  .toast,
+  .toast-exiting {
+    animation-duration: 1ms;
   }
 }

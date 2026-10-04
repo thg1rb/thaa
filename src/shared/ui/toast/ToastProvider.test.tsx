@@ -4,23 +4,27 @@ import {
   fireEvent,
   render,
   screen,
+  within,
 } from "@testing-library/react";
+import { useRef } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { ToastProvider } from "./ToastProvider";
 import { useToast } from "./useToast";
 
 function ToastControls() {
   const { showToast } = useToast();
+  const notificationCount = useRef(0);
   return (
     <div>
       <button
-        onClick={() =>
+        onClick={() => {
+          notificationCount.current += 1;
           showToast({
             tone: "success",
             title: "Request sent",
-            message: "The process result will be checked on the next scan.",
-          })
-        }
+            message: `Notification ${notificationCount.current}: The process result will be checked on the next scan.`,
+          });
+        }}
       >
         Add success
       </button>
@@ -60,7 +64,7 @@ describe("ToastProvider", () => {
     expect(screen.getByRole("alert")).toHaveTextContent("Action failed");
   });
 
-  it("supports manual dismissal and promotes queued notifications", () => {
+  it("animates manual dismissal before promoting a queued notification", () => {
     render(
       <ToastProvider>
         <ToastControls />
@@ -79,9 +83,13 @@ describe("ToastProvider", () => {
       })[0]!,
     );
     expect(screen.getAllByRole("status")).toHaveLength(3);
+    const exiting = screen.getAllByRole("status")[0]!;
+    expect(exiting).toHaveClass("toast-exiting");
+    fireEvent.animationEnd(exiting, { animationName: "toast-out" });
+    expect(screen.getAllByRole("status")).toHaveLength(3);
   });
 
-  it("automatically dismisses a success notification after its reading window", () => {
+  it("keeps a timed-out notification mounted until its exit animation ends", () => {
     vi.useFakeTimers();
     render(
       <ToastProvider>
@@ -92,6 +100,36 @@ describe("ToastProvider", () => {
     expect(screen.getByRole("status")).toBeInTheDocument();
 
     act(() => vi.advanceTimersByTime(6000));
+    const exiting = screen.getByRole("status");
+    expect(exiting).toHaveClass("toast-exiting");
+    expect(exiting).toBeInTheDocument();
+    fireEvent.animationEnd(exiting, { animationName: "toast-out" });
     expect(screen.queryByRole("status")).not.toBeInTheDocument();
+  });
+
+  it("keeps the newest notification at the bottom and queues while exits finish", () => {
+    render(
+      <ToastProvider>
+        <ToastControls />
+      </ToastProvider>,
+    );
+    const add = screen.getByRole("button", { name: "Add success" });
+    fireEvent.click(add);
+    fireEvent.click(add);
+    fireEvent.click(add);
+    fireEvent.click(add);
+    const viewport = screen.getByRole("list", { name: "Notifications" });
+    expect(viewport).toHaveClass("toast-viewport");
+    expect(viewport.lastElementChild).toHaveTextContent("Notification 3");
+    const first = screen.getAllByRole("status")[0]!;
+    fireEvent.click(
+      within(first).getByRole("button", { name: /Dismiss notification/ }),
+    );
+    fireEvent.click(add);
+    expect(screen.getAllByRole("status")).toHaveLength(3);
+    expect(first).toHaveClass("toast-exiting");
+    fireEvent.animationEnd(first, { animationName: "toast-out" });
+    expect(screen.getAllByRole("status")).toHaveLength(3);
+    expect(viewport.lastElementChild).toHaveTextContent("Notification 4");
   });
 });

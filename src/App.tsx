@@ -11,14 +11,26 @@ const RuntimeVisualFixture = import.meta.env.DEV
   : null;
 
 function AppContent() {
+  const fixtureMode = import.meta.env.DEV
+    ? new URLSearchParams(window.location.search).get("w0131")
+    : null;
   const showVisualFixture =
-    import.meta.env.DEV &&
-    new URLSearchParams(window.location.search).get("w0131") === "preview";
+    fixtureMode === "preview" ||
+    fixtureMode === "loading" ||
+    fixtureMode === "icon-loading";
 
   if (showVisualFixture && RuntimeVisualFixture) {
     return (
       <Suspense fallback={<main className="app-shell" aria-busy="true" />}>
-        <RuntimeVisualFixture />
+        <RuntimeVisualFixture
+          mode={
+            fixtureMode === "loading"
+              ? "loading"
+              : fixtureMode === "icon-loading"
+                ? "icon-loading"
+                : "cards"
+          }
+        />
       </Suspense>
     );
   }

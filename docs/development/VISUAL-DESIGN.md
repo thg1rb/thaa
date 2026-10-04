@@ -49,7 +49,30 @@ request; it is not described as an exited process until a later scan observes
 that state. The viewport shows at most three notifications at once and keeps a
 bounded FIFO queue. Notifications can be dismissed, expire after a readable
 interval, and pause expiration while hovered or focused. Passive and periodic
-refreshes do not create notifications.
+refreshes do not create notifications. The viewport is anchored at the
+bottom-right with the newest notification at the bottom. Both timeout and
+manual dismissal transition through a short exit animation before the slot is
+released and the next queued notification is promoted. A fallback timer removes
+the item if the browser does not deliver an animation-end event; reduced-motion
+preferences shorten the motion rather than changing the notification meaning.
+
+## Loading placeholders
+
+Initial runtime discovery uses three noninteractive Runtime Card Skeletons
+with approximate card geometry. A single polite status announces the initial
+scan; individual placeholder blocks are hidden from assistive technology. The
+header count and observation time remain placeholders until a real snapshot is
+available. Initial errors and empty results replace the Skeletons with their
+normal states. A manual or background refresh keeps the last usable snapshot
+visible and uses only the Refresh control's in-progress state.
+
+Runtime snapshots do not wait for optional icon enrichment. For a known process
+with an unresolved icon reference, a fixed-size icon Skeleton is shown while
+the generation-scoped icon request is pending. A resolved native icon replaces
+it; missing or failed icon data resolves to the Thaa fallback. Unknown owners
+use their fallback immediately because no icon request is pending for them.
+Skeletons use muted surfaces, a CSS-only subtle scan, and no animation when
+reduced motion is requested.
 
 ## Window chrome and canvas
 

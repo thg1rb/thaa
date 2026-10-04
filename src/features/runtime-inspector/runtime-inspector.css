@@ -147,6 +147,126 @@ h1 {
   gap: 11px;
 }
 
+.runtime-card-skeleton {
+  pointer-events: none;
+}
+
+.runtime-card-skeleton:hover {
+  transform: none;
+  border-color: var(--border);
+  background: linear-gradient(115deg, rgb(18 29 36 / 97%), rgb(13 22 28 / 98%));
+}
+
+.skeleton-process-title {
+  display: flex;
+  min-width: 0;
+  flex: 1 1 auto;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 7px;
+}
+
+.skeleton-eyebrow {
+  width: 72px;
+  height: 8px;
+}
+
+.skeleton-process-name {
+  width: min(190px, 70%);
+  height: 15px;
+}
+
+.skeleton-process-summary {
+  width: min(230px, 82%);
+  height: 9px;
+}
+
+.skeleton-icon {
+  width: 46px;
+  height: 46px;
+  flex: 0 0 46px;
+  border: 1px solid #344852;
+  border-radius: 10px;
+}
+
+.skeleton-port {
+  display: flex;
+  flex: 0 0 auto;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 7px;
+}
+
+.skeleton-port-number {
+  width: 66px;
+  height: 19px;
+}
+
+.skeleton-actions,
+.skeleton-card-bottom {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.skeleton-action {
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+
+.skeleton-metadata {
+  display: flex;
+  min-height: 18px;
+  align-items: center;
+  margin-top: 11px;
+}
+
+.skeleton-path {
+  width: min(410px, 68%);
+  height: 9px;
+}
+
+.skeleton-card-bottom {
+  min-height: 32px;
+  margin-top: 8px;
+}
+
+.skeleton-binding {
+  width: 118px;
+  height: 25px;
+  border-radius: 20px;
+}
+
+.skeleton-action-wide {
+  width: 88px;
+  height: 32px;
+  border-radius: var(--radius-sm);
+}
+
+.header-count-skeleton {
+  width: 82px;
+  height: 12px;
+  margin-right: 2px;
+}
+
+.header-time-skeleton {
+  width: 116px;
+  height: 12px;
+  margin-bottom: 3px;
+}
+
+.process-icon-loading {
+  padding: 5px;
+}
+
+.process-icon-skeleton {
+  width: 34px;
+  height: 34px;
+  border-radius: 7px;
+}
+
 .runtime-card {
   position: relative;
   overflow: hidden;
@@ -759,6 +879,18 @@ h1 {
     width: 40px;
     height: 40px;
     flex-basis: 40px;
+  }
+
+  .skeleton-icon {
+    width: 40px;
+    height: 40px;
+    flex-basis: 40px;
+  }
+
+  .skeleton-actions {
+    grid-column: 2 / 4;
+    grid-row: 2;
+    justify-self: start;
   }
 
   .runtime-app-icon img {

@@ -3,6 +3,7 @@ import { useToast } from "../../shared/ui/toast/useToast";
 import { ForceStopDialog } from "./components/ForceStopDialog";
 import { RuntimeHeader } from "./components/RuntimeHeader";
 import { RuntimeList } from "./components/RuntimeList";
+import { RuntimeCardSkeleton } from "./components/RuntimeCardSkeleton";
 import { useProcessAction } from "./hooks/useProcessAction";
 import { useRuntimeEntryActions } from "./hooks/useRuntimeEntryActions";
 import { useRuntimeInspector } from "./hooks/useRuntimeInspector";
@@ -60,6 +61,12 @@ export function RuntimeInspectorPage() {
         onRefresh={() => void manualRefresh()}
       />
 
+      {state.loading && !snapshot && (
+        <p className="sr-only" role="status">
+          Finding local listeners.
+        </p>
+      )}
+
       {snapshot?.completeness.state === "partial" && (
         <p className="banner banner-warn" role="status">
           Some listeners may be missing from this scan.
@@ -80,10 +87,14 @@ export function RuntimeInspectorPage() {
       )}
 
       {state.loading && !snapshot ? (
-        <section className="empty-panel" aria-busy="true" aria-live="polite">
-          <span className="loader" aria-hidden="true" />
-          <h3>Finding local listeners</h3>
-          <p>Checking active TCP ports and process details…</p>
+        <section
+          className="runtime-list runtime-list-skeleton"
+          aria-label="Loading listening TCP ports"
+          aria-busy="true"
+        >
+          {Array.from({ length: 3 }, (_, index) => (
+            <RuntimeCardSkeleton key={index} />
+          ))}
         </section>
       ) : snapshot && snapshot.entries.length === 0 ? (
         <section className="empty-panel">
@@ -105,6 +116,7 @@ export function RuntimeInspectorPage() {
           snapshot={snapshot}
           pendingTargets={pendingTargets}
           iconSources={iconSources}
+          iconsLoading={state.iconsLoading}
           onAction={runAction}
           onConfirmForce={setConfirming}
           onOpen={(entryRef) => void openListener(entryRef)}

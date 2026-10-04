@@ -3,6 +3,7 @@ import { useToast } from "../shared/ui/toast/useToast";
 import { ForceStopDialog } from "../features/runtime-inspector/components/ForceStopDialog";
 import { RuntimeCard } from "../features/runtime-inspector/components/RuntimeCard";
 import { RuntimeHeader } from "../features/runtime-inspector/components/RuntimeHeader";
+import { RuntimeCardSkeleton } from "../features/runtime-inspector/components/RuntimeCardSkeleton";
 import type {
   RuntimeEntry,
   RuntimeSnapshot,
@@ -67,7 +68,11 @@ const fixtureSnapshot: RuntimeSnapshot = {
   ],
 };
 
-export function RuntimeVisualFixture() {
+export function RuntimeVisualFixture({
+  mode,
+}: {
+  mode: "cards" | "loading" | "icon-loading";
+}) {
   const { showToast } = useToast();
   const [confirming, setConfirming] = useState<RuntimeEntry | null>(null);
   const showSuccess = () =>
@@ -91,8 +96,8 @@ export function RuntimeVisualFixture() {
         aria-hidden="true"
       />
       <RuntimeHeader
-        snapshot={fixtureSnapshot}
-        loading={false}
+        snapshot={mode === "loading" ? null : fixtureSnapshot}
+        loading={mode === "loading"}
         refreshing={false}
         onRefresh={() =>
           showToast({
@@ -107,6 +112,22 @@ export function RuntimeVisualFixture() {
         aria-label="Visual preview controls"
       >
         <span>Development-only preview · actions are mocked</span>
+        <button
+          className="button-secondary"
+          onClick={() => {
+            window.location.search = "?w0131=loading";
+          }}
+        >
+          Preview initial loading
+        </button>
+        <button
+          className="button-secondary"
+          onClick={() => {
+            window.location.search = "?w0131=icon-loading";
+          }}
+        >
+          Preview icon loading
+        </button>
         <button className="button-secondary" onClick={showSuccess}>
           Show success
         </button>
@@ -114,21 +135,41 @@ export function RuntimeVisualFixture() {
           Show error
         </button>
       </section>
-      <section className="runtime-list" aria-label="Preview runtime entries">
-        {fixtureSnapshot.entries.map((entry) => (
-          <RuntimeCard
-            key={entry.entryRef}
-            entry={entry}
-            capabilities={fixtureSnapshot.capabilities}
-            iconSource={entry.processIconRef ? iconSvg : undefined}
-            busy={false}
-            onAction={showSuccess}
-            onConfirmForce={() => setConfirming(entry)}
-            onOpen={showSuccess}
-            onCopy={showSuccess}
-          />
-        ))}
-      </section>
+      {mode === "loading" ? (
+        <>
+          <p className="sr-only" role="status">
+            Finding local listeners.
+          </p>
+          <section
+            className="runtime-list runtime-list-skeleton"
+            aria-label="Loading listening TCP ports"
+            aria-busy="true"
+          >
+            {Array.from({ length: 3 }, (_, index) => (
+              <RuntimeCardSkeleton key={index} />
+            ))}
+          </section>
+        </>
+      ) : (
+        <section className="runtime-list" aria-label="Preview runtime entries">
+          {fixtureSnapshot.entries.map((entry) => (
+            <RuntimeCard
+              key={entry.entryRef}
+              entry={entry}
+              capabilities={fixtureSnapshot.capabilities}
+              iconSource={entry.processIconRef ? iconSvg : undefined}
+              iconLoading={
+                mode === "icon-loading" && entry.processIconRef !== null
+              }
+              busy={false}
+              onAction={showSuccess}
+              onConfirmForce={() => setConfirming(entry)}
+              onOpen={showSuccess}
+              onCopy={showSuccess}
+            />
+          ))}
+        </section>
+      )}
       {confirming && (
         <ForceStopDialog
           entry={confirming}

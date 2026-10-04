@@ -54,6 +54,7 @@ export type RefreshOutcome = "updated" | "failed" | "queued";
 export type RuntimeInspectorState = {
   snapshot: RuntimeSnapshot | null;
   loading: boolean;
+  iconsLoading: boolean;
   refreshing: boolean;
   error: string | null;
   backgroundStale: boolean;

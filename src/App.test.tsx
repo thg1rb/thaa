@@ -75,12 +75,33 @@ const row = (overrides: Record<string, unknown> = {}) => ({
 
 describe("runtime inspector", () => {
   it("shows loading then the real listener and process information", async () => {
+    let resolveSnapshot:
+      ((value: ReturnType<typeof snapshot>) => void) | undefined;
     mockIPC((command) =>
-      command === "get_runtime_snapshot" ? snapshot([row()]) : undefined,
+      command === "get_runtime_snapshot"
+        ? new Promise<ReturnType<typeof snapshot>>((resolve) => {
+            resolveSnapshot = resolve;
+          })
+        : undefined,
     );
     render(<App />);
-    expect(screen.getByText("Finding local listeners")).toBeInTheDocument();
+    expect(screen.getByRole("status")).toHaveTextContent(
+      "Finding local listeners",
+    );
+    expect(document.querySelectorAll(".runtime-card-skeleton")).toHaveLength(3);
+    expect(
+      document.querySelector(".header-count-skeleton"),
+    ).toBeInTheDocument();
+    expect(screen.queryByText("0 listeners")).not.toBeInTheDocument();
+    expect(document.querySelector('[aria-busy="true"]')).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /Force stop/i }),
+    ).not.toBeInTheDocument();
+    await act(async () => resolveSnapshot?.(snapshot([row()])));
     expect(await screen.findByText(":5173")).toBeInTheDocument();
+    expect(
+      document.querySelector(".runtime-card-skeleton"),
+    ).not.toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "node" })).toBeInTheDocument();
     expect(
       screen.getByText(
@@ -126,8 +147,28 @@ describe("runtime inspector", () => {
     const { container } = render(<App />);
     expect(await screen.findByText(":5173")).toBeInTheDocument();
     expect(
-      container.querySelector('[data-icon-kind="process-fallback"]'),
+      container.querySelector(".process-icon-skeleton"),
     ).toBeInTheDocument();
+  });
+
+  it("replaces the process icon skeleton with the fallback after lookup failure", async () => {
+    mockIPC((command) => {
+      if (command === "get_runtime_snapshot")
+        return snapshot([row({ processIconRef: "icon-1-0" })]);
+      if (command === "get_runtime_process_icons")
+        throw new Error("icon lookup failed");
+      return undefined;
+    });
+    const { container } = render(<App />);
+    expect(await screen.findByText(":5173")).toBeInTheDocument();
+    await waitFor(() =>
+      expect(
+        container.querySelector('[data-icon-kind="process-fallback"]'),
+      ).toBeInTheDocument(),
+    );
+    expect(
+      container.querySelector(".process-icon-skeleton"),
+    ).not.toBeInTheDocument();
   });
 
   it("uses the generic fallback when native icon lookup fails", async () => {
@@ -226,6 +267,9 @@ describe("runtime inspector", () => {
     expect(
       await screen.findByText("No listening TCP ports found"),
     ).toBeInTheDocument();
+    expect(
+      document.querySelector(".runtime-card-skeleton"),
+    ).not.toBeInTheDocument();
   });
 
   it("keeps partial results visible with a warning", async () => {
@@ -260,11 +304,39 @@ describe("runtime inspector", () => {
       "Thaa could not inspect listening ports",
     );
     expect(
+      document.querySelector(".runtime-card-skeleton"),
+    ).not.toBeInTheDocument();
+    expect(
       screen.queryByText("sensitive native output"),
     ).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Refresh" }));
     expect(await screen.findByText(":5173")).toBeInTheDocument();
     expect(scans).toBe(1);
+  });
+
+  it("keeps the current runtime card visible while a manual refresh is pending", async () => {
+    let resolveRefresh:
+      ((value: ReturnType<typeof snapshot>) => void) | undefined;
+    mockIPC((command) => {
+      if (command === "get_runtime_snapshot") return snapshot([row()]);
+      if (command === "refresh_runtime_snapshot")
+        return new Promise<ReturnType<typeof snapshot>>((resolve) => {
+          resolveRefresh = resolve;
+        });
+      return undefined;
+    });
+    render(<App />);
+    expect(await screen.findByText(":5173")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Refresh" }));
+    expect(screen.getByText(":5173")).toBeInTheDocument();
+    expect(
+      document.querySelector(".runtime-card-skeleton"),
+    ).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Refreshing" })).toBeDisabled();
+    await act(async () => resolveRefresh?.(snapshot([])));
+    expect(
+      await screen.findByText("No listening TCP ports found"),
+    ).toBeInTheDocument();
   });
 
   it("exposes only capability-supported actions and confirms force stop", async () => {

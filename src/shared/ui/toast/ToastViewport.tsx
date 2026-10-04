@@ -5,14 +5,28 @@ import "./toast.css";
 export function ToastViewport({
   toasts,
   onDismiss,
+  onExited,
+  exitFallbackMs,
 }: {
   toasts: ToastItem[];
   onDismiss: (id: number) => void;
+  onExited: (id: number) => void;
+  exitFallbackMs: number;
 }) {
   return (
-    <ol className="toast-viewport" aria-label="Notifications">
+    <ol
+      className="toast-viewport"
+      aria-label="Notifications"
+      aria-relevant="additions text"
+    >
       {toasts.map((toast) => (
-        <ToastCard key={toast.id} toast={toast} onDismiss={onDismiss} />
+        <ToastCard
+          key={toast.id}
+          toast={toast}
+          onDismiss={onDismiss}
+          onExited={onExited}
+          exitFallbackMs={exitFallbackMs}
+        />
       ))}
     </ol>
   );
@@ -21,9 +35,13 @@ export function ToastViewport({
 function ToastCard({
   toast,
   onDismiss,
+  onExited,
+  exitFallbackMs,
 }: {
   toast: ToastItem;
   onDismiss: (id: number) => void;
+  onExited: (id: number) => void;
+  exitFallbackMs: number;
 }) {
   const [hovered, setHovered] = useState(false);
   const [focused, setFocused] = useState(false);
@@ -31,6 +49,13 @@ function ToastCard({
   const paused = hovered || focused;
 
   useEffect(() => {
+    if (toast.phase === "exiting") {
+      const fallback = window.setTimeout(
+        () => onExited(toast.id),
+        exitFallbackMs,
+      );
+      return () => window.clearTimeout(fallback);
+    }
     if (paused) return;
     const startedAt = Date.now();
     const timer = window.setTimeout(
@@ -44,15 +69,20 @@ function ToastCard({
         remainingMs.current - (Date.now() - startedAt),
       );
     };
-  }, [onDismiss, paused, toast.id]);
+  }, [exitFallbackMs, onDismiss, onExited, paused, toast.id, toast.phase]);
 
   return (
     <li
-      className={`toast toast-${toast.tone}`}
+      className={`toast toast-${toast.tone}${toast.phase === "exiting" ? " toast-exiting" : ""}`}
       role={toast.tone === "error" ? "alert" : "status"}
       aria-live={toast.tone === "error" ? "assertive" : "polite"}
       onPointerEnter={() => setHovered(true)}
       onPointerLeave={() => setHovered(false)}
+      onAnimationEnd={(event) => {
+        if (toast.phase === "exiting" && event.target === event.currentTarget) {
+          onExited(toast.id);
+        }
+      }}
       onFocusCapture={() => setFocused(true)}
       onBlurCapture={(event) => {
         if (!event.currentTarget.contains(event.relatedTarget as Node | null))

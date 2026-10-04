@@ -5,6 +5,7 @@ export function RuntimeList({
   snapshot,
   pendingTargets,
   iconSources,
+  iconsLoading,
   onAction,
   onConfirmForce,
   onOpen,
@@ -13,6 +14,7 @@ export function RuntimeList({
   snapshot: RuntimeSnapshot;
   pendingTargets: Set<string>;
   iconSources: Map<string, string>;
+  iconsLoading: boolean;
   onAction: (targetRef: string, action: Action) => void;
   onConfirmForce: (entry: RuntimeEntry) => void;
   onOpen: (entryRef: string) => void;
@@ -30,6 +32,7 @@ export function RuntimeList({
               ? iconSources.get(entry.processIconRef)
               : undefined
           }
+          iconLoading={iconsLoading && entry.processIconRef !== null}
           busy={
             entry.actionTargetRef !== null &&
             pendingTargets.has(entry.actionTargetRef)

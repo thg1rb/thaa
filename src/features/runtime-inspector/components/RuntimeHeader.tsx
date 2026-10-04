@@ -1,4 +1,5 @@
 import type { RuntimeSnapshot } from "../model/types";
+import { Skeleton } from "../../../shared/ui/skeleton/Skeleton";
 
 export function RuntimeHeader({
   snapshot,
@@ -24,11 +25,13 @@ export function RuntimeHeader({
           </div>
         </div>
         <div className="topbar-actions">
-          {snapshot && (
+          {snapshot ? (
             <span className="runtime-count">
               {snapshot.entries.length} listeners
             </span>
-          )}
+          ) : loading ? (
+            <Skeleton className="header-count-skeleton" />
+          ) : null}
           <button
             className="refresh-button"
             onClick={onRefresh}
@@ -52,7 +55,7 @@ export function RuntimeHeader({
             Local TCP services, their ports, and the processes behind them.
           </p>
         </div>
-        {snapshot && (
+        {snapshot ? (
           <p className="scan-time">
             Updated{" "}
             {new Date(snapshot.observedAtUnixMs).toLocaleTimeString([], {
@@ -60,7 +63,9 @@ export function RuntimeHeader({
               minute: "2-digit",
             })}
           </p>
-        )}
+        ) : loading ? (
+          <Skeleton className="header-time-skeleton" />
+        ) : null}
       </section>
     </>
   );

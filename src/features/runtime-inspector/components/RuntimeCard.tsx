@@ -12,6 +12,7 @@ export function RuntimeCard({
   entry,
   capabilities,
   iconSource,
+  iconLoading,
   busy,
   onAction,
   onConfirmForce,
@@ -21,6 +22,7 @@ export function RuntimeCard({
   entry: RuntimeEntry;
   capabilities: RuntimeSnapshot["capabilities"];
   iconSource: string | undefined;
+  iconLoading: boolean;
   busy: boolean;
   onAction: (targetRef: string, action: Action) => void;
   onConfirmForce: () => void;
@@ -41,6 +43,7 @@ export function RuntimeCard({
           <ProcessIcon
             source={iconSource}
             unknown={entry.process.state === "noOwner"}
+            loading={iconLoading}
           />
           <div className="process-title">
             <p className="eyebrow">PROCESS / OWNER</p>

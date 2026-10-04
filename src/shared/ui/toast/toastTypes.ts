@@ -9,4 +9,5 @@ export type ToastInput = {
 export type ToastItem = ToastInput & {
   id: number;
   durationMs: number;
+  phase: "visible" | "exiting";
 };
