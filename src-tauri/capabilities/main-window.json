@@ -8,6 +8,7 @@
     "allow-refresh-runtime-snapshot",
     "allow-request-process-action",
     "allow-open-listener-url",
-    "core:event:allow-listen"
+    "core:event:allow-listen",
+    "core:event:allow-unlisten"
   ]
 }

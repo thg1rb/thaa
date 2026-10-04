@@ -135,3 +135,11 @@ search/filter remains assigned to W014.
 | TC-UI-001      | Loading, success, empty, partial, safe error/retry, process metadata failure, and capability-specific controls are observable                | Vitest / Testing Library       | FR-003/004/006/008–011      | Thirteen frontend behavior tests pass locally; CI pending                                                    |
 | TC-UI-002      | Force Stop requires confirmation, requested action is not called exit, and successful/already-exited outcomes request a fresh snapshot       | Mock Tauri IPC                 | FR-009/011, THR-003/004     | Confirmation, requested, mismatch, already-exited, permission, and refresh behavior pass locally; CI pending |
 | TC-TRAY-001    | Tray menu presents a compact shared snapshot projection and refresh/show/quit behavior                                                       | Native app                     | FR-010                      | Implemented; interactive validation pending                                                                  |
+
+## Process icon enrichment (W013.1)
+
+| ID          | Scenario and expected evidence                                                                     | Fixture                          | Links           | Status                                              |
+| ----------- | -------------------------------------------------------------------------------------------------- | -------------------------------- | --------------- | --------------------------------------------------- |
+| TC-ICON-001 | Distinct listener rows for one PID share one bounded snapshot icon asset                           | Deterministic providers and PNG  | NFR-001, TC-011 | Rust unit test passes locally; CI pending             |
+| TC-ICON-002 | Invalid, unavailable, or oversized icon data leaves runtime row/action data intact and falls back  | Deterministic provider / adapter | THR-015         | Invalid-data isolation test passes locally; CI pending |
+| TC-ICON-003 | macOS AppKit and Windows Shell/GDI icon extraction cleans native resources and returns bounded PNG | Native CI / controlled process   | THR-015         | macOS controlled CLI fallback test passes; Windows CI and GUI icon success validation pending |

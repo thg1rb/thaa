@@ -16,11 +16,13 @@ fn runtime_inspector() -> Arc<RuntimeInspector> {
     use platform::macos::{
         port_provider::MacOSPortProvider,
         process_controller::{MacOSPlatformCapabilitiesProvider, MacOSProcessController},
+        process_icon::MacOSProcessIconProvider,
         process_provider::MacOSProcessProvider,
     };
-    Arc::new(RuntimeInspector::new(
+    Arc::new(RuntimeInspector::new_with_icons(
         Arc::new(MacOSPortProvider),
         Arc::new(MacOSProcessProvider),
+        Arc::new(MacOSProcessIconProvider),
         Arc::new(MacOSProcessController),
         Arc::new(MacOSPlatformCapabilitiesProvider),
     ))
@@ -31,11 +33,13 @@ fn runtime_inspector() -> Arc<RuntimeInspector> {
     use platform::windows::{
         port_provider::WindowsPortProvider,
         process_controller::{WindowsPlatformCapabilitiesProvider, WindowsProcessController},
+        process_icon::WindowsProcessIconProvider,
         process_provider::WindowsProcessProvider,
     };
-    Arc::new(RuntimeInspector::new(
+    Arc::new(RuntimeInspector::new_with_icons(
         Arc::new(WindowsPortProvider),
         Arc::new(WindowsProcessProvider),
+        Arc::new(WindowsProcessIconProvider),
         Arc::new(WindowsProcessController),
         Arc::new(WindowsPlatformCapabilitiesProvider),
     ))

@@ -41,6 +41,7 @@ const snapshot = (
   completeness: { state: "complete" as const },
   capabilities,
   entries,
+  processIcons: [] as { reference: string; pngBase64: string }[],
 });
 const row = (overrides: Record<string, unknown> = {}) => ({
   entryRef: "entry-1-0",
@@ -68,6 +69,7 @@ const row = (overrides: Record<string, unknown> = {}) => ({
   },
   localUrl: "http://127.0.0.1:5173",
   actionTargetRef: "target-1-0",
+  processIconRef: null as string | null,
   ...overrides,
 });
 
@@ -78,7 +80,7 @@ describe("runtime inspector", () => {
     );
     render(<App />);
     expect(screen.getByText("Finding local listeners")).toBeInTheDocument();
-    expect(await screen.findByText("5173")).toBeInTheDocument();
+    expect(await screen.findByText(":5173")).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "node" })).toBeInTheDocument();
     expect(
       screen.getByText(
@@ -86,6 +88,81 @@ describe("runtime inspector", () => {
           element?.tagName === "P" &&
           element.textContent?.includes("PID 123") === true,
       ),
+    ).toBeInTheDocument();
+  });
+
+  it("renders a resolved process icon from the snapshot presentation asset", async () => {
+    mockIPC((command) =>
+      command === "get_runtime_snapshot"
+        ? {
+            ...snapshot([row({ processIconRef: "icon-1-0" })]),
+            processIcons: [
+              {
+                reference: "icon-1-0",
+                pngBase64:
+                  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+nm4kAAAAASUVORK5CYII=",
+              },
+            ],
+          }
+        : undefined,
+    );
+    const { container } = render(<App />);
+    expect(await screen.findByText(":5173")).toBeInTheDocument();
+    const image = container.querySelector(".runtime-app-icon img");
+    expect(image).toHaveAttribute(
+      "src",
+      expect.stringContaining("data:image/png;base64,"),
+    );
+    expect(image).toHaveAttribute("alt", "");
+  });
+
+  it("uses the generic fallback when native icon lookup fails", async () => {
+    mockIPC((command) =>
+      command === "get_runtime_snapshot" ? snapshot([row()]) : undefined,
+    );
+    const { container } = render(<App />);
+    expect(await screen.findByText(":5173")).toBeInTheDocument();
+    expect(
+      container.querySelector('[data-icon-kind="process-fallback"]'),
+    ).toBeInTheDocument();
+  });
+
+  it("falls back when an icon asset cannot be decoded by the frontend", async () => {
+    mockIPC((command) =>
+      command === "get_runtime_snapshot"
+        ? {
+            ...snapshot([row({ processIconRef: "icon-1-0" })]),
+            processIcons: [{ reference: "icon-1-0", pngBase64: "invalid" }],
+          }
+        : undefined,
+    );
+    const { container } = render(<App />);
+    expect(await screen.findByText(":5173")).toBeInTheDocument();
+    const image = container.querySelector(".runtime-app-icon img");
+    expect(image).toBeInTheDocument();
+    fireEvent.error(image!);
+    expect(
+      container.querySelector('[data-icon-kind="process-fallback"]'),
+    ).toBeInTheDocument();
+  });
+
+  it("shows the unknown-owner fallback without dropping the listener", async () => {
+    mockIPC((command) =>
+      command === "get_runtime_snapshot"
+        ? snapshot([
+            row({
+              processId: null,
+              process: { state: "noOwner" },
+              localUrl: null,
+              actionTargetRef: null,
+            }),
+          ])
+        : undefined,
+    );
+    const { container } = render(<App />);
+    expect(await screen.findByText(":5173")).toBeInTheDocument();
+    expect(
+      container.querySelector('[data-icon-kind="unknown-owner"]'),
     ).toBeInTheDocument();
   });
 
@@ -117,15 +194,15 @@ describe("runtime inspector", () => {
         ),
       });
     });
-    expect(screen.getByText("6000")).toBeInTheDocument();
+    expect(screen.getByText(":6000")).toBeInTheDocument();
 
     await act(async () => {
       resolveInitial?.(
         snapshot([row()], { gracefulStop: true, forceStop: true }, 1),
       );
     });
-    expect(screen.getByText("6000")).toBeInTheDocument();
-    expect(screen.queryByText("5173")).not.toBeInTheDocument();
+    expect(screen.getByText(":6000")).toBeInTheDocument();
+    expect(screen.queryByText(":5173")).not.toBeInTheDocument();
   });
 
   it("renders a complete empty state", async () => {
@@ -151,7 +228,7 @@ describe("runtime inspector", () => {
     expect(
       await screen.findByText("Some listeners may be missing from this scan."),
     ).toBeInTheDocument();
-    expect(screen.getByText("5173")).toBeInTheDocument();
+    expect(screen.getByText(":5173")).toBeInTheDocument();
   });
 
   it("shows a safe provider error and retries manually", async () => {
@@ -173,7 +250,7 @@ describe("runtime inspector", () => {
       screen.queryByText("sensitive native output"),
     ).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Refresh" }));
-    expect(await screen.findByText("5173")).toBeInTheDocument();
+    expect(await screen.findByText(":5173")).toBeInTheDocument();
     expect(scans).toBe(1);
   });
 
@@ -186,7 +263,7 @@ describe("runtime inspector", () => {
       return undefined;
     });
     render(<App />);
-    expect(await screen.findByText("5173")).toBeInTheDocument();
+    expect(await screen.findByText(":5173")).toBeInTheDocument();
     expect(
       screen.queryByRole("button", { name: "Stop" }),
     ).not.toBeInTheDocument();
@@ -194,6 +271,7 @@ describe("runtime inspector", () => {
     expect(screen.getByRole("dialog")).toHaveTextContent(
       "Normal cleanup may not run",
     );
+    expect(screen.getByRole("dialog")).toHaveTextContent("Port 5173");
     fireEvent.click(
       screen.getByRole("dialog").querySelector(".button-danger")!,
     );
@@ -219,7 +297,7 @@ describe("runtime inspector", () => {
         : undefined,
     );
     render(<App />);
-    expect(await screen.findByText("5173")).toBeInTheDocument();
+    expect(await screen.findByText(":5173")).toBeInTheDocument();
     expect(screen.getByText("Permission denied")).toBeInTheDocument();
     expect(
       screen.queryByRole("button", { name: "Force stop" }),
@@ -233,7 +311,7 @@ describe("runtime inspector", () => {
         : undefined,
     );
     render(<App />);
-    expect(await screen.findByText("5173")).toBeInTheDocument();
+    expect(await screen.findByText(":5173")).toBeInTheDocument();
     expect(
       screen.queryByRole("button", { name: "Stop" }),
     ).not.toBeInTheDocument();

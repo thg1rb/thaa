@@ -24,13 +24,16 @@ export type RuntimeEntry = {
   process: ProcessDetails;
   localUrl: string | null;
   actionTargetRef: string | null;
+  processIconRef: string | null;
 };
+export type ProcessIconAsset = { reference: string; pngBase64: string };
 export type RuntimeSnapshot = {
   generation: number;
   observedAtUnixMs: number;
   completeness: { state: "complete" } | { state: "partial"; reason: string };
   capabilities: { gracefulStop: boolean; forceStop: boolean };
   entries: RuntimeEntry[];
+  processIcons: ProcessIconAsset[];
 };
 export type RuntimeError = { state: string; message?: string };
 export type Action = "gracefulStop" | "forceStop";

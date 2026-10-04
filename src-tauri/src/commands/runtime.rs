@@ -3,6 +3,7 @@
 use std::sync::Arc;
 use std::time::UNIX_EPOCH;
 
+use base64::Engine;
 use serde::Serialize;
 use tauri::State;
 use tauri_plugin_opener::OpenerExt;
@@ -28,6 +29,14 @@ pub struct RuntimeSnapshotDto {
     pub completeness: ScanCompletenessDto,
     pub capabilities: CapabilitiesDto,
     pub entries: Vec<RuntimeEntryDto>,
+    pub process_icons: Vec<ProcessIconAssetDto>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ProcessIconAssetDto {
+    pub reference: String,
+    pub png_base64: String,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -56,6 +65,7 @@ pub struct RuntimeEntryDto {
     pub process: ProcessDetailsDto,
     pub local_url: Option<String>,
     pub action_target_ref: Option<String>,
+    pub process_icon_ref: Option<String>,
 }
 
 #[derive(Debug, Clone, Copy, Serialize)]
@@ -278,7 +288,16 @@ fn snapshot_dto(snapshot: &RuntimeSnapshot) -> RuntimeSnapshotDto {
                         &entry.listener,
                     ),
                     action_target_ref: entry.action_target_ref.clone(),
+                    process_icon_ref: entry.process_icon_ref.clone(),
                 }
+            })
+            .collect(),
+        process_icons: snapshot
+            .process_icons
+            .iter()
+            .map(|icon| ProcessIconAssetDto {
+                reference: icon.reference.clone(),
+                png_base64: base64::engine::general_purpose::STANDARD.encode(&icon.png),
             })
             .collect(),
     }
@@ -398,10 +417,12 @@ fn listener_url_error(error: ListenerUrlError) -> String {
 #[cfg(test)]
 mod tests {
     use super::{snapshot_dto, valid_reference, ActionDto};
+    use crate::application::process_icons::ProcessIconAsset;
     use crate::application::runtime_inspection::{RuntimeEntry, RuntimeSnapshot};
     use crate::domain::capabilities::{CapabilitySupport, PlatformCapabilities};
     use crate::domain::network::{NetworkListener, NetworkProtocol};
     use crate::domain::port_provider::PortScanCompleteness;
+    use base64::Engine;
     use std::net::{IpAddr, Ipv4Addr};
     use std::num::NonZeroU16;
     use std::time::UNIX_EPOCH;
@@ -445,6 +466,11 @@ mod tests {
                 },
                 process: None,
                 action_target_ref: None,
+                process_icon_ref: None,
+            }],
+            process_icons: vec![ProcessIconAsset {
+                reference: "icon-3-0".into(),
+                png: b"png bytes".to_vec(),
             }],
         };
         let json = serde_json::to_value(snapshot_dto(&snapshot)).expect("serializes");
@@ -454,6 +480,15 @@ mod tests {
         assert_eq!(json["entries"][0]["process"]["state"], "noOwner");
         assert_eq!(json["capabilities"]["gracefulStop"], false);
         assert_eq!(json["capabilities"]["forceStop"], true);
+        assert_eq!(
+            json["entries"][0]["processIconRef"],
+            serde_json::Value::Null
+        );
+        assert_eq!(json["processIcons"][0]["reference"], "icon-3-0");
+        assert_eq!(
+            json["processIcons"][0]["pngBase64"],
+            base64::engine::general_purpose::STANDARD.encode(b"png bytes")
+        );
         assert_eq!(json["entries"][0]["localUrl"], "http://127.0.0.1:80");
     }
 }

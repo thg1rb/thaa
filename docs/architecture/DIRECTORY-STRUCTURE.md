@@ -38,6 +38,7 @@ src-tauri/
     application/           # shared use-case orchestration
       mod.rs
       process_inspection.rs # per-PID inspection using ProcessProvider
+      process_icons.rs      # bounded, snapshot-scoped icon presentation contract
       runtime_inspection.rs # listener/process snapshot and refresh coordinator
     domain/               # shared, platform-neutral domain values and rules
       mod.rs
@@ -59,12 +60,15 @@ src-tauri/
         process_controller.rs # identity-bound SIGTERM/SIGKILL requests and capabilities
         process_identity.rs # shared SDK-backed KERN_PROC_PID identity query
         process_identity.c # SDK-defined start-time query and fixed-signal shim
+        process_icon.rs   # AppKit icon wrapper
+        process_icon.m    # public NSRunningApplication icon bridge
       windows/             # compiled only for Windows
         mod.rs
         port_provider.rs   # GetExtendedTcpTable adapter and checked row parsing
         process_native.rs  # shared RAII HANDLE, FILETIME/path/lifetime helpers
         process_provider.rs # documented Win32 metadata through shared helpers
         process_controller.rs # same-HANDLE identity-checked Force Stop
+        process_icon.rs   # Shell/GDI icon extraction and owned resources
     commands/
       mod.rs
       runtime.rs          # runtime/action commands and transport DTOs
@@ -106,3 +110,10 @@ manifests and source stay together under `src-tauri/`. A Cargo workspace is
 not needed for the current single Rust application. Future domain/application
 modules belong under `src-tauri/src/` unless later evidence justifies a
 workspace.
+
+W013.1 adds `application/process_icons.rs` for the presentation-only icon port,
+PNG bounds, and snapshot asset values. Platform implementations live in
+`platform/macos/process_icon.rs` and `process_icon.m` (public AppKit bridge),
+and `platform/windows/process_icon.rs` (Shell/GDI extraction with local RAII
+resource owners). Icons are snapshot assets and do not modify domain process
+identity or action-target models.

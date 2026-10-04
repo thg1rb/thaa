@@ -90,3 +90,12 @@ Require a documented security review for work involving process termination, she
 ## W004 scope and traceability
 
 This baseline supports NFR-001–NFR-005 and NFR-010, PR-001–PR-008, and FR-007–FR-009. It establishes future implementation obligations; it does not claim any functional requirement or mitigation is implemented. Detailed threat-to-test mappings are in [TEST-CASES.md](../testing/TEST-CASES.md).
+
+W013.1 icon enrichment is untrusted presentation input. It accepts only a
+backend-observed `ProcessInfo` path on Windows; no frontend path is passed to
+icon extraction. Native icon output is size- and dimension-bounded and PNG
+validated before IPC. macOS uses public AppKit application lookup. Icon bytes,
+references, and bundle/executable icon metadata do not enter process identity,
+action targets, or controller authorization. Native Windows handles and GDI
+resources are released locally on every path. Icon failures remain fallback
+presentation and are not logged with process metadata.

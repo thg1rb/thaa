@@ -5,6 +5,10 @@ use std::fmt;
 use std::sync::{Arc, Condvar, Mutex, MutexGuard};
 use std::time::SystemTime;
 
+use crate::application::process_icons::{
+    is_bounded_png, ProcessIconAsset, ProcessIconProvider, SNAPSHOT_ICON_MAX_BYTES,
+    SNAPSHOT_ICON_MAX_COUNT,
+};
 use crate::application::process_inspection::inspect_processes;
 use crate::domain::capabilities::{
     CapabilitySupport, PlatformCapabilities, PlatformCapabilitiesProvider,
@@ -26,6 +30,8 @@ pub struct RuntimeEntry {
     pub process: Option<Result<ProcessInfo, ProcessProviderError>>,
     /// A snapshot-scoped lookup reference, not an authorization token.
     pub action_target_ref: Option<String>,
+    /// Snapshot-scoped presentation reference; never used as process identity.
+    pub process_icon_ref: Option<String>,
 }
 
 /// One completed port scan with all listener rows and platform capabilities.
@@ -36,6 +42,7 @@ pub struct RuntimeSnapshot {
     pub completeness: PortScanCompleteness,
     pub capabilities: PlatformCapabilities,
     pub entries: Vec<RuntimeEntry>,
+    pub process_icons: Vec<ProcessIconAsset>,
 }
 
 /// Stable categories for a refresh that could not produce a new snapshot.
@@ -64,6 +71,7 @@ struct RuntimeScanner {
     ports: Arc<dyn PortProvider>,
     processes: Arc<dyn ProcessProvider>,
     capabilities: Arc<dyn PlatformCapabilitiesProvider>,
+    icons: Arc<dyn ProcessIconProvider>,
 }
 
 impl RuntimeScanner {
@@ -83,9 +91,25 @@ impl RuntimeScanner {
         let mut inspection_by_pid = HashMap::with_capacity(inspections.len());
         let mut action_targets = HashMap::new();
         let mut reference_by_pid = HashMap::new();
+        let mut icon_reference_by_pid = HashMap::new();
+        let mut process_icons = Vec::new();
+        let mut total_icon_bytes = 0usize;
         for (index, outcome) in inspections.into_iter().enumerate() {
             let pid = outcome.requested_process_id.get();
             if let Ok(info) = &outcome.result {
+                if process_icons.len() < SNAPSHOT_ICON_MAX_COUNT {
+                    if let Some(png) = self.icons.icon_png(info).filter(|png| is_bounded_png(png)) {
+                        if let Some(next_total) = total_icon_bytes.checked_add(png.len()) {
+                            if next_total <= SNAPSHOT_ICON_MAX_BYTES {
+                                let reference =
+                                    format!("icon-{generation:x}-{:x}", process_icons.len());
+                                icon_reference_by_pid.insert(pid, reference.clone());
+                                process_icons.push(ProcessIconAsset { reference, png });
+                                total_icon_bytes = next_total;
+                            }
+                        }
+                    }
+                }
                 if let Ok(target) = ProcessActionTarget::from_identity(&info.identity) {
                     let reference = format!("target-{generation:x}-{index:x}");
                     reference_by_pid.insert(pid, reference.clone());
@@ -106,6 +130,7 @@ impl RuntimeScanner {
                     listener,
                     process: pid.and_then(|pid| inspection_by_pid.get(&pid).cloned()),
                     action_target_ref: pid.and_then(|pid| reference_by_pid.get(&pid).cloned()),
+                    process_icon_ref: pid.and_then(|pid| icon_reference_by_pid.get(&pid).cloned()),
                 }
             })
             .collect();
@@ -117,6 +142,7 @@ impl RuntimeScanner {
                 completeness: port_scan.completeness,
                 capabilities: self.capabilities.capabilities(),
                 entries,
+                process_icons,
             }),
             action_targets,
         })
@@ -153,11 +179,28 @@ impl RuntimeInspector {
         controller: Arc<dyn ProcessController>,
         capabilities: Arc<dyn PlatformCapabilitiesProvider>,
     ) -> Self {
+        Self::new_with_icons(
+            ports,
+            processes,
+            Arc::new(NoProcessIconProvider),
+            controller,
+            capabilities,
+        )
+    }
+
+    pub fn new_with_icons(
+        ports: Arc<dyn PortProvider>,
+        processes: Arc<dyn ProcessProvider>,
+        icons: Arc<dyn ProcessIconProvider>,
+        controller: Arc<dyn ProcessController>,
+        capabilities: Arc<dyn PlatformCapabilitiesProvider>,
+    ) -> Self {
         Self {
             scanner: RuntimeScanner {
                 ports,
                 processes,
                 capabilities,
+                icons,
             },
             controller,
             state: Mutex::new(RefreshState::default()),
@@ -314,6 +357,14 @@ impl RuntimeInspector {
     }
 }
 
+struct NoProcessIconProvider;
+
+impl ProcessIconProvider for NoProcessIconProvider {
+    fn icon_png(&self, _process: &ProcessInfo) -> Option<Vec<u8>> {
+        None
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ListenerUrlError {
     StaleReference,
@@ -358,6 +409,7 @@ mod tests {
     use super::{
         build_local_url, next_entry_ref, ListenerUrlError, RuntimeInspector, RuntimeScanError,
     };
+    use crate::application::process_icons::ProcessIconProvider;
     use crate::domain::capabilities::{
         CapabilitySupport, PlatformCapabilities, PlatformCapabilitiesProvider,
     };
@@ -425,6 +477,17 @@ mod tests {
                 graceful_stop: CapabilitySupport::Supported,
                 force_stop: CapabilitySupport::Supported,
             }
+        }
+    }
+
+    struct FakeIcons {
+        calls: AtomicUsize,
+        icon: Option<Vec<u8>>,
+    }
+    impl ProcessIconProvider for FakeIcons {
+        fn icon_png(&self, _process: &ProcessInfo) -> Option<Vec<u8>> {
+            self.calls.fetch_add(1, Ordering::SeqCst);
+            self.icon.clone()
         }
     }
 
@@ -523,6 +586,85 @@ mod tests {
             snapshot.capabilities.force_stop,
             CapabilitySupport::Supported
         );
+    }
+
+    #[test]
+    fn duplicate_listener_processes_share_one_snapshot_icon() {
+        let ports = Arc::new(FakePorts {
+            result: Mutex::new(complete(vec![
+                listener(Some(IpAddr::V4(Ipv4Addr::LOCALHOST)), 3000, Some(7)),
+                listener(Some(IpAddr::V4(Ipv4Addr::LOCALHOST)), 3001, Some(7)),
+            ])),
+            calls: AtomicUsize::new(0),
+        });
+        let processes = Arc::new(FakeProcesses {
+            responses: Mutex::new([(7, Ok(process(7)))].into_iter().collect()),
+            calls: Mutex::new(Vec::new()),
+        });
+        let icon = png_fixture();
+        let icons = Arc::new(FakeIcons {
+            calls: AtomicUsize::new(0),
+            icon: Some(icon.clone()),
+        });
+        let inspector = RuntimeInspector::new_with_icons(
+            ports,
+            processes,
+            icons.clone(),
+            Arc::new(FakeController::default()),
+            Arc::new(FakeCapabilities),
+        );
+
+        let snapshot = inspector.snapshot_or_initialize().expect("scan succeeds");
+        assert_eq!(icons.calls.load(Ordering::SeqCst), 1);
+        assert_eq!(snapshot.process_icons.len(), 1);
+        assert_eq!(snapshot.process_icons[0].png, icon);
+        assert_eq!(
+            snapshot.entries[0].process_icon_ref,
+            snapshot.entries[1].process_icon_ref
+        );
+    }
+
+    #[test]
+    fn invalid_icon_falls_back_without_dropping_runtime_entry() {
+        let ports = Arc::new(FakePorts {
+            result: Mutex::new(complete(vec![listener(
+                Some(IpAddr::V4(Ipv4Addr::LOCALHOST)),
+                3000,
+                Some(7),
+            )])),
+            calls: AtomicUsize::new(0),
+        });
+        let processes = Arc::new(FakeProcesses {
+            responses: Mutex::new([(7, Ok(process(7)))].into_iter().collect()),
+            calls: Mutex::new(Vec::new()),
+        });
+        let inspector = RuntimeInspector::new_with_icons(
+            ports,
+            processes,
+            Arc::new(FakeIcons {
+                calls: AtomicUsize::new(0),
+                icon: Some(b"bad png".to_vec()),
+            }),
+            Arc::new(FakeController::default()),
+            Arc::new(FakeCapabilities),
+        );
+
+        let snapshot = inspector.snapshot_or_initialize().expect("scan succeeds");
+        assert_eq!(snapshot.entries.len(), 1);
+        assert!(snapshot.entries[0].process.is_some());
+        assert!(snapshot.entries[0].process_icon_ref.is_none());
+        assert!(snapshot.process_icons.is_empty());
+    }
+
+    fn png_fixture() -> Vec<u8> {
+        let mut bytes = Vec::new();
+        let mut encoder = png::Encoder::new(&mut bytes, 2, 2);
+        encoder.set_color(png::ColorType::Rgba);
+        encoder.set_depth(png::BitDepth::Eight);
+        let mut writer = encoder.write_header().expect("PNG header");
+        writer.write_image_data(&[0; 16]).expect("PNG pixels");
+        drop(writer);
+        bytes
     }
 
     #[test]

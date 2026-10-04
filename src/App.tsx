@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { listen } from "@tauri-apps/api/event";
 import {
   getInitialSnapshot,
@@ -211,6 +211,16 @@ export default function App() {
   };
 
   const snapshot = state.snapshot;
+  const iconSources = useMemo(
+    () =>
+      new Map(
+        (snapshot?.processIcons ?? []).map((icon) => [
+          icon.reference,
+          `data:image/png;base64,${icon.pngBase64}`,
+        ]),
+      ),
+    [snapshot],
+  );
   return (
     <main className="app-shell">
       <header className="topbar">
@@ -314,6 +324,11 @@ export default function App() {
               key={entry.entryRef}
               entry={entry}
               capabilities={snapshot.capabilities}
+              iconSource={
+                entry.processIconRef
+                  ? iconSources.get(entry.processIconRef)
+                  : undefined
+              }
               busy={state.actionTarget === entry.actionTargetRef}
               onAction={(action) => void submitAction(entry, action)}
               onConfirmForce={() =>
@@ -398,8 +413,13 @@ export default function App() {
               could be lost.
             </p>
             <div className="confirm-target">
-              {displayName(state.confirming)}{" "}
-              <span>PID {state.confirming.processId ?? "unknown"}</span>
+              <span className="confirm-process-name">
+                {displayName(state.confirming)}
+              </span>
+              <span>
+                PID {state.confirming.processId ?? "unknown"} · Port{" "}
+                {state.confirming.port}
+              </span>
             </div>
             <div className="dialog-actions">
               <button
@@ -455,6 +475,7 @@ function actionMessage(result: ActionResult) {
 function RuntimeCard({
   entry,
   capabilities,
+  iconSource,
   busy,
   onAction,
   onConfirmForce,
@@ -463,6 +484,7 @@ function RuntimeCard({
 }: {
   entry: RuntimeEntry;
   capabilities: RuntimeSnapshot["capabilities"];
+  iconSource: string | undefined;
   busy: boolean;
   onAction: (action: Action) => void;
   onConfirmForce: () => void;
@@ -477,28 +499,26 @@ function RuntimeCard({
   const pid = entry.processId;
   return (
     <article className="runtime-card">
-      <div className="port-column">
-        <p className="eyebrow">TCP PORT</p>
-        <strong className="port-number">{entry.port}</strong>
-        <span className={`binding-badge binding-${entry.binding}`}>
-          {bindingLabel(entry.binding)}
-        </span>
-      </div>
       <div className="runtime-details">
         <div className="process-heading">
-          <span className="process-glyph" aria-hidden="true">
-            ◉
-          </span>
+          <RuntimeIcon
+            source={iconSource}
+            unknown={entry.process.state === "noOwner"}
+          />
           <div className="process-title">
+            <p className="eyebrow">PROCESS / OWNER</p>
             <h3 title={processName}>{processName}</h3>
             <p>
+              {entry.process.state === "noOwner"
+                ? "Owner not identified"
+                : `PID ${pid ?? "unknown"}`}
+              <span className="separator">·</span>
               {entry.localAddress ?? "Address unavailable"}
-              {pid !== null && (
-                <>
-                  <span className="separator">·</span> PID {pid}
-                </>
-              )}
             </p>
+          </div>
+          <div className="port-identity">
+            <span className="eyebrow">TCP PORT</span>
+            <strong className="port-number">:{entry.port}</strong>
           </div>
           <div className="entry-actions">
             {entry.localUrl && (
@@ -563,7 +583,16 @@ function RuntimeCard({
           )}
         </div>
         <div className="card-bottom">
-          <span className="protocol-label">LOCAL TCP SERVICE</span>
+          <div className="binding-group">
+            <span
+              className={`binding-mark binding-${entry.binding}`}
+              aria-hidden="true"
+            />
+            <span className={`binding-badge binding-${entry.binding}`}>
+              {bindingLabel(entry.binding)}
+            </span>
+            <span className="protocol-label">LOCAL TCP</span>
+          </div>
           <div className="process-actions">
             {entry.actionTargetRef && capabilities.gracefulStop && (
               <button
@@ -587,5 +616,40 @@ function RuntimeCard({
         </div>
       </div>
     </article>
+  );
+}
+
+function RuntimeIcon({
+  source,
+  unknown,
+}: {
+  source: string | undefined;
+  unknown: boolean;
+}) {
+  const [failedSource, setFailedSource] = useState<string | null>(null);
+  const resolvedSource = source && source !== failedSource ? source : undefined;
+  if (resolvedSource) {
+    return (
+      <span className="runtime-app-icon" aria-hidden="true">
+        <img
+          src={resolvedSource}
+          alt=""
+          onError={() => setFailedSource(resolvedSource)}
+        />
+      </span>
+    );
+  }
+  return (
+    <span
+      className={`runtime-app-icon fallback-icon ${unknown ? "unknown-owner-icon" : ""}`}
+      aria-hidden="true"
+      data-icon-kind={unknown ? "unknown-owner" : "process-fallback"}
+    >
+      <svg viewBox="0 0 40 40" focusable="false">
+        <path d="M12 13.5h16v13H12z" />
+        <path d="M16 18.5h8M16 22.5h5M20 8v5M20 27v5M8 20h4M28 20h4" />
+        {unknown && <circle cx="20" cy="20" r="14" />}
+      </svg>
+    </span>
   );
 }

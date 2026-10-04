@@ -164,3 +164,12 @@ The coordinator publishes one committed snapshot and safe status to interested U
 ## Traceability
 
 These flows support FR-001–FR-006, FR-008–FR-011, NFR-003/005/006/008/009, and PR-004/005/006/009. Project context (FR-012/013) remains later P1 enrichment and is not inserted into the P0 scan path.
+
+W013.1 adds optional process-icon presentation enrichment after successful
+process inspection. The application asks the platform icon adapter once per
+distinct inspected PID for the current snapshot. A validated PNG is attached
+as a bounded snapshot asset and rows reference it by a snapshot-scoped
+presentation reference. Lookup, conversion, or validation failure omits that
+asset and the UI renders a Thaa fallback; runtime data and action identity are
+unaffected. Icon references are invalidated with their snapshot and never
+participate in `ProcessIdentity` or `ProcessActionTarget`.
