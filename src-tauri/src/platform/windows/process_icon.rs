@@ -40,13 +40,21 @@ fn extract_icon_png(path: &Path) -> Option<Vec<u8>> {
     terminated.push(0);
     let mut icon = ptr::null_mut();
     // SAFETY: `terminated` is NUL-terminated UTF-16 and remains alive for the
-    // call. We request one large icon and own any returned HICON.
+    // call. We request one large icon; ownership is accepted only when the
+    // documented return count confirms one icon was extracted.
     let count = unsafe { ExtractIconExW(terminated.as_ptr(), 0, &mut icon, ptr::null_mut(), 1) };
-    if count == 0 || icon.is_null() {
+    // ExtractIconExW documents UINT_MAX as its error sentinel. Only a return
+    // count of one establishes that the output is a valid icon we own; do not
+    // wrap or destroy an output value on zero, error, or unexpected counts.
+    if !one_icon_extracted(count) || icon.is_null() {
         return None;
     }
     let icon = OwnedIcon(icon);
     icon_to_png(icon.0)
+}
+
+fn one_icon_extracted(count: u32) -> bool {
+    count == 1
 }
 
 fn icon_to_png(icon: HICON) -> Option<Vec<u8>> {
@@ -304,5 +312,13 @@ mod tests {
             crate::domain::metadata::UnavailableReason::ProviderLimitation,
         );
         assert!(WindowsProcessIconProvider.icon_png(&process).is_none());
+    }
+
+    #[test]
+    fn only_one_extracted_icon_is_owned() {
+        assert!(one_icon_extracted(1));
+        assert!(!one_icon_extracted(0));
+        assert!(!one_icon_extracted(u32::MAX));
+        assert!(!one_icon_extracted(2));
     }
 }
