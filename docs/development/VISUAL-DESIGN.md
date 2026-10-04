@@ -39,3 +39,34 @@ and binding, then optional metadata, then actions. Long paths are truncated in
 the compact view. Process icons are decorative; visible text always identifies
 the process. Missing native icons use Thaa's generic process-node mark, while
 unresolved owners use a distinct outlined mark.
+
+## User-action feedback
+
+Transient user-action results use a shared Toast viewport. Success is green,
+failure is danger red, warnings are amber, and informational updates use the
+interactive primary accent. A successful process action is described as a
+request; it is not described as an exited process until a later scan observes
+that state. The viewport shows at most three notifications at once and keeps a
+bounded FIFO queue. Notifications can be dismissed, expire after a readable
+interval, and pause expiration while hovered or focused. Passive and periodic
+refreshes do not create notifications.
+
+## Window chrome and canvas
+
+The macOS window uses Tauri's supported `Overlay` title-bar style with native
+traffic lights and a separate top drag region. The content starts below the
+traffic-light safe area; interactive controls are outside the drag region. The
+native window, webview, `html`, `body`, and React root all use the graphite
+canvas color. The document is the single vertical scroll owner, with vertical
+overscroll suppressed while retaining a matching background at every layer.
+Other platforms retain their native window decorations.
+
+## Frontend responsibilities
+
+`App.tsx` composes shared providers and the runtime-inspector page. The
+`features/runtime-inspector` feature owns its transport client, DTO/model types,
+refresh and action hooks, and focused runtime-card components. Shared Toast
+presentation lives in `shared/ui/toast`; Tauri command names and `invoke`
+transport stay in the feature API client rather than React presentation
+components. A development-only visual fixture can preview toasts and cards
+without invoking native process actions.

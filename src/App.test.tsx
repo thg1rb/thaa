@@ -441,7 +441,7 @@ describe("runtime inspector", () => {
       await screen.findByText("No listening TCP ports found"),
     ).toBeInTheDocument();
     expect(screen.getByRole("status")).toHaveTextContent(
-      "This process has already exited",
+      "Process already exited",
     );
     expect(refreshes).toBe(1);
   });
@@ -461,7 +461,7 @@ describe("runtime inspector", () => {
     fireEvent.click(
       screen.getByRole("dialog").querySelector(".button-danger")!,
     );
-    expect(await screen.findByRole("status")).toHaveTextContent(
+    expect(await screen.findByRole("alert")).toHaveTextContent(
       "does not have permission",
     );
     expect(screen.getByRole("button", { name: "Force stop" })).toBeEnabled();

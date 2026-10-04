@@ -19,11 +19,19 @@ project structure](https://v2.tauri.app/start/project-structure/).
   .prettierignore         # generated and vendored content exclusions
   .editorconfig           # editor defaults; formatter tools remain authoritative
 src/
-  App.tsx                 # user-facing runtime list and interaction state
-  App.css                 # responsive runtime inspector styling
-  runtimeApi.ts           # typed Tauri DTO client
-  main.tsx                # React entry point
-  App.test.tsx            # observable shell-state tests
+  App.tsx                 # application root and shared provider composition
+  main.tsx                # React entry point and global style import
+  styles/global.css       # design tokens and root/window canvas styles
+  features/runtime-inspector/
+    RuntimeInspectorPage.tsx # page composition and user-action wiring
+    api/runtimeClient.ts  # typed Tauri DTO client and command names
+    hooks/                # refresh, process-action, and entry-action state
+    components/           # header, runtime list/cards, icons, dialogs
+    model/types.ts        # frontend transport/state types
+    runtime-inspector.css # feature presentation styles
+  shared/ui/toast/        # bounded accessible notification system
+  dev/                    # development-only synthetic visual fixture
+  App.test.tsx            # runtime-inspector behavioral tests
   test/setup.ts           # Vitest matcher setup
 src-tauri/
   Cargo.toml              # the application's Rust package

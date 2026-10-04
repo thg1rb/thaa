@@ -1,0 +1,109 @@
+:root {
+  color-scheme: dark;
+  font-family:
+    Inter,
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  font-optical-sizing: auto;
+  --bg: #080e13;
+  --surface: #101920;
+  --surface-raised: #15232b;
+  --surface-inset: #0c141a;
+  --primary: #28e7d8;
+  --primary-hover: #63f2e5;
+  --primary-active: #0cb6ab;
+  --primary-muted: #183a3a;
+  --danger: #ff707c;
+  --danger-hover: #ff9299;
+  --danger-muted: #40252c;
+  --warning: #f2bd67;
+  --warning-muted: #3d311e;
+  --success: #65d69a;
+  --success-muted: #163528;
+  --text: #e7f0f2;
+  --text-secondary: #a5b7bd;
+  --text-muted: #758991;
+  --border: #24343d;
+  --border-emphasis: #3a4e58;
+  --focus: #28e7d8;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --radius-sm: 7px;
+  --radius-md: 11px;
+  --radius-lg: 15px;
+  --shadow-panel: 0 16px 36px rgb(0 0 0 / 22%);
+  --glow-interactive:
+    0 0 0 1px rgb(40 231 216 / 22%), 0 0 18px rgb(40 231 216 / 12%);
+  --motion-fast: 140ms;
+  --motion-ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+  color: var(--text);
+  background: var(--bg);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  min-width: 320px;
+  min-height: 100%;
+  margin: 0;
+  background-color: var(--bg);
+  overscroll-behavior-y: none;
+}
+
+html {
+  height: 100%;
+}
+body {
+  min-height: 100vh;
+}
+#root {
+  position: relative;
+  min-height: 100vh;
+}
+
+#root::before {
+  position: fixed;
+  z-index: 0;
+  inset: 0;
+  background-image:
+    radial-gradient(ellipse at 78% -16%, rgb(23 81 84 / 18%), transparent 46%),
+    linear-gradient(rgb(91 132 145 / 4%) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(91 132 145 / 4%) 1px, transparent 1px);
+  background-size:
+    auto,
+    44px 44px,
+    44px 44px;
+  content: "";
+  mask-image: linear-gradient(to bottom, black, transparent 82%);
+  pointer-events: none;
+}
+
+button {
+  font: inherit;
+}
+button:focus-visible,
+a:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 3px;
+  box-shadow: 0 0 0 5px rgb(40 231 216 / 13%);
+}
+button:disabled {
+  cursor: wait;
+  opacity: 0.58;
+}

@@ -1,7 +1,6 @@
-import { invoke } from "@tauri-apps/api/core";
-
 export type Field<T> =
   { state: "available"; value: T } | { state: "unavailable"; value: string };
+
 export type ProcessInfo = {
   processId: number;
   name: Field<string>;
@@ -10,10 +9,12 @@ export type ProcessInfo = {
   commandArguments: Field<string[]>;
   workingDirectory: Field<string>;
 };
+
 export type ProcessDetails =
   | { state: "noOwner" }
   | { state: "available"; details: ProcessInfo }
   | { state: "unavailable"; details: { processId: number; reason: string } };
+
 export type RuntimeEntry = {
   entryRef: string;
   protocol: "tcp";
@@ -26,7 +27,9 @@ export type RuntimeEntry = {
   actionTargetRef: string | null;
   processIconRef: string | null;
 };
+
 export type ProcessIconAsset = { reference: string; pngBase64: string };
+
 export type RuntimeSnapshot = {
   generation: number;
   observedAtUnixMs: number;
@@ -35,10 +38,8 @@ export type RuntimeSnapshot = {
   entries: RuntimeEntry[];
   processIcons: ProcessIconAsset[];
 };
+
 export type RuntimeSnapshotDto = Omit<RuntimeSnapshot, "processIcons">;
-export const withEmptyIconAssets = (
-  snapshot: RuntimeSnapshotDto,
-): RuntimeSnapshot => ({ ...snapshot, processIcons: [] });
 export type RuntimeError = { state: string; message?: string };
 export type Action = "gracefulStop" | "forceStop";
 export type ActionResult =
@@ -47,36 +48,13 @@ export type ActionResult =
   | { state: "refused"; reason: string }
   | { state: "failed"; reason: string };
 
-let initialSnapshot: Promise<RuntimeSnapshot> | undefined;
+export type RefreshSource = "initial" | "manual" | "background" | "action";
+export type RefreshOutcome = "updated" | "failed" | "queued";
 
-export function getInitialSnapshot() {
-  initialSnapshot ??= invoke<RuntimeSnapshotDto>("get_runtime_snapshot")
-    .then(withEmptyIconAssets)
-    .finally(() => {
-      initialSnapshot = undefined;
-    });
-  return initialSnapshot;
-}
-
-export function refreshSnapshot() {
-  return invoke<RuntimeSnapshotDto>("refresh_runtime_snapshot").then(
-    withEmptyIconAssets,
-  );
-}
-
-export function getRuntimeProcessIcons(generation: number) {
-  return invoke<ProcessIconAsset[]>("get_runtime_process_icons", {
-    generation,
-  });
-}
-
-export function requestAction(actionTargetRef: string, action: Action) {
-  return invoke<ActionResult>("request_process_action", {
-    actionTargetRef,
-    action,
-  });
-}
-
-export function openListenerUrl(entryRef: string) {
-  return invoke<void>("open_listener_url", { entryRef });
-}
+export type RuntimeInspectorState = {
+  snapshot: RuntimeSnapshot | null;
+  loading: boolean;
+  refreshing: boolean;
+  error: string | null;
+  backgroundStale: boolean;
+};
