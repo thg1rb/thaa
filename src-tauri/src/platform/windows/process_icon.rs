@@ -75,9 +75,10 @@ fn icon_to_png(icon: HICON) -> Option<Vec<u8>> {
     let bgra = read_bitmap_32(dc.0, bitmaps.color, width, height)?;
     let mask = read_mask_1(dc.0, bitmaps.mask, width, height)?;
     let mut rgba = Vec::with_capacity(bgra.len());
-    let has_alpha = bgra.chunks_exact(4).any(|pixel| pixel[3] != 0);
+    let bgra_pixels = bgra.as_chunks::<4>().0;
+    let has_alpha = bgra_pixels.iter().any(|pixel| pixel[3] != 0);
     let mask_stride = mask_stride(width)?;
-    for (index, pixel) in bgra.chunks_exact(4).enumerate() {
+    for (index, pixel) in bgra_pixels.iter().enumerate() {
         let x = index % width as usize;
         let y = index / width as usize;
         let transparent = (mask[y * mask_stride + (x / 8)] & (0x80 >> (x % 8))) != 0;
