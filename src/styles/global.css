@@ -48,6 +48,7 @@
     0 0 0 1px rgb(40 231 216 / 22%), 0 0 18px rgb(40 231 216 / 12%);
   --motion-fast: 140ms;
   --motion-ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+  --action-pair-control-min-width: 90px;
   color: var(--text);
   background: var(--bg);
 }
@@ -60,9 +61,12 @@ html,
 body,
 #root {
   min-width: 320px;
+  max-width: 100%;
   min-height: 100%;
   margin: 0;
+  overflow-x: clip;
   background-color: var(--bg);
+  overscroll-behavior-x: none;
   overscroll-behavior-y: none;
 }
 
@@ -75,6 +79,15 @@ body {
 #root {
   position: relative;
   min-height: 100vh;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+#root input,
+#root textarea,
+#root [contenteditable="true"] {
+  user-select: text;
+  -webkit-user-select: text;
 }
 
 #root::before {

@@ -14,8 +14,11 @@ export function RuntimeActions({
   onConfirmForce: () => void;
 }) {
   if (!targetRef) return null;
+  const hasBothActions = capabilities.gracefulStop && capabilities.forceStop;
   return (
-    <div className="process-actions">
+    <div
+      className={`process-actions${hasBothActions ? " equal-action-pair" : ""}`}
+    >
       {capabilities.gracefulStop && (
         <button
           className="button-stop"

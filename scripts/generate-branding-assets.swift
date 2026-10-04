@@ -6,7 +6,11 @@ import ImageIO
 
 private let macOSAppIconCanvas = 1024
 private let macOSAppIconArtwork = 824
-private let macOSTrayCanvas = 44
+// tray-icon 0.25.1 normalizes macOS status images to 18pt high while
+// preserving their aspect ratio. Keep the canvas close to the artwork aspect
+// ratio so transparent vertical padding does not shrink the visible glyph.
+private let macOSTrayCanvasWidth = 44
+private let macOSTrayCanvasHeight = 34
 private let macOSTrayGlyphHeight = 32
 private let windowsTrayCanvas = 32
 private let windowsTrayGlyphHeight = 23
@@ -250,6 +254,7 @@ func main() {
 
   let root = repositoryRoot()
   var outputDirectory = root.appendingPathComponent("src-tauri/icons/derived", isDirectory: true)
+  var macOSTraySquarePreviewSize: Int?
   var args = Array(CommandLine.arguments.dropFirst())
 
   while !args.isEmpty {
@@ -264,6 +269,12 @@ func main() {
           relativeTo: URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
         )
         .standardizedFileURL
+    case "--macos-tray-square-preview-size":
+      guard let rawSize = args.first, let size = Int(rawSize), size >= 16 else {
+        fail("--macos-tray-square-preview-size requires an integer of at least 16")
+      }
+      args.removeFirst()
+      macOSTraySquarePreviewSize = size
     default:
       fail("unknown argument \(argument)")
     }
@@ -301,35 +312,54 @@ func main() {
     "\(appPath.path): canvas=\(macOSAppIconCanvas)×\(macOSAppIconCanvas), artwork=\(macOSAppIconArtwork)×\(macOSAppIconArtwork), alphaBounds=(\(appBounds.minX),\(appBounds.minY))..(\(appBounds.maxX),\(appBounds.maxY)), margin=100px"
   )
 
-  for (sourceName, outputName, outputSize, glyphHeight, minimumSideMargin) in [
+  let macOSOutputName = macOSTraySquarePreviewSize.map {
+    "thaa-tray-template-macos-preview-\($0).png"
+  } ?? "thaa-tray-template-macos.png"
+  let macOSCanvasWidth = macOSTraySquarePreviewSize ?? macOSTrayCanvasWidth
+  let macOSCanvasHeight = macOSTraySquarePreviewSize ?? macOSTrayCanvasHeight
+  let macOSGlyphHeight = macOSTraySquarePreviewSize.map {
+    Int((Double($0) * Double(macOSTrayGlyphHeight) / Double(macOSTrayCanvasWidth)).rounded())
+  } ?? macOSTrayGlyphHeight
+
+  for (sourceName, outputName, outputWidth, outputHeight, glyphHeight, minimumSideMargin) in [
     (
-      "thaa-tray-template-macos.png", "thaa-tray-template-macos.png", macOSTrayCanvas,
-      macOSTrayGlyphHeight, 1
+      "thaa-tray-template-macos.png", macOSOutputName, macOSCanvasWidth,
+      macOSCanvasHeight, macOSGlyphHeight, 1
     ),
     (
-      "thaa-tray-windows.png", "thaa-tray-windows.png", windowsTrayCanvas, windowsTrayGlyphHeight, 1
+      "thaa-tray-windows.png", "thaa-tray-windows.png", windowsTrayCanvas,
+      windowsTrayCanvas, windowsTrayGlyphHeight, 1
     ),
   ] {
     let source = loadPNG(iconRoot.appendingPathComponent("source/\(sourceName)"))
     let (cropped, bounds) = cropToAlphaBounds(source)
     let width = CGFloat(cropped.width) * CGFloat(glyphHeight) / CGFloat(cropped.height)
-    guard width <= CGFloat(outputSize - 2 * minimumSideMargin) else {
+    guard width <= CGFloat(outputWidth - 2 * minimumSideMargin) else {
       fail(
-        "cropped artwork does not fit the \(outputSize)px tray canvas with the required side margin"
+        "cropped artwork does not fit the \(outputWidth)×\(outputHeight)px tray canvas with the required side margin"
       )
     }
-    let x = (CGFloat(outputSize) - width) / 2
-    let y = (CGFloat(outputSize - glyphHeight)) / 2
+    let x = (CGFloat(outputWidth) - width) / 2
+    let y = (CGFloat(outputHeight - glyphHeight)) / 2
     let result = render(
-      cropped, width: outputSize, height: outputSize,
+      cropped, width: outputWidth, height: outputHeight,
       destination: CGRect(x: x, y: y, width: width, height: CGFloat(glyphHeight)))
     let outputCanvas = rasterize(result)
     guard
       let outputBounds = outputCanvas.alphaBounds(),
-      outputBounds.width <= outputSize - 2 * minimumSideMargin,
+      outputBounds.width <= outputWidth - 2 * minimumSideMargin,
+      outputBounds.minX >= minimumSideMargin,
+      outputBounds.maxX < outputWidth - minimumSideMargin,
+      outputBounds.minY >= 1,
+      outputBounds.maxY < outputHeight - 1,
       outputBounds.height >= glyphHeight - 1, outputBounds.height <= glyphHeight + 1
     else {
       fail("\(sourceName) output alpha bounds exceed its size or safe margin")
+    }
+    if sourceName == "thaa-tray-template-macos.png", macOSTraySquarePreviewSize == nil {
+      guard outputHeight == macOSTrayCanvasHeight, (32...33).contains(outputBounds.height) else {
+        fail("macOS tray glyph must occupy 32–33px inside the 44×34px production canvas")
+      }
     }
     if sourceName == "thaa-tray-template-macos.png" && !outputCanvas.visiblePixelsAreMonochrome() {
       fail("macOS template tray output must remain monochrome")
@@ -340,7 +370,7 @@ func main() {
       "\(sourceName): source=\(source.width)×\(source.height), alphaBounds=(\(bounds.minX),\(bounds.minY))..(\(bounds.maxX),\(bounds.maxY)), crop=\(bounds.width)×\(bounds.height)"
     )
     print(
-      "\(path.path): canvas=\(outputSize)×\(outputSize), alphaBounds=(\(outputBounds.minX),\(outputBounds.minY))..(\(outputBounds.maxX),\(outputBounds.maxY)), targetGlyphHeight=\(glyphHeight)px, preservedAspectRatio=true"
+      "\(path.path): canvas=\(outputWidth)×\(outputHeight), alphaBounds=(\(outputBounds.minX),\(outputBounds.minY))..(\(outputBounds.maxX),\(outputBounds.maxY)), targetGlyphHeight=\(glyphHeight)px, preservedAspectRatio=true"
     )
   }
 }

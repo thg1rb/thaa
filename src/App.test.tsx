@@ -530,6 +530,19 @@ describe("runtime inspector", () => {
     });
     render(<App />);
     fireEvent.click(await screen.findByRole("button", { name: "Force stop" }));
+    const [cancel, confirm] = screen
+      .getByRole("dialog")
+      .querySelectorAll(".dialog-actions button");
+    if (!cancel || !confirm) {
+      throw new Error("Expected Cancel and Force stop dialog actions");
+    }
+    expect(cancel).toHaveAccessibleName("Cancel");
+    expect(confirm).toHaveAccessibleName("Force stop");
+    expect(cancel.parentElement).toBe(confirm.parentElement);
+    expect(cancel.parentElement).toHaveClass(
+      "dialog-actions",
+      "equal-action-pair",
+    );
     fireEvent.click(
       screen.getByRole("dialog").querySelector(".button-danger")!,
     );

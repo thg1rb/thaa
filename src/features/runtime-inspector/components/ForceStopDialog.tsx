@@ -72,7 +72,7 @@ export function ForceStopDialog({
             PID {entry.processId ?? "unknown"} · Port {entry.port}
           </span>
         </div>
-        <div className="dialog-actions">
+        <div className="dialog-actions equal-action-pair">
           <button
             ref={cancelButton}
             className="button-secondary"

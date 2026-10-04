@@ -19,8 +19,18 @@ pnpm tauri icon src-tauri/icons/derived/thaa-app-icon-production.png
 `scripts/generate-branding-assets.swift` preserves the 1024×1024 app master,
 scales its full artwork to an 824×824 centered body with 100px transparent
 margins, and crops tray sources to nontransparent alpha bounds before fitting
-them into compact canvases. The macOS derivative is 44×44 with a proportional
+them into compact canvases. The macOS derivative is 44×34 with a proportional
 32px-high glyph; the Windows derivative remains 32×32 with a 23px-high glyph.
+The macOS canvas follows the cropped source artwork's wide aspect ratio because
+the current `tray-icon` macOS adapter fixes `NSImage` height at 18pt and
+preserves image aspect ratio. A 64×64 square preview retained nearly the same
+internal glyph occupancy and did not produce a meaningful native size increase.
+The 34px canvas height lets the 32px glyph render at about 16.9pt with a 1px
+top/bottom margin. Windows sizing is independent and unchanged.
+For a temporary square-size comparison, the generator accepts
+`--macos-tray-square-preview-size 64` and writes a separate preview PNG to the
+selected output directory; the normal command still generates only the
+production derivatives.
 The generator checks the expected app bounds and runs an asymmetric
 top/bottom orientation fixture through drawing and PNG encode/decode before
 writing outputs.

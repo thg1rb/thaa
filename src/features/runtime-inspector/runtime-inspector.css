@@ -1,5 +1,6 @@
 .app-shell {
   position: relative;
+  width: min(100%, 1160px);
   max-width: 1160px;
   min-height: 100vh;
   margin: 0 auto;
@@ -539,6 +540,22 @@ h1 {
   gap: 7px;
 }
 
+.equal-action-pair {
+  display: grid;
+  grid-template-columns: repeat(
+    2,
+    minmax(var(--action-pair-control-min-width), 1fr)
+  );
+  gap: 8px;
+  width: max-content;
+  max-width: 100%;
+}
+
+.equal-action-pair > button {
+  width: 100%;
+  white-space: nowrap;
+}
+
 .button-stop,
 .button-force,
 .button-danger {
@@ -799,9 +816,7 @@ h1 {
 }
 
 .dialog-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 8px;
+  justify-content: end;
 }
 
 .sr-only {

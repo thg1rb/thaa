@@ -89,10 +89,19 @@ Other platforms retain their native window decorations.
 The canonical application and tray icon masters live in
 `src-tauri/icons/source/`. Tauri-generated application assets and small tray
 derivatives live in `src-tauri/icons/`. The native Rust tray composition uses
-a 36×36 transparent monochrome template image on macOS and a 32×32 transparent
-cyan image on Windows. These are Thaa application-branding assets and remain
+a 44×34 transparent monochrome template image on macOS and a 32×32 transparent
+cyan image on Windows. The macOS asset has a 32px-high glyph; its aspect-matched
+canvas renders close to the pinned tray adapter's 18pt native status-image
+height. Windows sizing is independent and remains at 32×32. These are Thaa
+application-branding assets and remain
 separate from the per-process icons shown in runtime cards. Bundle/executable
 icon metadata does not participate in process identity or action authorization.
+
+The WebView root clips unintended horizontal overflow and suppresses horizontal
+overscroll while retaining normal document vertical scrolling. App content and
+notifications do not permit webpage-style text selection; text entry controls
+restore it. Runtime Stop/Force and confirmation Cancel/Force pairs use equal
+CSS grid columns so the longer action label determines both control widths.
 
 ## Frontend responsibilities
 
