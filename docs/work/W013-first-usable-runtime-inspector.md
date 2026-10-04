@@ -2,9 +2,10 @@
 
 ## Status
 
-In progress. First usable runtime flow is implemented and PR #32 is open. The
-read-only review is complete with one P2 fix and a clean re-review; final-head
-CI and interactive macOS validation remain outstanding.
+Done on merge. PR #32 is ready for integration after the user-confirmed manual
+macOS acceptance, clean read-only re-review, and successful required CI on the
+final reviewed implementation. This status takes effect when PR #32 merges to
+`develop`.
 
 ## Objective
 
@@ -145,16 +146,15 @@ test work are recorded in the execution report before merge.
 
 ## Manual Validation
 
-The macOS app was built and launched with `pnpm tauri dev`; its first event
-listener attempt exposed a missing Tauri `core:event:allow-listen` capability,
-which was added. The app relaunched without Tauri/Vite errors. Computer-use
-visual inspection could not run because the desktop automation native pipe
-failed to start. Controlled native listener discovery is covered by the Rust
-integration test. Interactive refresh/action/UI checks remain blocked pending
-an available visual-inspection surface.
+The user manually tested the W013 application on macOS and confirmed that real
+listening ports and processes appear correctly, manual refresh works, and both
+Graceful Stop and Force Stop behave as expected. This is user-confirmed
+acceptance evidence; the Agent did not independently observe the interactive
+session. The user also confirmed that action behavior matches expectations.
 
-Windows interactive UI validation is not available locally and remains for
-Windows CI/manual follow-up.
+Windows interactive UI validation was not performed. Windows backend/native
+and Tauri build validation is provided by the Windows CI job; this is not a
+claim of visual GUI acceptance on Windows.
 
 ## Known Limitations
 
@@ -163,9 +163,9 @@ Windows CI/manual follow-up.
   activation triggers refresh separately.
 - Display paths are lossy strings and are never used as identity evidence.
 - Tray overview is intentionally compact and limited to eight rows.
-- Interactive visual/manual end-to-end validation is blocked by unavailable
-  desktop automation in this execution environment.
-- Full PR review and hosted macOS/Windows CI have not yet completed.
+- Windows interactive visual validation was not performed.
+- Manual macOS evidence is supplied by user confirmation rather than an Agent
+  screen recording or retained screenshot.
 
 ## Acceptance Criteria
 
@@ -178,17 +178,21 @@ Windows CI/manual follow-up.
 - [x] Tray menu provides listener overview, refresh, show, and quit.
 - [x] Auto refresh is ten seconds while visible; no hidden-window timer scan.
 - [x] No Search/Filter or P1 runtime intelligence was added.
-- [ ] Rust, frontend, audit, documentation, and three required CI gates pass.
-- [ ] Read-only review passes and findings are resolved.
-- [ ] Interactive macOS First Usable scenario and visual review pass.
+- [x] Rust, frontend, audit, documentation, and three required CI gates pass
+      on the reviewed final implementation head.
+- [x] Read-only review passes and the P2 finding is resolved; re-review found
+      no remaining findings.
+- [x] User confirms the macOS First Usable scenario and process actions work.
 
 ## Validation
 
-Initial local results: Rust unit/integration tests and Clippy pass; frontend
-format/lint/typecheck/tests/build pass. macOS native provider/controller and
-runtime snapshot integration tests pass locally. The complete final validation
-matrix, CI run IDs, audit results, visual limitation, and post-merge state will
-be recorded before setting `Done on merge`.
+The final reviewed implementation passed Rust/frontend validation and the
+Shared quality, macOS native validation, and Windows native validation jobs
+(GitHub Actions run `37131667714`; final PR head at validation:
+`e214c127e99d4c91b59c37f1397c42f28b92d07e`). The user confirmed manual macOS
+acceptance. The status is `Done on merge`; integration and post-merge checks
+are recorded in GitHub/Git history after merge rather than through a separate
+closeout PR.
 
 ## Review Findings
 
