@@ -2,14 +2,15 @@
 
 ## Status
 
-In progress. **Gate A has been explicitly accepted and PR #37 is integrated
-into `develop`**; post-merge validation passed. PR #39 promoted the accepted
-release infrastructure to `main`, and candidate workflow run `37313991657`
-successfully built the unsigned macOS and Windows packages from the exact
-`main` SHA. macOS clean/isolated validation and NFR-006 measurements remain
-pending. README/MIT presentation is complete. Paid signing remains deferred
-release hardening. Do not tag, publish, or distribute artifacts without
-explicit candidate acceptance.
+In progress. **Gate A has been accepted and integrated into `develop`; the
+accepted release source is on `main`.** Candidate workflow run `37313991657`
+successfully built the unsigned macOS and Windows packages from exact source
+SHA `2edc9cc934517b935f14c85f606296a3539481b5`. The user has now accepted a
+tester-driven Early Preview model: the publication gate is automated and
+evidence-based; installation, interactive regression, and runtime evidence
+will be collected from testers after publication. This does not mean those
+checks have passed. Do not tag, publish, announce, or distribute artifacts
+until the final explicit publication approval.
 
 Branch: `feature/r001-closed-alpha-readiness`
 
@@ -21,10 +22,11 @@ do not add an alpha suffix to the version).
 ## Objective
 
 Prepare the accepted macOS and Windows feature set for a first selected-tester
-release. Validate installable packages and first-run behavior, document the
-actual tester experience, and preserve explicit release approval before
-publishing. Do not promote `develop` to `main`, tag, publish, or distribute
-artifacts as part of this pre-acceptance change.
+Early Preview. Validate exact candidate identity, packages, publication
+workflow, security controls, and user-facing disclosures before publication;
+collect interactive installation and runtime evidence from selected testers
+after publication. Preserve explicit release approval before tagging or
+publishing.
 
 ## Current Baseline
 
@@ -87,11 +89,11 @@ artifacts as part of this pre-acceptance change.
 - Complete Gate A's credential-free unsigned macOS DMG and Windows NSIS
   packaging paths, checksums, static release-workflow controls, documentation,
   read-only review, and final PR CI without publishing artifacts.
-- After Gate A acceptance/integration, run Gate B from a candidate commit on
-  `main`: macOS clean-machine install/first-launch/product regression,
-  uninstall/reinstall, NFR-006 measurements, and the 8-hour soak. Windows
-  package/CI evidence is required; interactive Windows installation and soak
-  are explicitly deferred for this selected-tester preview.
+- Gate B is tester-driven after publication for this selected-tester Early
+  Preview. The publication gate is the pre-publication boundary; interactive
+  macOS and Windows validation, environment reports, NFR-006 observations, and
+  stability evidence are collected from testers without being represented as
+  pre-publication PASS.
 - Keep Developer ID, Apple notarization/stapling, and Authenticode support
   available as optional post-v0.1.0 hardening; none is required for this
   zero-budget release.
@@ -147,30 +149,26 @@ acceptance.
 Gate A does **not** require Apple Developer Program membership, Developer ID,
 notarization, stapling, Authenticode, or actual release publication.
 
-### Gate B — release candidate acceptance after promotion
+### Gate B — candidate evidence (historical candidate-generation stage)
 
 - [x] Promote the accepted `develop` state through a separate reviewed
       `develop` → `main` PR; merge does not publish a release.
 - [x] Run the manual non-publishing candidate workflow from the exact intended
       `main` commit; record its SHA and both artifact/checksum results.
-- [ ] Validate macOS 15+ Apple Silicon DMG integrity, unsigned first-launch
-      behavior, clean/isolated installation, full packaged regression, quit/
-      relaunch, uninstall and reinstall.
-- [ ] Measure macOS idle CPU/memory and representative scan duration and
-      complete the approximately 8-hour continuous packaged-app soak.
+- [x] Validate automated macOS 15+ Apple Silicon DMG integrity, mountability,
+      arm64 executable, unsigned/ad-hoc state, version/icon inspection, and
+      checksum for the retained candidate artifact.
 - [x] Confirm Windows release-profile unsigned NSIS output, checksum, and
       automated CI; interactive clean-machine install and soak remain
       NOT RUN / deferred and are nonblocking for this selected-tester release.
-- [ ] Recheck all user-facing release claims and receive explicit approval of
-      the exact candidate SHA before creating `v0.1.0` or publishing.
-- [ ] Before publication, verify the `release-publish` environment actually
-      enforces its intended reviewer approval. If that control is unavailable,
-      record the limitation and require explicit release-owner approval plus
-      the workflow's exact-SHA/tag checks; do not make a paid GitHub plan a
-      prerequisite.
+- [x] Reclassify the previously planned manual checks as tester-driven
+      post-publication evidence for this `v0.1.0` Early Preview. They remain
+      pending; none is claimed as passed.
 
-Gate B does **not** require paid Developer ID, notarization, stapling, or
-Authenticode credentials. Those remain deferred release hardening.
+The candidate-generation checks are complete. Candidate generation is not
+publication approval. Gate B manual/runtime evidence is now tester-driven
+after publication. Paid Developer ID, notarization, stapling, and Authenticode
+remain deferred release hardening.
 
 #### Candidate run evidence — 2026-10-05
 
@@ -196,11 +194,11 @@ Authenticode credentials. Those remain deferred release hardening.
 - The workflow package-validation step does not itself assert the app bundle
   version or icon resource; those two observations came from the separate local
   inspection of the downloaded candidate, not from CI.
-- Gate B remains pending user-run macOS first-launch/quarantine observation,
-  clean/isolated installation, packaged regression, uninstall/reinstall,
-  frozen NFR-006 idle and scan measurements, and the approved approximately
-  eight-hour soak. Windows interactive validation and soak remain
-  **NOT RUN / deferred**.
+- At this historical evidence point, macOS first-launch/quarantine observation,
+  clean/isolated installation, packaged regression, uninstall/reinstall, and
+  NFR-006 measurements were not run. The later user decision reclassifies
+  these as tester-driven post-publication evidence; Windows interactive
+  validation and soak remain **NOT RUN / deferred / tester-driven**.
 
 ## README and Open-source Presentation
 
@@ -308,7 +306,10 @@ future Apple credential names and setup.
 - Complete read-only Sub-agent review of release security and README/license
   accuracy. Main Agent applies fixes and repeats checks/review as required.
 
-## Gate B Manual Validation Plan
+## Gate B Manual Validation Checklist (tester-driven after publication)
+
+The following checklist is retained for testers. It is not a pre-publication
+gate and remains unperformed until actual tester evidence is recorded.
 
 ### macOS clean/isolated candidate validation
 
@@ -499,12 +500,13 @@ verify` passed. The mounted app bundle reports version `0.1.0`, identifier
   listener at port `43127`. It displays the fixture path `/private/tmp/` and
   contains no username or unrelated process details; dynamic PID and ambient
   listener count were removed from the committed image.
-- Gate B macOS clean/isolated install/reinstall, first-launch/quarantine
-  observation, and NFR-006 idle/scan/8-hour soak measurements remain
-  unperformed. Windows interactive install validation and soak are NOT RUN /
-  deferred; Windows Working Directory/Project Root remain unsupported by the
-  current provider. Developer ID, notarization, stapling, Gatekeeper trusted
-  distribution and Authenticode are deferred release hardening.
+- macOS clean/isolated install/reinstall, first-launch/quarantine observation,
+  and NFR-006 idle/scan/8-hour soak measurements remain unperformed and are
+  tester-driven after publication. Windows interactive install validation and
+  soak are NOT RUN / deferred / tester-driven; Windows Working Directory and
+  Project Root remain unsupported by the current provider. Developer ID,
+  notarization, stapling, Gatekeeper trusted distribution, and Authenticode
+  are deferred release hardening.
 
 ## Read-only Review
 
@@ -577,10 +579,11 @@ Accepted. The user accepted Gate A at feature head
 macOS unsigned/ad-hoc DMG and Windows unsigned NSIS packaging, SHA-256
 verification, source pinning, workflow security, release/tester documentation,
 deferred paid-signing strategy, read-only review, and final-head CI passed.
-This acceptance does not approve Gate B, promotion to `main`, creation of
-`v0.1.0`, or publication. Gate B must pass its macOS candidate,
-clean/isolated install, packaged regression, NFR-006 evidence and soak before
-the exact candidate commit may be tagged and published. Paid
+This acceptance covers Gate A only. The later user decision makes manual
+installation, packaged regression, NFR-006 runtime observations, and the
+approximately eight-hour soak tester-driven post-publication evidence for the
+selected-tester Early Preview. This does not claim those items passed and does
+not itself approve creation of `v0.1.0` or publication. Paid
 signing/notarization is deferred hardening, not a release gate.
 
 ## Gate A Integration Record
@@ -598,11 +601,134 @@ signing/notarization is deferred hardening, not a release gate.
   that exact `main` commit; automated package/checksum validation passed.
 - `v0.1.0` tag, GitHub Release, and public tester distribution do not exist.
 
-## Stop Boundary
+## Tester-driven Gate B and final publication gate (2026-10-05)
 
-Gate A and release promotion are integrated and validated. Gate B remains
-open until the required manual macOS packaged validation, frozen NFR-006
-measurements, and approximately eight-hour soak are completed. Keep the
-candidate artifacts internal; do not create `v0.1.0`, publish a GitHub
-Release, distribute artifacts, or begin W016 without the later explicit
-release approval.
+The user explicitly changed the `v0.1.0` validation model: publication as a
+GitHub Pre-release for selected/early testers may precede interactive manual
+Gate B evidence. Tester use becomes the source of environment-specific
+installation, first-launch, regression, and stability evidence. This policy is
+specific to this Early Preview and does not weaken future stable-release
+criteria. Any item below marked tester-driven or deferred remains unperformed
+until evidence is received.
+
+### Frozen candidate identity
+
+| Field                  | Accepted value                                                                                                         |
+| ---------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| Version / planned tag  | `0.1.0` / `v0.1.0`                                                                                                     |
+| Candidate source SHA   | `2edc9cc934517b935f14c85f606296a3539481b5`                                                                             |
+| Candidate workflow run | [37313991657](https://github.com/thg1rb/thaa/actions/runs/37313991657), candidate mode, explicit `unsigned` macOS mode |
+| macOS artifact         | `Thaa_0.1.0_aarch64.dmg` — SHA-256 `4365f2a0d91ef5865f3aaad953fdce004c80ed8425272af9ad2c5af8fb438297`                  |
+| Windows artifact       | `Thaa_0.1.0_x64-setup.exe` — SHA-256 `f2503274b4a6d432b27c3203029f37126791ccf851f7900d6f092c45a9944073`                |
+
+These exact candidate artifacts are to be reused. Do not rebuild them in
+publish mode. A source or binary change requires a new version/candidate cycle;
+never move or replace a published `v0.1.0` artifact. Candidate Actions
+artifacts expire **2027-01-03**; confirm their retention/availability before
+publication. The public release should attach the workflow-generated checksum
+manifest. The release-notes draft on the candidate source already contains the
+Early Preview and unsigned-platform disclosures. PR #41 on `develop` changes
+only internal evidence documentation; it is not required for runtime release
+safety and must not be promoted before this candidate is published.
+
+### `v0.1.0` Publication Gate
+
+Every item below is a mandatory pre-publication check. A user decision to
+publish is still required after this gate passes.
+
+| Classification                     | Check                             | Evidence / status                                                                                                                                                                                                                                                                                                   |
+| ---------------------------------- | --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| PASS — REQUIRED BEFORE PUBLICATION | Candidate source identity         | SHA `2edc9cc934517b935f14c85f606296a3539481b5` is the accepted `main` source; verify it remains unchanged and has no release-blocking defect immediately before publication.                                                                                                                                        |
+| PASS — REQUIRED BEFORE PUBLICATION | Candidate workflow                | Run `37313991657` succeeded in candidate mode, pinned exact SHA, unsigned mode; trusted-signing and publish jobs skipped.                                                                                                                                                                                           |
+| PASS — REQUIRED BEFORE PUBLICATION | Candidate artifacts and checksums | Both listed artifact digests verified; macOS DMG package checks passed and Windows release-profile x64 NSIS packaging/checksum passed. Reverify exact files and manifest before attaching.                                                                                                                          |
+| PASS — REQUIRED BEFORE PUBLICATION | Applicable CI and security        | Candidate-era Shared Quality, macOS/Windows Native Validation, workflow/static checks, package checks, dependency/security checks and reviews have no unresolved release blocker; recheck current run/source status before publication. Two previously accepted RustSec advisories remain disclosed in this record. |
+| PASS — REQUIRED BEFORE PUBLICATION | User-facing disclosure            | Draft release notes state Early Preview, unsigned/not-notarized macOS and unsigned Windows, OS warnings/blocks, supported platforms, limitations, checksums, process-action caution, and issue reporting. Verify exact attached release body at publish time.                                                       |
+| PASS — REQUIRED BEFORE PUBLICATION | Tester instructions and triage    | Three-level tester plan, issue feedback template, safety guidance, known limitations, and post-publication evidence tracking are documented below and in `docs/releases/`.                                                                                                                                          |
+| PASS — REQUIRED BEFORE PUBLICATION | No known release-blocking defect  | Recheck open findings and candidate evidence. No known defect currently indicates unusable/corrupt packages, wrong source/artifact, unsafe process termination, or serious security risk.                                                                                                                           |
+| PASS — REQUIRED BEFORE PUBLICATION | Publication workflow safety       | Confirm publish mode reuses the accepted candidate artifacts, verifies candidate run/source/tag/checksums, does not rebuild platform packages, creates a GitHub Pre-release, and uses least-privilege publication permission. Candidate mode cannot publish.                                                        |
+| PASS — REQUIRED BEFORE PUBLICATION | Tag safeguards                    | Before publication, ensure tag does not exist, target exact SHA, and use configured tag protection if available; otherwise apply exact-SHA verification and procedural no-force-update/no-reuse rule. See Tag Protection below.                                                                                     |
+| BLOCKING until explicitly approved | Final release authorization       | The user must explicitly approve creation of `v0.1.0` and publication using these exact candidate artifacts. This approval has not yet been given.                                                                                                                                                                  |
+
+Do not classify missing interactive validation as PASS. Classification of
+post-publication work is:
+
+- **TESTER-DRIVEN AFTER PUBLICATION:** macOS and Windows install/first launch,
+  interactive platform behavior, functional regression, environment-specific
+  compatibility and feedback collection.
+- **DEFERRED RELEASE HARDENING:** Developer ID, Apple notarization/stapling,
+  trusted Gatekeeper distribution, and Windows Authenticode.
+- **BLOCKING:** any newly found genuine package/source/security defect, failed
+  mandatory publication check, or missing explicit user publication approval.
+
+### Tester-driven Gate B after publication
+
+For macOS, request reports on install, first-launch/security-warning behavior,
+tray, Runtime Inspector, listener/process identity and icons, Search, Refresh,
+Working Directory, Project Root, Copy/Open, safe process actions, Toast,
+scroll/layout, quit/relaunch, uninstall/reinstall, NFR-006 observations, and
+optional long-run stability. These are **not pre-publication PASS claims**.
+The approximately **8-hour continuous soak** remains optional extended tester
+methodology, not a mandatory publication gate or a new NFR threshold.
+
+For Windows, interactive install/regression and soak remain **NOT RUN /
+tester-driven / deferred**. Automated release-profile NSIS and Native
+Validation passed. Windows Working Directory and consequently Project Root
+are unavailable in the current provider; generic graceful Stop is unsupported.
+SmartScreen may warn, Smart App Control or managed policy may block
+installation. Testers must not disable system security controls.
+
+### Tester evidence tracking
+
+Record each useful tester report with these fields; testers may omit checks
+they did not perform:
+
+```text
+Platform:
+Environment (OS/version/architecture; no identifying details):
+Install:
+First launch:
+Security warning/block:
+Core regression:
+Extended regression:
+Long-run stability:
+Issue references:
+Outcome:
+```
+
+Triage outcomes:
+
+- **Critical / release safety:** security issue, destructive process-action
+  behavior, corrupt package, or severe system instability. Consider hiding the
+  release while investigating.
+- **Significant:** major capability unusable, frequent crash, or broad install
+  failure. Fix through a new version (normally `0.1.1`); never retag or replace
+  `v0.1.0` binaries.
+- **Normal Early Preview defect:** record and prioritize through the normal
+  development backlog.
+
+### Tag protection and publish review
+
+A no-cost repository ruleset is configured for `refs/tags/v0.1.0` with update
+and deletion restrictions, no bypass actors, and `current_user_can_bypass:
+never`. It does not prevent initial tag creation. The `release-publish`
+environment is configured with required review by `thg1rb`, no administrator
+bypass, and deployments restricted to `main`. GitHub reports
+`prevent_self_review: false`; the only repository collaborator is the owner,
+so the owner can approve the protected deployment. These settings are
+administrative controls and do not create the tag or release. If protection
+ever becomes unavailable, preserve procedural immutability: confirm the exact
+SHA, do not force-update or reuse the tag, and use a new version for changed
+binaries. The tag must resolve to
+`2edc9cc934517b935f14c85f606296a3539481b5`. Do not create it during this
+documentation task. Publish mode must reuse the exact candidate artifacts and
+verify their checksums; it must not rebuild them. The final Pre-release must
+not be presented as “Latest stable.”
+
+### Final publication stop boundary
+
+Current state: the candidate and automated publication evidence are accepted;
+interactive Gate B evidence is intentionally tester-driven after publication.
+The `v0.1.0` tag, GitHub Release, public assets, and tester announcement do not
+exist. Stop for explicit user approval after the final read-only publication
+review. Do not create a tag, publish, distribute assets, modify the accepted
+candidate source, or start W016 in the present work.
