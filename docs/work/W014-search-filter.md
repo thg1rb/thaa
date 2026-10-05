@@ -135,10 +135,10 @@ audit passed for macOS and Windows targets with the repository's two existing
 allowed advisories (RUSTSEC-2024-0370 and RUSTSEC-2024-0429). The local Tauri
 release binary and macOS app bundle builds passed.
 
-PR CI run [37250428517](https://github.com/thg1rb/thaa/actions/runs/37250428517)
+PR CI run [37251383479](https://github.com/thg1rb/thaa/actions/runs/37251383479)
 passed Shared Quality, macOS Native Validation, and Windows Native
-Validation on the implementation commit. A final documentation-only evidence
-update will require CI to be confirmed again on the resulting PR head.
+Validation on the documentation-evidence update head. Confirm all three
+checks remain green on the latest reviewed PR head before merge.
 
 Manual macOS validation used the bundled app and a controlled local Python
 listener on port 43001. Process-name search was checked with `PYTHON` and
