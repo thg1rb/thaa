@@ -49,6 +49,7 @@
 - [Actual application directory structure](architecture/DIRECTORY-STRUCTURE.md)
 - [Draft v0.1.0 release notes](releases/v0.1.0-release-notes.md)
 - [Draft v0.1.0 tester guide](releases/v0.1.0-tester-guide.md)
+- [Draft v0.1.0 tester feedback template](releases/v0.1.0-tester-feedback-template.md)
 - [v0.1.0 release credential checklist](releases/v0.1.0-release-credentials.md)
 - [Draft selected-tester announcement](releases/v0.1.0-tester-announcement.md)
 
