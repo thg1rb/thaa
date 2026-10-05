@@ -161,7 +161,7 @@ jobs:
   macos_unsigned:
     name: macOS arm64 unsigned DMG
     needs: [validate-source]
-    if: ${{ (inputs.mode == 'candidate' || inputs.mode == 'publish') && inputs.macos_distribution == 'unsigned' }}
+    if: ${{ inputs.mode == 'candidate' && inputs.macos_distribution == 'unsigned' }}
     runs-on: macos-15
     timeout-minutes: 60
     steps:
@@ -231,7 +231,7 @@ jobs:
   macos_trusted:
     name: macOS arm64 Developer ID signed and notarized DMG
     needs: [validate-source]
-    if: ${{ (inputs.mode == 'candidate' || inputs.mode == 'publish') && inputs.macos_distribution == 'trusted' }}
+    if: ${{ inputs.mode == 'candidate' && inputs.macos_distribution == 'trusted' }}
     runs-on: macos-15
     timeout-minutes: 60
     environment: release
@@ -351,7 +351,7 @@ jobs:
   windows:
     name: Windows x64 unsigned NSIS
     needs: [validate-source]
-    if: ${{ inputs.mode == 'candidate' || inputs.mode == 'publish' }}
+    if: ${{ inputs.mode == 'candidate' }}
     runs-on: windows-2025
     timeout-minutes: 60
     steps:
