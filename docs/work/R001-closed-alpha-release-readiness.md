@@ -2,12 +2,13 @@
 
 ## Status
 
-In progress. The current phase is **Gate A — release infrastructure
-acceptance**. README/MIT presentation is complete. The zero-budget macOS and
-Windows artifacts are intentionally unsigned for selected testers; paid
-signing is deferred release hardening, not a v0.1.0 blocker. Gate B candidate
-validation remains after Gate A integration and promotion. Do not merge this PR
-or publish a release without explicit acceptance at the applicable gate.
+In progress. **Gate A has been explicitly accepted**; PR #37 integration into
+`develop` and post-merge validation are pending. README/MIT presentation is
+complete. The zero-budget macOS and Windows artifacts are intentionally
+unsigned for selected testers; paid signing is deferred release hardening, not
+a v0.1.0 blocker. Gate B candidate validation remains after Gate A integration
+and promotion. Do not promote to `main` or publish a release without explicit
+acceptance at the applicable gate.
 
 Branch: `feature/r001-closed-alpha-readiness`
 
@@ -130,7 +131,9 @@ acceptance.
       workflow.
 - [x] Confirm all required CI on the final PR head after the latest
       documentation status update.
-- [ ] Present Gate A for explicit user acceptance. Keep PR #37 open until then.
+- [x] User explicitly accepted Gate A on 2026-10-05 at feature head
+      `afa11eec0be72d517b4a1048b000ad64f3974cac`; scope is release
+      infrastructure readiness, not Gate B or final `v0.1.0` acceptance.
 
 Gate A does **not** require Apple Developer Program membership, Developer ID,
 notarization, stapling, Authenticode, or actual release publication.
@@ -339,8 +342,8 @@ verify` passed. The mounted app bundle reports version `0.1.0`, identifier
   signed-only design. The dedicated read-only review of this zero-budget
   update is now complete; it found and the implementation fixed the README
   checksum instructions and candidate artifact retention/provenance findings.
-  Final-head CI is pending; earlier CI results do not validate the revised
-  workflow.
+  At that point in the validation sequence, final-head CI was still pending;
+  the subsequent successful final-head runs are recorded below.
 - CI run `37295364882` passed Shared Quality and Windows Native Validation,
   including release-profile unsigned NSIS packaging and checksum verification.
   The macOS DMG built successfully, but its verification step initially failed
@@ -425,20 +428,29 @@ GitHub Light Mode rendering was visually checked; Dark Mode remains explicitly
 deferred because the logged-out browser session cannot change GitHub's site
 appearance.
 
-R001 remains in progress. Gate A acceptance is pending. Gate B remains a later
-post-promotion candidate-validation gate; paid signing credentials are not a
-Gate A or zero-budget Gate B prerequisite.
+R001 remains in progress. Gate A was accepted by the user on 2026-10-05 at
+head `afa11eec0be72d517b4a1048b000ad64f3974cac`; integration into `develop`
+and post-merge checks remain pending. Gate B remains a later post-promotion
+candidate-validation gate; paid signing credentials are not a Gate A or
+zero-budget Gate B prerequisite.
 
-## Final Acceptance
+## Gate A Acceptance Record
 
-Pending. Gate A is ready for user acceptance only after the zero-budget
-workflow, package CI, documentation, final review and final-head CI are green.
-Gate B must then pass its macOS candidate, clean/isolated install and NFR-006
-evidence before the exact candidate commit may be tagged and published. Paid
+Accepted. The user accepted Gate A at feature head
+`afa11eec0be72d517b4a1048b000ad64f3974cac` after the zero-budget workflow,
+macOS unsigned/ad-hoc DMG and Windows unsigned NSIS packaging, SHA-256
+verification, source pinning, workflow security, release/tester documentation,
+deferred paid-signing strategy, read-only review, and final-head CI passed.
+This acceptance does not approve Gate B, promotion to `main`, creation of
+`v0.1.0`, or publication. Gate B must pass its macOS candidate,
+clean/isolated install, packaged regression, NFR-006 evidence and soak before
+the exact candidate commit may be tagged and published. Paid
 signing/notarization is deferred hardening, not a release gate.
 
 ## Stop Boundary
 
-Keep the R001 PR open for user acceptance. Do not merge it, promote to `main`,
-create the `v0.1.0` tag, publish a GitHub Release, distribute artifacts, or
-begin W016 before the user explicitly accepts the completed R001 result.
+After accepted Gate A is integrated into `develop` and post-merge validation
+passes, prepare a reviewed `develop` → `main` release PR and stop for explicit
+approval before merging it. Do not dispatch candidate workflows, create the
+`v0.1.0` tag, publish a GitHub Release, distribute artifacts, or begin W016
+during this Gate A integration.
