@@ -18,8 +18,9 @@ shows which processes own local TCP listeners, the process and project context
 available on your system, and gives you quick ways to search, copy, open, or
 safely request supported process actions.
 
-> **First release in preparation:** `v0.1.0` is planned for selected testers.
-> Downloads are not available yet.
+> **Early Preview in preparation:** `v0.1.0` is planned as a pre-release for
+> selected testers. Downloads are not available yet. The zero-budget builds
+> will be unsigned and may show operating-system security warnings.
 
 ---
 
@@ -73,41 +74,53 @@ ambient listener count are omitted.
 
 ## Installation
 
-Thaa's first tester release is being prepared. **No release installer is
-available yet.** These are the planned release instructions; this section will
-be updated after the release candidates have been built and validated.
+Thaa `v0.1.0` is an **Early Preview for selected testers**, not a stable or
+warning-free general release. **No release installer is available yet.** The
+planned zero-budget packages are unsigned; operating systems may warn or block
+them. These instructions will be finalized after candidate validation.
 
 ### macOS
 
-The planned first release target is Apple Silicon on macOS 15 or later. The
-intended artifact is `Thaa_0.1.0_aarch64.dmg`, a Developer ID signed, notarized,
-and stapled DMG. It is not available until those checks pass.
+The first release target is Apple Silicon on macOS 15 or later. The planned
+artifact is `Thaa_0.1.0_aarch64.dmg`. It will not be Developer ID signed or
+Apple-notarized, so macOS may warn or block the first launch. Download only
+from the official Thaa GitHub Release. Verify the DMG against its entry in
+`SHA256SUMS.txt` before deciding whether to continue.
 
 When available:
 
 1. Download `Thaa_0.1.0_aarch64.dmg` and `SHA256SUMS.txt` from [Releases](https://github.com/thg1rb/thaa/releases).
+   In Terminal, run `shasum -a 256 Thaa_0.1.0_aarch64.dmg` and compare its
+   hash with the DMG entry in `SHA256SUMS.txt`.
 2. Open the DMG and drag **Thaa** to **Applications**.
-3. Open Thaa from Applications.
+3. Open Thaa from Applications. If macOS blocks it, only use the normal
+   per-app approval option in System Settings → Privacy & Security when it is
+   offered and after verifying the official download and checksum. If macOS
+   does not offer a supported approval path, stop and report the message.
 4. To uninstall, quit Thaa and move it from Applications to Trash.
 
-Do not disable Gatekeeper to install Thaa. If macOS reports an unexpected
-verification problem with a published build, report it through
-[Issues](https://github.com/thg1rb/thaa/issues).
+Never disable Gatekeeper or other macOS security features globally. For
+Apple's current per-app guidance, see [Open apps safely on your
+Mac](https://support.apple.com/en-ie/102445). Report unexpected behavior
+through [Issues](https://github.com/thg1rb/thaa/issues).
 
 ### Windows
 
-The planned first release target is Windows 11 x64. The installer will be an
-unsigned NSIS package named `Thaa_0.1.0_x64-setup.exe`; no MSI is planned. As an
-early tester build, Windows may show the “Windows protected your PC” SmartScreen
-prompt. If Windows offers **More info → Run anyway**, use it only after
-confirming the installer came from the official Thaa release. [Smart App
+The first release target is Windows 11 x64. The installer is planned as an
+unsigned NSIS package named `Thaa_0.1.0_x64-setup.exe`; no MSI is planned.
+SmartScreen may warn, and [Smart App
 Control](https://learn.microsoft.com/en-us/windows/apps/package-and-deploy/smartscreen-reputation)
-or an organization policy may block an unsigned installer entirely. Do not
+or an organization policy may block installation completely. If Windows
+offers **More info → Run anyway**, continue only after confirming the installer
+came from the official Thaa release and checking its SHA-256 entry. Do not
 disable Windows security protections. The package is not available yet.
 
 When available:
 
 1. Download `Thaa_0.1.0_x64-setup.exe` and `SHA256SUMS.txt` from [Releases](https://github.com/thg1rb/thaa/releases).
+   In PowerShell, from the download folder, run
+   `Get-FileHash .\Thaa_0.1.0_x64-setup.exe -Algorithm SHA256` and compare
+   the hash with the Windows installer entry in `SHA256SUMS.txt`.
 2. Run the installer and follow its prompts.
 3. Launch Thaa from the Start menu. To uninstall, use **Settings → Apps → Installed apps**.
 
@@ -152,7 +165,9 @@ later scan.
   arbitrary discovered processes. Force Stop remains separate and explicit.
 - Linux is not a supported release target.
 - The first release and its installation packages are not yet available.
-- The planned Windows Closed Alpha installer is unsigned; SmartScreen,
+- The planned macOS Early Preview build is not Developer ID signed or Apple
+  notarized; macOS may warn or block its first launch.
+- The planned Windows Early Preview installer is unsigned; SmartScreen,
   Smart App Control, or managed-device policy may warn or block it. The release
   notes will state this clearly before any download is offered.
 

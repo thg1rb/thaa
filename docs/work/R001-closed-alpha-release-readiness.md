@@ -2,13 +2,12 @@
 
 ## Status
 
-In progress. README/MIT presentation is complete. The release workflow and
-packaging path are being prepared, but Apple signing/notarization credentials,
-eligible signed-candidate validation, clean-machine installation evidence,
-NFR-006 measurements, final read-only review, and user acceptance remain
-outstanding. Windows unsigned package distribution has been explicitly approved
-for selected testers; fresh release-profile CI and interactive install evidence
-remain outstanding.
+In progress. The current phase is **Gate A — release infrastructure
+acceptance**. README/MIT presentation is complete. The zero-budget macOS and
+Windows artifacts are intentionally unsigned for selected testers; paid
+signing is deferred release hardening, not a v0.1.0 blocker. Gate B candidate
+validation remains after Gate A integration and promotion. Do not merge this PR
+or publish a release without explicit acceptance at the applicable gate.
 
 Branch: `feature/r001-closed-alpha-readiness`
 
@@ -37,9 +36,9 @@ artifacts as part of this pre-acceptance change.
 - The repository is public; future GitHub Release assets will be publicly
   downloadable to the selected early-tester audience. Release classification
   is GitHub **Pre-release**; version/tag are exactly `0.1.0` / `v0.1.0`.
-- `.github/workflows/release.yml` now defines manually dispatched candidate
-  and final-release paths from trusted `main`. It is not dispatched here. PR CI
-  is being changed to build a release-profile Windows NSIS installer.
+- `.github/workflows/release.yml` defines manual candidate/publish paths from
+  trusted `main`; unsigned is the explicit default and trusted macOS signing is
+  an opt-in future path. The workflow has not been dispatched.
 - No local Developer ID identity, GitHub release environment, Actions secret,
   or Actions variable is configured. No secret values belong in this repo.
 - The README previously had no screenshots or end-user installation guidance.
@@ -49,7 +48,9 @@ artifacts as part of this pre-acceptance change.
 ## Decisions
 
 - Target the first release at Apple Silicon (`aarch64`) on macOS 15 or later,
-  packaged as a Developer ID signed, notarized, and stapled DMG.
+  packaged as an unsigned/ad-hoc DMG. It is not Developer ID signed or Apple
+  notarized; the user-facing disclosure and normal per-app approval guidance
+  must be clear. Paid signing/notarization/stapling are deferred hardening.
 - Target Windows 11 x64, packaged only as an unsigned NSIS setup executable
   named `Thaa_0.1.0_x64-setup.exe`; no MSI. User explicitly approved the
   unsigned selected-tester package with SmartScreen disclosure and notice that
@@ -69,8 +70,9 @@ artifacts as part of this pre-acceptance change.
   Finally dispatch this workflow from `main` in `publish` mode. Protected
   environment approvals gate signing and publication. This sequence is
   documented only; no promotion or release action occurs in this task.
-- User-approved release evidence plan uses four-hour per-platform stability
-  runs. This is a test duration, not a new NFR threshold.
+- User-approved NFR-006 evidence method is an approximately 8-hour continuous
+  macOS soak. This is test methodology, not a new requirement threshold.
+  Windows interactive measurements and soak are NOT RUN / deferred.
 - The app bundle must advertise macOS 15.0 to match the selected Apple Silicon
   tester target. Package inspection found Tauri's default 10.13 minimum and
   `tauri.conf.json` now sets 15.0 and explicitly enables Hardened Runtime.
@@ -79,13 +81,17 @@ artifacts as part of this pre-acceptance change.
 
 ## Scope
 
-- Build and validate platform-specific installable candidate packages, signing,
-  notarization/stapling, artifact handling, release notes, and an approval-gated
-  release workflow without triggering publication in this work.
-- Validate installation, first launch, permissions/errors, uninstall and
-  reinstall on clean supported machines.
-- Collect NFR-006 idle CPU/memory, scan duration, and longer-run stability
-  evidence on macOS and Windows before making performance claims.
+- Complete Gate A's credential-free unsigned macOS DMG and Windows NSIS
+  packaging paths, checksums, static release-workflow controls, documentation,
+  read-only review, and final PR CI without publishing artifacts.
+- After Gate A acceptance/integration, run Gate B from a candidate commit on
+  `main`: macOS clean-machine install/first-launch/product regression,
+  uninstall/reinstall, NFR-006 measurements, and the 8-hour soak. Windows
+  package/CI evidence is required; interactive Windows installation and soak
+  are explicitly deferred for this selected-tester preview.
+- Keep Developer ID, Apple notarization/stapling, and Authenticode support
+  available as optional post-v0.1.0 hardening; none is required for this
+  zero-budget release.
 - Publish a professional user-facing README with real sanitized screenshots,
   accurate release installation steps, feature/capability guidance, known
   limitations, security/contribution/feedback links, and a separate developer
@@ -104,27 +110,55 @@ acceptance.
 
 ## Release Readiness Gates
 
+### Gate A — PR #37 release infrastructure acceptance
+
 - [x] Define public GitHub Pre-release distribution for selected testers.
-- [ ] Provision protected Developer ID and notarization credentials and run a
-      signed/notarized/stapled Apple Silicon DMG build.
-- [x] Select Windows 11 x64 NSIS-only packaging and unsigned selected-tester
-      distribution with explicit SmartScreen/Smart App Control disclosure.
-- [ ] Inspect signatures, notarization tickets, package contents, application
-      identity/version/icon, and generated checksums.
+- [x] Select Apple Silicon macOS 15+ unsigned/ad-hoc DMG for zero-budget v0.1.0.
+- [x] Select Windows 11 x64 unsigned NSIS-only packaging; no MSI.
+- [x] Implement explicit unsigned-default candidate/publish workflow while
+      preserving trusted signing as an opt-in path.
+- [ ] Build/verify macOS DMG and Windows NSIS installer in credential-free PR
+      CI; generate and verify SHA-256 checksums.
 - [x] Define the reviewed `develop` → `main` release PR and post-promotion
-      `v0.1.0` tag/manual-publication sequence. Do not execute it during R001
-      pre-acceptance.
-- [ ] Validate installation, first launch, permission/error handling, and
-      uninstall/reinstall on clean macOS 15+ Apple Silicon and Windows 11 x64
-      machines.
-- [ ] Record NFR-006 measurements on both platforms and set only evidence-based
-      budgets or claims.
-- [x] Prepare draft `v0.1.0` release notes and tester instructions.
-- [ ] Configure credentials/protected GitHub environments, produce a real
-      signed/notarized/stapled macOS candidate, and pass Gatekeeper verification.
-- [ ] Produce and install-test the Windows release-profile NSIS candidate.
-- [ ] Complete isolated clean-install/reinstall validation and NFR-006
-      measurements on the required platforms.
+      candidate, accepted-SHA tag, and manual-publication sequence. Do not
+      execute it during Gate A.
+- [x] Update README, release notes, tester guidance, test catalog, CI and work
+      records with accurate unsigned warnings and deferred hardening.
+- [x] Prepare the MIT license, release notes, tester guide and announcement.
+- [x] Run local quality/security/docs/workflow static checks.
+- [x] Complete the read-only review of the zero-budget workflow and docs; the
+      checksum guidance and candidate artifact provenance findings were fixed.
+- [ ] Confirm CI passes on the final PR head, including macOS DMG and Windows
+      NSIS packaging.
+- [ ] Present Gate A for explicit user acceptance. Keep PR #37 open until then.
+
+Gate A does **not** require Apple Developer Program membership, Developer ID,
+notarization, stapling, Authenticode, or actual release publication.
+
+### Gate B — release candidate acceptance after promotion
+
+- [ ] Promote the accepted `develop` state through a separate reviewed
+      `develop` → `main` PR; merge does not publish a release.
+- [ ] Run the manual non-publishing candidate workflow from the exact intended
+      `main` commit; record its SHA and both artifact/checksum results.
+- [ ] Validate macOS 15+ Apple Silicon DMG integrity, unsigned first-launch
+      behavior, clean/isolated installation, full packaged regression, quit/
+      relaunch, uninstall and reinstall.
+- [ ] Measure macOS idle CPU/memory and representative scan duration and
+      complete the approximately 8-hour continuous packaged-app soak.
+- [ ] Confirm Windows release-profile unsigned NSIS output, checksum, and
+      automated CI; interactive clean-machine install and soak remain
+      NOT RUN / deferred and are nonblocking for this selected-tester release.
+- [ ] Recheck all user-facing release claims and receive explicit approval of
+      the exact candidate SHA before creating `v0.1.0` or publishing.
+- [ ] Before publication, verify the `release-publish` environment actually
+      enforces its intended reviewer approval. If that control is unavailable,
+      record the limitation and require explicit release-owner approval plus
+      the workflow's exact-SHA/tag checks; do not make a paid GitHub plan a
+      prerequisite.
+
+Gate B does **not** require paid Developer ID, notarization, stapling, or
+Authenticode credentials. Those remain deferred release hardening.
 
 ## README and Open-source Presentation
 
@@ -173,49 +207,55 @@ the available logged-out session cannot switch GitHub's site appearance.
 
 The NFR evidence rule requires OS/tool versions, listener/process count, idle
 duration, refresh cadence, scan duration, CPU/memory observations, and
-limitations. Do not invent numeric budgets. A four-hour soak on each platform
-is the current repeatability plan; it is not a new requirement. Measurements
-are **NOT RUN** on both platforms, so no performance claims are made.
+limitations. Do not invent numeric budgets. The approved macOS measurement
+plan is an approximately **8-hour continuous soak** using the packaged app;
+this is test duration, not a new NFR threshold. Windows measurements/soak are
+**NOT RUN / deferred** because no interactive Windows environment is
+available. Measurements have not been collected, so no performance claims are
+made.
 
 ### Release workflow
 
 `.github/workflows/release.yml` is separate from ordinary CI. Dispatch must run
-the workflow definition from trusted `main`. Candidate mode validates and pins
-the current `develop` commit SHA, builds that exact commit, and uploads seven-day
-workflow artifacts only. GitHub exposes
-manual dispatch only after the file exists on default branch (`main` here), so
-the candidate workflow will not be dispatched until a later approved promotion
-puts it there; the user selected static validation before that point. Final
-mode accepts only the existing `v0.1.0` tag, validates its ancestry to `main` in
-a no-secrets job before signing credentials are exposed, and builds the exact
-validated tag commit SHA. The protected `release-publish` environment gates publication of
-the public Pre-release. Pushing a tag alone cannot publish. Global permissions
-are `contents: read`; only the publishing job receives `contents: write`.
-Signing variables/secrets are available only to the macOS job through the
-protected `release` environment. PR CI does not trigger this workflow or
-receive release credentials.
+the workflow definition from trusted `main`. Candidate mode builds the exact
+main commit selected for dispatch and uploads immutable workflow artifacts for
+90 days; it does not create tags/releases or public assets. Gate B records the
+candidate workflow run ID, commit SHA, and artifact checksums. Publish mode
+validates that run's successful unsigned macOS/Windows jobs and reuses those
+exact artifacts instead of rebuilding them. The macOS distribution
+choice is explicit and defaults to `unsigned`. That path requires no signing
+environment/secrets and verifies the ad-hoc app signature, DMG integrity and
+checksums without claiming notarization or Gatekeeper acceptance. Optional
+`trusted` mode retains Developer ID and notarization support for candidate
+validation, runs only when selected, and reads signing secrets only from the
+protected `release` environment. The fixed `v0.1.0` publication path requires
+unsigned mode. Windows remains unsigned NSIS.
 
-GitHub environments/reviewers and branch/tag restrictions are administrative
-configuration, not repository files; they are currently absent. Configure
-`release` and `release-publish` as reviewer-protected environments that allow
-workflow dispatch from `main`; configure a tag ruleset that restricts
-`v0.1.0` creation to release maintainers and blocks updates/deletion. See
-[credential checklist](../releases/v0.1.0-release-credentials.md) for exact
-Apple secret/variable names and acquisition notes. Before approving a
-candidate's protected `release` environment, the reviewer must inspect the
-source commit SHA in the `Validate trusted workflow ref and release source`
-job summary and compare that exact commit with the reviewed `develop` state.
-The build jobs check out that immutable SHA, not the moving branch name.
-Before final publication, the tag ruleset must also prevent `v0.1.0` from
-being updated or deleted; the publishing job rechecks the tag's commit
-immediately before creating the release.
+Publish mode is a separate manual action. It requires the accepted candidate
+SHA, candidate workflow run ID, and exact `v0.1.0` tag to resolve to that same
+commit reachable from `main`. It confirms the candidate run was successful,
+manual, on `main`, and contains the expected unsigned build artifacts; the
+publish job verifies their original checksums and rechecks the tag immediately
+before creating the public Pre-release. Pushing a tag alone cannot publish. Global permissions are
+`contents: read`; only the publishing job receives `contents: write`. PR CI
+does not trigger the release workflow or receive release credentials.
+
+GitHub environments and tag rulesets are administrative configuration, not
+repository files. Configure `release` only for trusted signing and
+`release-publish` for final publication, with reviewer protection where
+available at no cost. GitHub rulesets are available on Free for public
+repositories. Protect `v0.1.0` against unauthorized creation, updates and
+deletion; if a desired rule is unavailable, use the documented exact-SHA/tag
+verification and release-owner confirmation. Before approving trusted signing,
+reviewers inspect the source SHA printed in the validation job summary. See
+[credential checklist](../releases/v0.1.0-release-credentials.md) for the
+future Apple credential names and setup.
 
 - Run the existing formatting, lint, typecheck, frontend test/build, Rust
   format/Clippy/test, dependency audits, RustSec, docs/link, and diff checks.
-- Exercise Tauri bundle generation for the selected `dmg` and `nsis` targets.
-  The local macOS DMG is ad-hoc signed only and is not distributable. PR CI now
-  builds the release-profile unsigned NSIS installer and verifies its exact
-  name and Authenticode status.
+- Exercise Tauri bundle generation for release-profile `dmg` and `nsis` targets
+  without credentials in PR CI. Verify expected paths/identity, ad-hoc macOS
+  signature state, DMG integrity, unsigned Windows status and both checksums.
 - Verify release workflow permissions are least-privilege, secrets are read
   only from a protected environment, PRs cannot access signing secrets, and
   release publication cannot occur from ordinary PR/develop validation.
@@ -226,17 +266,38 @@ immediately before creating the release.
 - Complete read-only Sub-agent review of release security and README/license
   accuracy. Main Agent applies fixes and repeats checks/review as required.
 
-## Manual Validation Plan
+## Gate B Manual Validation Plan
 
-- Install and launch each platform package on a clean supported machine.
-- Verify first-run launch, tray/menu behavior, runtime inspection, Search,
-  process icons, copy/open actions, capability-aware process actions, and
-  permission/error messaging.
-- Verify package signature, macOS Gatekeeper/notarization/stapling, Windows
-  signature/installer behavior, and uninstall/reinstall.
-- Record OS version, architecture, installer hash, and actual result. Do not
-  infer interactive Windows behavior from CI compilation.
-- Capture sanitized app screenshots from controlled process data for README.
+### macOS clean/isolated candidate validation
+
+Use the exact unsigned release-profile DMG from the main-commit candidate
+workflow. Record macOS version, Apple Silicon architecture/model category,
+physical/VM/isolated environment, whether developer tools are installed, how
+the DMG was transferred/downloaded, checksum, and whether quarantine/Gatekeeper
+behavior was triggered. Install/copy, launch, record warnings and any normal
+per-app System Settings approval offered; never disable security controls.
+Exercise tray, listener discovery, process identity/icons, Search, Refresh,
+Working Directory/Project Root, Copy/Open, safe process actions, Toast,
+scroll/layout, quit/relaunch, remove, and reinstall.
+
+Measure idle CPU/memory and representative scan duration per frozen NFR-006.
+Run the packaged app for approximately eight continuous hours, periodically
+using Refresh, Search/clear, listener appearance/disappearance, window/tray,
+Copy and metadata inspection. Record start/end, duration, samples, refresh
+observations, CPU/memory, errors/crashes, listener duplication/staleness, and
+final condition. This is observational evidence, not a new threshold.
+
+### Windows evidence
+
+Automated Native Validation and release-profile unsigned NSIS packaging/checksum
+are required. Interactive clean-machine validation and soak are **NOT RUN /
+deferred**; selected testers may provide the first external installation
+evidence. Do not represent CI compilation as interactive PASS.
+
+Record the OS version, architecture, installer hash and actual results for all
+performed checks. No Gatekeeper-success, notarization or signed status is
+claimed for the unsigned candidate. README Dark Mode remains nonblocking and
+deferred absent a known rendering defect.
 
 ## Current Implementation Evidence
 
@@ -247,12 +308,14 @@ immediately before creating the release.
   `src-tauri/target/release/bundle/dmg/Thaa_0.1.0_aarch64.dmg`. `hdiutil
 verify` passed. The mounted app bundle reports version `0.1.0`, identifier
   `io.github.thg1rb.thaa`, and `LSMinimumSystemVersion` `15.0`.
-- The candidate app has an ad-hoc signature with no Team ID. It is not Developer
-  ID signed, notarized, or stapled and must not be distributed.
+- The locally built app has an ad-hoc signature with no Team ID. It is not
+  Developer ID signed, notarized, or stapled. This is acceptable for the
+  zero-budget candidate policy, but this local build has not passed Gate B and
+  must not be distributed as the accepted release candidate.
 - Local signing is unavailable: `security find-identity -v -p codesigning`
-  reported zero valid identities; no GitHub Actions release environments,
-  secrets, or variables are configured. The release workflow fails closed
-  unless the required macOS credentials are present.
+  reported zero valid identities. The explicit unsigned workflow path requires
+  no secrets; the future trusted mode still fails closed unless its credentials
+  are present.
 - `README.md` accurately marks installers as not yet published and describes
   the selected package paths as planned, not available releases.
 - No Git tag, GitHub Release, or tester distribution has been created. The
@@ -261,20 +324,23 @@ verify` passed. The mounted app bundle reports version `0.1.0`, identifier
   `01812275b38a2d89afec6df25cb94789aa32695eefd75ff8885e871e5331fe6e`; this
   checksum is evidence for the local unsigned candidate only, not a release
   checksum.
-- Local gates passed: Rust fmt, Clippy with `-D warnings`, 76 Rust unit tests
-  and integration tests, frontend format/lint/typecheck, 48 frontend tests,
-  production frontend build, npm audit, both RustSec target audits, maintained
-  documentation formatting, local Markdown links, and `git diff --check`.
-- Release workflow static checks passed: actionlint, Ruby YAML parsing,
-  Prettier, and static read-only security review. The final workflow review
-  found no blocking findings; protected GitHub environments, immutable tag
-  ruleset, credentials, and runtime candidate validation remain unconfigured
-  or unperformed.
-- PR head `8a896a9edd159afe3d80f0487b700876327e238d` passed CI run `37287257327`:
-  Shared Quality, macOS Native Validation, and Windows Native Validation. The
-  Windows job built the release-profile NSIS package, checked its expected
-  name, confirmed it is unsigned, and verified its SHA-256 manifest. This is
-  packaging CI evidence, not a clean-machine installation test.
+- Local gates passed for this zero-budget update: Rust fmt, Clippy with
+  `-D warnings`, Rust tests, frontend format/lint/typecheck, 48 frontend tests,
+  production frontend build, pnpm audit, both RustSec target audits (with the
+  two already documented allowed warnings), maintained documentation
+  formatting, local Markdown links, Ruby YAML parsing, actionlint, and
+  `git diff --check`.
+- A prior release-workflow review found no blocking findings for the earlier
+  signed-only design. The dedicated read-only review of this zero-budget
+  update is now complete; it found and the implementation fixed the README
+  checksum instructions and candidate artifact retention/provenance findings.
+  Final-head CI is pending; earlier CI results do not validate the revised
+  workflow.
+- Earlier head `8a896a9edd159afe3d80f0487b700876327e238d` passed CI run
+  `37287257327`, including Windows release-profile NSIS packaging, unsigned
+  status, and checksum checks. This predates the zero-budget workflow changes
+  and does not count as final-head CI. Fresh Shared Quality, macOS DMG, and
+  Windows NSIS validation are pending.
 - External README release/issues/CI/badge URLs returned HTTP 200. The README
   rendered in GitHub Light Mode was reviewed in Chrome. Dark Mode is deferred:
   the available logged-out session did not expose the GitHub appearance
@@ -286,10 +352,12 @@ verify` passed. The mounted app bundle reports version `0.1.0`, identifier
   listener at port `43127`. It displays the fixture path `/private/tmp/` and
   contains no username or unrelated process details; dynamic PID and ambient
   listener count were removed from the committed image.
-- Clean-machine install/reinstall, Gatekeeper/notarization, interactive Windows
-  install validation, and NFR-006 performance measurements remain unperformed.
-  Windows interactive validation is NOT RUN / deferred; Windows Working
-  Directory/Project Root remain unsupported by the current provider.
+- Gate B macOS clean/isolated install/reinstall, first-launch/quarantine
+  observation, and NFR-006 idle/scan/8-hour soak measurements remain
+  unperformed. Windows interactive install validation and soak are NOT RUN /
+  deferred; Windows Working Directory/Project Root remain unsupported by the
+  current provider. Developer ID, notarization, stapling, Gatekeeper trusted
+  distribution and Authenticode are deferred release hardening.
 
 ## Read-only Review
 
@@ -301,13 +369,21 @@ gates rather than implementation errors:
   explicit user decision; assets will be publicly downloadable.
 - Rendered GitHub Dark Mode README review is still outstanding. Light Mode was
   inspected in the live PR; a sanitized real screenshot is included.
-- Developer ID signing/notarization/stapling and clean-machine validation are
-  outstanding. Windows Authenticode is intentionally not configured: user
-  approved unsigned NSIS distribution with explicit warning.
-- The manual release workflow and release-profile Windows NSIS validation are
-  configured in source. Static/read-only review and CI run `37287257327` passed
-  on head `8a896a9edd159afe3d80f0487b700876327e238d`. No candidate was run and
-  no release workflow was dispatched.
+- Developer ID signing/notarization/stapling and Windows Authenticode are
+  intentionally deferred; the user approved an unsigned preview for both
+  platforms with explicit OS warning disclosures.
+- The manual workflow and PR release-profile package validation were reviewed
+  on earlier heads. This zero-budget update superseded their signed-only macOS
+  assumptions. The latest read-only review checked this updated workflow,
+  verified run/SHA/artifact binding and checksum handling, and found no
+  remaining findings. Fresh final-head CI is still required. No candidate was
+  run and no release workflow was dispatched.
+
+The zero-budget read-only review also confirmed the README's per-artifact
+checksum instructions, 90-day retention for both unsigned candidate artifacts,
+cross-run download permissions, and the Gate B instruction to verify actual
+`release-publish` environment protection before publication. No review
+findings remain.
 
 No code changes were required from review. The reviewer also confirmed that
 project license statements and third-party notice boundaries are consistent.
@@ -320,13 +396,17 @@ GitHub Light Mode rendering was visually checked; Dark Mode remains explicitly
 deferred because the logged-out browser session cannot change GitHub's site
 appearance.
 
-R001 remains in progress and user acceptance remains pending.
+R001 remains in progress. Gate A acceptance is pending. Gate B remains a later
+post-promotion candidate-validation gate; paid signing credentials are not a
+Gate A or zero-budget Gate B prerequisite.
 
 ## Final Acceptance
 
-Pending. R001 is not complete until release packages, signing and platform
-validation, clean-machine installation evidence, performance evidence,
-documentation, read-only review, and explicit user acceptance are complete.
+Pending. Gate A is ready for user acceptance only after the zero-budget
+workflow, package CI, documentation, final review and final-head CI are green.
+Gate B must then pass its macOS candidate, clean/isolated install and NFR-006
+evidence before the exact candidate commit may be tagged and published. Paid
+signing/notarization is deferred hardening, not a release gate.
 
 ## Stop Boundary
 

@@ -148,6 +148,27 @@ jobs:
         if: ${{ github.event_name == 'pull_request' }}
         run: pnpm tauri build --debug --no-bundle
 
+      - name: Tauri macOS unsigned release-profile DMG packaging validation (pull request)
+        if: ${{ github.event_name == 'pull_request' }}
+        run: pnpm tauri build --bundles dmg
+
+      - name: Verify unsigned macOS DMG and checksum (pull request)
+        if: ${{ github.event_name == 'pull_request' }}
+        shell: bash
+        run: |
+          app="src-tauri/target/release/bundle/macos/Thaa.app"
+          dmg="src-tauri/target/release/bundle/dmg/Thaa_0.1.0_aarch64.dmg"
+          test -d "$app"
+          test -f "$dmg"
+          codesign --verify --deep --strict --verbose=2 "$app"
+          signature="$(codesign -dv --verbose=4 "$app" 2>&1 || true)"
+          grep -Fq 'Signature=adhoc' <<< "$signature"
+          grep -Fq 'TeamIdentifier=not set' <<< "$signature"
+          hdiutil verify "$dmg"
+          cd "$(dirname "$dmg")"
+          shasum -a 256 "$(basename "$dmg")" > SHA256SUMS.txt
+          shasum -a 256 --check SHA256SUMS.txt
+
       - name: Tauri macOS release build (develop/manual)
         if: ${{ github.event_name != 'pull_request' }}
         run: pnpm tauri build --no-bundle

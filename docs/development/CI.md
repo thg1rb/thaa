@@ -35,12 +35,16 @@ cache scope and security model](https://docs.github.com/en/actions/reference/wor
 A cache miss does not skip any check and must build successfully from the
 lockfile.
 
-macOS pull requests run `pnpm tauri build --debug --no-bundle`; trusted
-`develop` pushes/manual runs use `pnpm tauri build --no-bundle`. The Windows PR
-job builds `pnpm tauri build --bundles nsis` in release profile and checks the
-unsigned `Thaa_0.1.0_x64-setup.exe` output; this is packaging/compilation
-evidence, not interactive Windows installation or SmartScreen visual
-validation. Windows develop/manual runs use `pnpm tauri build --no-bundle`.
+macOS pull requests run the debug no-bundle app build and an unsigned release-
+profile `dmg` packaging check. The package check verifies ad-hoc signature
+state, DMG integrity and checksum; it does not claim notarization, Gatekeeper
+acceptance or interactive installation. Trusted `develop` pushes/manual runs
+use `pnpm tauri build --no-bundle`. The Windows PR job builds
+`pnpm tauri build --bundles nsis` in release profile and checks the unsigned
+`Thaa_0.1.0_x64-setup.exe` output and SHA-256 manifest; this is
+packaging/compilation evidence, not interactive Windows installation or
+SmartScreen visual validation. Windows develop/manual runs use
+`pnpm tauri build --no-bundle`.
 Native formatting, Clippy, Rust tests, and provider integration tests remain
 required on pull requests. Frontend lint, typecheck, unit tests, and
 documentation checks run once in Shared Quality; native jobs still install
@@ -80,12 +84,14 @@ their upstream source, revision, purpose, and trust rationale are recorded
 below. The repository does not currently enforce SHA pinning in GitHub
 settings, so these pins are maintained in the workflow and reviewed in PRs.
 
-| Action                | Upstream revision                                     | Purpose and trust rationale                                                                                                                                                     |
-| --------------------- | ----------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `actions/checkout`    | `3d3c42e5aac5ba805825da76410c181273ba90b1` (`v7.0.1`) | Official GitHub action to fetch the repository.                                                                                                                                 |
-| `actions/setup-node`  | `820762786026740c76f36085b0efc47a31fe5020` (`v7.0.0`) | Official GitHub action to install the Node version declared by the repository.                                                                                                  |
-| `pnpm/action-setup`   | `ea17c68df8912ef543352723c149a84f56e3d413` (`v6.1.0`) | Maintained by the pnpm organization; reads the pinned pnpm version and caches its store.                                                                                        |
-| `Swatinem/rust-cache` | `6323deb102c322ba6fcbdcafc7e3dddab59af2b6` (`v2.9.2`) | Rust cache action maintained by Swatinem; follows its release commit, keeps OS/toolchain/cache inputs isolated, and stores no secrets. Official Tauri CI also uses this action. |
+| Action                      | Upstream revision                                     | Purpose and trust rationale                                                                                                                                                     |
+| --------------------------- | ----------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `actions/checkout`          | `3d3c42e5aac5ba805825da76410c181273ba90b1` (`v7.0.1`) | Official GitHub action to fetch the repository.                                                                                                                                 |
+| `actions/setup-node`        | `820762786026740c76f36085b0efc47a31fe5020` (`v7.0.0`) | Official GitHub action to install the Node version declared by the repository.                                                                                                  |
+| `pnpm/action-setup`         | `ea17c68df8912ef543352723c149a84f56e3d413` (`v6.1.0`) | Maintained by the pnpm organization; reads the pinned pnpm version and caches its store.                                                                                        |
+| `Swatinem/rust-cache`       | `6323deb102c322ba6fcbdcafc7e3dddab59af2b6` (`v2.9.2`) | Rust cache action maintained by Swatinem; follows its release commit, keeps OS/toolchain/cache inputs isolated, and stores no secrets. Official Tauri CI also uses this action. |
+| `actions/upload-artifact`   | `043fb46d1a93c77aae656e7c1c64a875d1fc6a0a` (`v7.0.1`) | Official GitHub action used to retain short-lived release-candidate artifacts and checksums.                                                                                    |
+| `actions/download-artifact` | `3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c` (`v8.0.1`) | Official GitHub action used by the gated publisher to assemble artifacts from the same workflow run.                                                                            |
 
 Rust dependency advisories use RustSec `cargo-audit` version `0.22.2`,
 installed with Cargo's exact-version and lockfile options. The audit runs for
@@ -117,12 +123,14 @@ stable. Until then, the PR merge gate requires the main Agent to inspect the
 current PR-head workflow runs and verify every required job passed.
 
 The separate `.github/workflows/release.yml` is manually dispatched from
-trusted `main`. Candidate mode builds `develop` artifacts without publishing;
-final mode validates and builds the exact `v0.1.0` tag. Only the protected
-publication job can publish a draft GitHub Pre-release.
-The workflow uses protected `release` and `release-publish` environments,
-requires macOS signing/notarization credentials, and documents an unsigned
-Windows NSIS candidate. Those GitHub environments/credentials have not been
-configured and no candidate/release workflow has been run. Linux product
-builds, self-hosted runners, and automated dependency-update workflows remain
-unconfigured.
+trusted `main`. Candidate mode builds the exact dispatched main commit without
+publishing; macOS defaults to an explicit unsigned/ad-hoc path, while an
+opt-in trusted candidate path retains Developer ID/notarization support. The
+fixed `v0.1.0` publish mode requires unsigned macOS. Windows is unsigned NSIS.
+Publish mode requires the accepted candidate SHA to match the
+`v0.1.0` tag and is manually invoked; a tag push or merge cannot publish. Only
+the publishing job receives `contents: write`. Gate A validates workflow and
+packaging statically/through PR CI; Gate B candidate and interactive release
+validation occur after approved promotion. No candidate/release workflow has
+been run. Linux product builds, self-hosted runners, and automated
+dependency-update workflows remain unconfigured.

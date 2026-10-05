@@ -7,18 +7,34 @@ on:
   workflow_dispatch:
     inputs:
       mode:
-        description: Candidate builds artifacts only; publish validates and builds v0.1.0 before a protected pre-release
+        description: Candidate builds artifacts only; publish validates the accepted v0.1.0 source and creates a pre-release
         required: true
         type: choice
         options:
           - candidate
           - publish
         default: candidate
+      macos_distribution:
+        description: v0.1.0 publish is unsigned; trusted mode is an optional candidate-only signing/notarization validation path
+        required: true
+        type: choice
+        options:
+          - unsigned
+          - trusted
+        default: unsigned
       release_tag:
-        description: Final mode accepts only the existing v0.1.0 tag on main
+        description: Final mode accepts only the v0.1.0 tag
         required: false
         type: string
         default: v0.1.0
+      accepted_candidate_sha:
+        description: In publish mode, the exact main commit accepted during candidate validation
+        required: false
+        type: string
+      accepted_candidate_run_id:
+        description: In publish mode, the successful unsigned candidate workflow run whose artifacts passed Gate B
+        required: false
+        type: string
 
 permissions:
   contents: read
@@ -34,6 +50,10 @@ jobs:
     timeout-minutes: 10
     outputs:
       source_ref: ${{ steps.source.outputs.source_ref }}
+      candidate_run_id: ${{ steps.source.outputs.candidate_run_id }}
+    permissions:
+      actions: read
+      contents: read
     steps:
       - name: Check out trusted main workflow source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -46,20 +66,34 @@ jobs:
         id: source
         env:
           MODE: ${{ inputs.mode }}
+          MACOS_DISTRIBUTION: ${{ inputs.macos_distribution }}
           RELEASE_TAG: ${{ inputs.release_tag }}
+          ACCEPTED_CANDIDATE_SHA: ${{ inputs.accepted_candidate_sha }}
+          ACCEPTED_CANDIDATE_RUN_ID: ${{ inputs.accepted_candidate_run_id }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           if [[ "$GITHUB_REF" != "refs/heads/main" ]]; then
             echo "Release workflow must run from trusted main." >&2
             exit 1
           fi
+          if [[ "$MACOS_DISTRIBUTION" != "unsigned" && "$MACOS_DISTRIBUTION" != "trusted" ]]; then
+            echo "Select macos_distribution=unsigned or trusted." >&2
+            exit 1
+          fi
 
           git fetch origin \
             '+refs/heads/main:refs/remotes/origin/main' \
-            '+refs/heads/develop:refs/remotes/origin/develop' \
             --no-tags
+
           if [[ "$MODE" == "candidate" ]]; then
-            source_commit="$(git rev-parse 'refs/remotes/origin/develop^{commit}')"
-            echo "Validated candidate source commit: $source_commit" >> "$GITHUB_STEP_SUMMARY"
+            source_commit="$GITHUB_SHA"
+            git cat-file -e "${source_commit}^{commit}"
+            git merge-base --is-ancestor "$source_commit" origin/main || {
+              echo "Candidate source must be a commit reachable from main." >&2
+              exit 1
+            }
+            echo "Candidate source commit: $source_commit" >> "$GITHUB_STEP_SUMMARY"
+            echo "macOS distribution mode: $MACOS_DISTRIBUTION" >> "$GITHUB_STEP_SUMMARY"
             echo "source_ref=$source_commit" >> "$GITHUB_OUTPUT"
             exit 0
           fi
@@ -68,20 +102,123 @@ jobs:
             echo "Final publication accepts only mode=publish and release_tag=v0.1.0." >&2
             exit 1
           fi
+          if [[ "$MACOS_DISTRIBUTION" != "unsigned" ]]; then
+            echo "v0.1.0 publication must use the approved zero-budget unsigned macOS path." >&2
+            exit 1
+          fi
+          if [[ ! "$ACCEPTED_CANDIDATE_SHA" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "Publish mode requires the accepted candidate's full 40-character commit SHA." >&2
+            exit 1
+          fi
+          if [[ ! "$ACCEPTED_CANDIDATE_RUN_ID" =~ ^[0-9]+$ ]]; then
+            echo "Publish mode requires the successful candidate workflow run ID." >&2
+            exit 1
+          fi
           git fetch origin refs/tags/v0.1.0:refs/tags/v0.1.0 --no-tags
           git merge-base --is-ancestor v0.1.0 origin/main || {
             echo "v0.1.0 must point to an approved commit reachable from main." >&2
             exit 1
           }
           source_commit="$(git rev-parse 'v0.1.0^{commit}')"
+          if [[ "$source_commit" != "$ACCEPTED_CANDIDATE_SHA" ]]; then
+            echo "v0.1.0 must point to the exact accepted candidate commit." >&2
+            exit 1
+          fi
+          candidate_run="$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$ACCEPTED_CANDIDATE_RUN_ID")"
+          candidate_workflow_path="$(jq -r '.path' <<< "$candidate_run")"
+          if [[ "$(jq -r '.head_sha' <<< "$candidate_run")" != "$ACCEPTED_CANDIDATE_SHA" ||
+                "$(jq -r '.head_branch' <<< "$candidate_run")" != "main" ||
+                "$(jq -r '.event' <<< "$candidate_run")" != "workflow_dispatch" ||
+                ("$candidate_workflow_path" != ".github/workflows/release.yml" &&
+                 "$candidate_workflow_path" != ".github/workflows/release.yml@main") ||
+                "$(jq -r '.display_title' <<< "$candidate_run")" != "Thaa release candidate" ||
+                "$(jq -r '.status' <<< "$candidate_run")" != "completed" ||
+                "$(jq -r '.conclusion' <<< "$candidate_run")" != "success" ]]; then
+            echo "Candidate run must be a successful manual release workflow on main for the accepted source SHA." >&2
+            exit 1
+          fi
+          candidate_jobs="$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$ACCEPTED_CANDIDATE_RUN_ID/jobs")"
+          for expected_job in "macOS arm64 unsigned DMG" "Windows x64 unsigned NSIS"; do
+            if ! jq -e --arg name "$expected_job" '.jobs[] | select(.name == $name and .conclusion == "success")' <<< "$candidate_jobs" >/dev/null; then
+              echo "Candidate run did not successfully complete the expected unsigned job: $expected_job" >&2
+              exit 1
+            fi
+          done
+          artifacts="$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$ACCEPTED_CANDIDATE_RUN_ID/artifacts")"
+          for artifact_name in macos-aarch64 windows-x64; do
+            if ! jq -e --arg name "$artifact_name" '.artifacts[] | select(.name == $name and .expired == false)' <<< "$artifacts" >/dev/null; then
+              echo "Candidate run is missing an unexpired $artifact_name artifact." >&2
+              exit 1
+            fi
+          done
           echo "Validated release source commit: $source_commit" >> "$GITHUB_STEP_SUMMARY"
+          echo "Validated unsigned candidate workflow run: $ACCEPTED_CANDIDATE_RUN_ID" >> "$GITHUB_STEP_SUMMARY"
+          echo "macOS distribution mode: $MACOS_DISTRIBUTION" >> "$GITHUB_STEP_SUMMARY"
           echo "source_ref=$source_commit" >> "$GITHUB_OUTPUT"
+          echo "candidate_run_id=$ACCEPTED_CANDIDATE_RUN_ID" >> "$GITHUB_OUTPUT"
         shell: bash
 
-  macos:
-    name: macOS arm64 signed DMG
+  macos_unsigned:
+    name: macOS arm64 unsigned DMG
     needs: [validate-source]
-    if: ${{ inputs.mode == 'candidate' || inputs.mode == 'publish' }}
+    if: ${{ (inputs.mode == 'candidate' || inputs.mode == 'publish') && inputs.macos_distribution == 'unsigned' }}
+    runs-on: macos-15
+    timeout-minutes: 60
+    steps:
+      - name: Check out validated source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.validate-source.outputs.source_ref }}
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .node-version
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+        with:
+          cache: true
+
+      - name: Install frontend dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build unsigned release-profile DMG
+        run: pnpm tauri build --bundles dmg
+
+      - name: Verify ad-hoc signature, DMG integrity, and checksum
+        run: |
+          app="src-tauri/target/release/bundle/macos/Thaa.app"
+          dmg="src-tauri/target/release/bundle/dmg/Thaa_0.1.0_aarch64.dmg"
+          test -d "$app"
+          test -f "$dmg"
+          codesign --verify --deep --strict --verbose=2 "$app"
+          signature="$(codesign -dv --verbose=4 "$app" 2>&1 || true)"
+          printf '%s\n' "$signature"
+          grep -Fq 'Signature=adhoc' <<< "$signature"
+          grep -Fq 'TeamIdentifier=not set' <<< "$signature"
+          hdiutil verify "$dmg"
+          cd "$(dirname "$dmg")"
+          shasum -a 256 "$(basename "$dmg")" > SHA256SUMS.txt
+          shasum -a 256 --check SHA256SUMS.txt
+          echo "Built an ad-hoc/unsigned macOS preview; notarization and Gatekeeper acceptance are not claimed." >> "$GITHUB_STEP_SUMMARY"
+        shell: bash
+
+      - name: Upload macOS candidate/release artifact
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: macos-aarch64
+          path: |
+            src-tauri/target/release/bundle/dmg/Thaa_0.1.0_aarch64.dmg
+            src-tauri/target/release/bundle/dmg/SHA256SUMS.txt
+          if-no-files-found: error
+          retention-days: 90
+
+  macos_trusted:
+    name: macOS arm64 Developer ID signed and notarized DMG
+    needs: [validate-source]
+    if: ${{ (inputs.mode == 'candidate' || inputs.mode == 'publish') && inputs.macos_distribution == 'trusted' }}
     runs-on: macos-15
     timeout-minutes: 60
     environment: release
@@ -108,17 +245,17 @@ jobs:
             label="${entry%%:*}"
             value="${entry#*:}"
             if [[ -z "$value" ]]; then
-              echo "Missing required release credential/configuration: $label" >&2
+              echo "Missing required trusted-distribution credential: $label" >&2
               missing=1
             fi
           done
           if [[ "$missing" -ne 0 ]]; then
-            echo "See docs/releases/v0.1.0-release-credentials.md. No unsigned macOS package will be emitted." >&2
+            echo "Trusted mode requires all credentials in docs/releases/v0.1.0-release-credentials.md." >&2
             exit 1
           fi
         shell: bash
 
-      - name: Check out source
+      - name: Check out validated source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ needs.validate-source.outputs.source_ref }}
@@ -186,7 +323,7 @@ jobs:
             src-tauri/target/release/bundle/dmg/Thaa_0.1.0_aarch64.dmg
             src-tauri/target/release/bundle/dmg/SHA256SUMS.txt
           if-no-files-found: error
-          retention-days: 7
+          retention-days: 90
 
   windows:
     name: Windows x64 unsigned NSIS
@@ -195,7 +332,7 @@ jobs:
     runs-on: windows-2025
     timeout-minutes: 60
     steps:
-      - name: Check out source
+      - name: Check out validated source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ needs.validate-source.outputs.source_ref }}
@@ -223,7 +360,7 @@ jobs:
           $installer = 'src-tauri/target/release/bundle/nsis/Thaa_0.1.0_x64-setup.exe'
           if (-not (Test-Path $installer)) { throw "Expected installer missing: $installer" }
           $signature = Get-AuthenticodeSignature $installer
-          if ($signature.Status -ne 'NotSigned') { throw "Expected unsigned alpha installer; found $($signature.Status)" }
+          if ($signature.Status -ne 'NotSigned') { throw "Expected unsigned preview installer; found $($signature.Status)" }
           $hash = Get-FileHash -Algorithm SHA256 $installer
           "$($hash.Hash.ToLower())  Thaa_0.1.0_x64-setup.exe" | Set-Content -NoNewline -Encoding ascii 'src-tauri/target/release/bundle/nsis/SHA256SUMS.txt'
           $expected = (Get-Content 'src-tauri/target/release/bundle/nsis/SHA256SUMS.txt' -Raw).Trim().Split(' ')[0]
@@ -237,19 +374,17 @@ jobs:
             src-tauri/target/release/bundle/nsis/Thaa_0.1.0_x64-setup.exe
             src-tauri/target/release/bundle/nsis/SHA256SUMS.txt
           if-no-files-found: error
-          retention-days: 7
+          retention-days: 90
 
   publish:
     name: Publish draft pre-release
-    needs: [validate-source, macos, windows]
-    if: >-
-      inputs.mode == 'publish' &&
-      needs.macos.result == 'success' &&
-      needs.windows.result == 'success'
+    needs: [validate-source]
+    if: ${{ inputs.mode == 'publish' && needs.validate-source.result == 'success' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     environment: release-publish
     permissions:
+      actions: read
       contents: write
     steps:
       - name: Check out validated release source and notes
@@ -259,17 +394,21 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
-      - name: Download verified platform artifacts
+      - name: Download accepted macOS candidate artifact
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           name: macos-aarch64
           path: release-assets/macos
+          run-id: ${{ needs.validate-source.outputs.candidate_run_id }}
+          github-token: ${{ github.token }}
 
-      - name: Download Windows artifact
+      - name: Download accepted Windows candidate artifact
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           name: windows-x64
           path: release-assets/windows
+          run-id: ${{ needs.validate-source.outputs.candidate_run_id }}
+          github-token: ${{ github.token }}
 
       - name: Assemble exact release assets and checksum manifest
         run: |
@@ -283,7 +422,7 @@ jobs:
           sha256sum Thaa_0.1.0_aarch64.dmg Thaa_0.1.0_x64-setup.exe > SHA256SUMS.txt
           sha256sum --check SHA256SUMS.txt
 
-      - name: Create draft pre-release and upload assets
+      - name: Confirm immutable tag and create pre-release
         env:
           GH_TOKEN: ${{ github.token }}
           EXPECTED_RELEASE_COMMIT: ${{ needs.validate-source.outputs.source_ref }}
@@ -304,3 +443,4 @@ jobs:
             release-assets/Thaa_0.1.0_x64-setup.exe \
             release-assets/SHA256SUMS.txt
           gh release edit v0.1.0 --draft=false --prerelease
+        shell: bash
