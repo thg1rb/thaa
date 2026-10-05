@@ -6,12 +6,13 @@ This catalog anchors requirement and threat verification. Per-case status record
 
 ## Existing P0 acceptance cases
 
-| ID            | Requirement   | Future evidence                                                          | Status          |
-| ------------- | ------------- | ------------------------------------------------------------------------ | --------------- |
-| TC-001–TC-004 | FR-001–FR-004 | Native port discovery, normalization/binding, and refresh behavior       | Not implemented |
-| TC-005–TC-007 | FR-005–FR-007 | Filter behavior, process presentation, validated local URL/copy behavior | Not implemented |
-| TC-008–TC-009 | FR-008–FR-009 | Safe graceful and explicit force-stop outcomes                           | Not implemented |
-| TC-010–TC-011 | FR-010–FR-011 | macOS menu-bar/Windows tray and required UI/error states                 | Not implemented |
+| ID            | Requirement   | Future evidence                                                                      | Status                                                                                       |
+| ------------- | ------------- | ------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------- |
+| TC-001–TC-004 | FR-001–FR-004 | Native port discovery, normalization/binding, and refresh behavior                   | Not implemented                                                                              |
+| TC-005        | FR-005        | Search by process display name or exact numeric port; filtering is presentation-only | Implemented and user accepted; current integration state is recorded in the W014 work record |
+| TC-006–TC-007 | FR-006–FR-007 | Process presentation, validated local URL/copy behavior                              | Implemented in W013; prior evidence retained                                                 |
+| TC-008–TC-009 | FR-008–FR-009 | Safe graceful and explicit force-stop outcomes                                       | Not implemented                                                                              |
+| TC-010–TC-011 | FR-010–FR-011 | macOS menu-bar/Windows tray and required UI/error states                             | Not implemented                                                                              |
 
 ## Provider and action contracts
 
@@ -144,3 +145,10 @@ search/filter remains assigned to W014.
 | TC-ICON-002         | Invalid/unavailable icon data leaves runtime rows intact; stale generations return no assets                                                                                              | Deterministic provider / adapter | THR-015         | Failure isolation, stale-generation tests, and Shared/macOS/Windows CI passed in run `37212736265`                                                             |
 | TC-ICON-003         | macOS AppKit fallback and Windows Shell/GDI conversion return bounded PNG and release resources                                                                                           | Native CI / controlled process   | THR-015         | macOS fallback and Windows `shell32.dll` conversion passed in native CI run `37212736265`                                                                      |
 | TC-W0131-VISUAL-001 | User confirms Menu Bar Light/Dark appearance, no unwanted horizontal trackpad overflow, app-shell selection policy with editable-control exceptions, and equal-width aligned action pairs | User-run macOS validation        | W013.1          | User accepted 2026-10-04; Windows interactive tray visual validation NOT RUN / deferred and nonblocking; Windows Native Validation passed in run `37212736265` |
+
+## Search and filter (W014)
+
+| ID        | Scenario and expected evidence                                                                                                                                                                | Fixture                       | Links              | Status                                                                                                                                 |
+| --------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------- | ------------------ | -------------------------------------------------------------------------------------------------------------------------------------- |
+| TC-005    | Name matching is trimmed, whitespace-collapsed, case-insensitive substring; numeric port matching is exact and restricted to 0–65535; order/source are preserved; filtering causes no actions | Vitest helper and UI fixtures | FR-005             | Automated and PR CI pass; macOS manual acceptance recorded; narrow-window and Windows interactive visual validation NOT RUN / deferred |
+| TC-UI-003 | Search field filters visible cards, clear restores results, no-results differs from no-listeners, refresh preserves query, and filtered rows retain safe actions                              | Vitest / Testing Library      | FR-005, FR-007–009 | User accepted the Search UI and visual refinements; deferred interactive checks are listed in the W014 record                          |

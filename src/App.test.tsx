@@ -72,6 +72,22 @@ const row = (overrides: Record<string, unknown> = {}) => ({
   processIconRef: null as string | null,
   ...overrides,
 });
+const namedRow = (name: string, port: number, entryRef: string) => {
+  const template = row();
+  return row({
+    entryRef,
+    port,
+    process: {
+      ...template.process,
+      details: {
+        ...template.process.details,
+        name: available(name),
+      },
+    },
+    localUrl: `http://127.0.0.1:${port}`,
+    actionTargetRef: `target-${entryRef}`,
+  });
+};
 
 describe("runtime inspector", () => {
   it("shows loading then the real listener and process information", async () => {
@@ -110,6 +126,22 @@ describe("runtime inspector", () => {
           element.textContent?.includes("PID 123") === true,
       ),
     ).toBeInTheDocument();
+  });
+
+  it("uses the approved Thaa application icon as decorative header branding", async () => {
+    mockIPC((command) =>
+      command === "get_runtime_snapshot" ? snapshot([row()]) : undefined,
+    );
+    const { container } = render(<App />);
+
+    await screen.findByText(":5173");
+    const icon = container.querySelector(".brand-icon");
+    expect(icon).toBeInTheDocument();
+    expect(icon).toHaveAttribute("alt", "");
+    expect(icon).toHaveAttribute("aria-hidden", "true");
+    expect(icon).toHaveAttribute("draggable", "false");
+    expect(icon).toHaveAttribute("src", expect.stringContaining("128x128.png"));
+    expect(screen.getByRole("heading", { name: "Thaa" })).toBeInTheDocument();
   });
 
   it("renders a resolved process icon from the snapshot icon request", async () => {
@@ -337,6 +369,205 @@ describe("runtime inspector", () => {
     expect(
       await screen.findByText("No listening TCP ports found"),
     ).toBeInTheDocument();
+  });
+
+  it("filters process names, exact ports, and restores all rows when cleared", async () => {
+    mockIPC((command) =>
+      command === "get_runtime_snapshot"
+        ? snapshot([
+            namedRow("Google Chrome", 9222, "chrome"),
+            namedRow("Code", 3000, "code"),
+            namedRow("Chrome Helper", 9223, "chrome-helper"),
+            namedRow("Node Service", 30000, "node"),
+          ])
+        : undefined,
+    );
+    render(<App />);
+    const search = await screen.findByRole("searchbox", {
+      name: "Search listeners by process or port",
+    });
+
+    fireEvent.change(search, { target: { value: "  CHROME  " } });
+    expect(
+      screen.getByRole("heading", { name: "Google Chrome" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "Chrome Helper" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("heading", { name: "Code" }),
+    ).not.toBeInTheDocument();
+    expect(screen.getByText("2 of 4 listeners")).toBeInTheDocument();
+
+    fireEvent.change(search, { target: { value: "3000" } });
+    expect(screen.getByRole("heading", { name: "Code" })).toBeInTheDocument();
+    expect(
+      screen.queryByRole("heading", { name: "Node Service" }),
+    ).not.toBeInTheDocument();
+    expect(screen.getByText("1 of 4 listeners")).toBeInTheDocument();
+
+    fireEvent.change(search, { target: { value: "300" } });
+    expect(
+      screen.getByRole("heading", { name: "No matching listeners" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText("No listening TCP ports found"),
+    ).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Clear search" }));
+    expect(search).toHaveValue("");
+    expect(search).toHaveFocus();
+    expect(search.closest(".runtime-search")).not.toHaveClass("has-query");
+    expect(
+      screen.getByRole("heading", { name: "Google Chrome" }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Code" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "Chrome Helper" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "Node Service" }),
+    ).toBeInTheDocument();
+  });
+
+  it("filters immediately as each Search character is entered", async () => {
+    mockIPC((command) =>
+      command === "get_runtime_snapshot"
+        ? snapshot([
+            namedRow("Google Chrome", 9222, "chrome"),
+            namedRow("Code", 3000, "code"),
+          ])
+        : undefined,
+    );
+    render(<App />);
+    const search = await screen.findByRole("searchbox", {
+      name: "Search listeners by process or port",
+    });
+    expect(search.closest(".runtime-search")).not.toHaveClass("has-query");
+
+    fireEvent.change(search, { target: { value: "c" } });
+    expect(screen.getByRole("heading", { name: "Code" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "Google Chrome" }),
+    ).toBeInTheDocument();
+    expect(search.closest(".runtime-search")).toHaveClass("has-query");
+
+    fireEvent.change(search, { target: { value: "ch" } });
+    expect(
+      screen.getByRole("heading", { name: "Google Chrome" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("heading", { name: "Code" }),
+    ).not.toBeInTheDocument();
+    expect(search.closest(".runtime-search")).toHaveClass("has-query");
+
+    fireEvent.change(search, { target: { value: "chr" } });
+    expect(
+      screen.getByRole("heading", { name: "Google Chrome" }),
+    ).toBeInTheDocument();
+  });
+
+  it("keeps the active search through refresh and filters the new snapshot", async () => {
+    let refreshes = 0;
+    mockIPC((command) => {
+      if (command === "get_runtime_snapshot")
+        return snapshot([
+          namedRow("Google Chrome", 9222, "chrome"),
+          namedRow("Code", 3000, "code"),
+        ]);
+      if (command === "refresh_runtime_snapshot") {
+        refreshes += 1;
+        return snapshot([
+          namedRow("Google Chrome", 9222, "chrome"),
+          namedRow("Chrome Helper", 9223, "chrome-helper"),
+          namedRow("Code", 3000, "code"),
+        ]);
+      }
+      return undefined;
+    });
+    render(<App />);
+    const search = await screen.findByRole("searchbox", {
+      name: "Search listeners by process or port",
+    });
+    fireEvent.change(search, { target: { value: "chrome" } });
+    expect(
+      screen.queryByRole("heading", { name: "Code" }),
+    ).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Refresh" }));
+
+    expect(
+      await screen.findByRole("heading", { name: "Chrome Helper" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "Google Chrome" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("heading", { name: "Code" }),
+    ).not.toBeInTheDocument();
+    expect(search).toHaveValue("chrome");
+    expect(screen.getByText("2 of 3 listeners")).toBeInTheDocument();
+    expect(refreshes).toBe(1);
+  });
+
+  it("does not invoke process actions while Search changes", async () => {
+    let actionCalls = 0;
+    mockIPC((command) => {
+      if (command === "get_runtime_snapshot")
+        return snapshot([
+          namedRow("Google Chrome", 9222, "chrome"),
+          namedRow("Code", 3000, "code"),
+        ]);
+      if (command === "request_process_action") actionCalls += 1;
+      return undefined;
+    });
+    render(<App />);
+    const search = await screen.findByRole("searchbox", {
+      name: "Search listeners by process or port",
+    });
+
+    fireEvent.change(search, { target: { value: "chrome" } });
+    fireEvent.change(search, { target: { value: "3000" } });
+    fireEvent.change(search, { target: { value: "no match" } });
+
+    expect(actionCalls).toBe(0);
+  });
+
+  it("keeps original action targets on filtered runtime rows", async () => {
+    let actionArgs: unknown;
+    mockIPC((command, args) => {
+      if (command === "get_runtime_snapshot")
+        return snapshot([
+          namedRow("Google Chrome", 9222, "chrome"),
+          namedRow("Code", 3000, "code"),
+        ]);
+      if (command === "request_process_action") {
+        actionArgs = args;
+        return { state: "requested" };
+      }
+      if (command === "refresh_runtime_snapshot")
+        return snapshot([
+          namedRow("Google Chrome", 9222, "chrome"),
+          namedRow("Code", 3000, "code"),
+        ]);
+      return undefined;
+    });
+    render(<App />);
+    const search = await screen.findByRole("searchbox", {
+      name: "Search listeners by process or port",
+    });
+    fireEvent.change(search, { target: { value: "chrome" } });
+    expect(screen.getByRole("button", { name: "Stop" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Force stop" }),
+    ).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Stop" }));
+    await screen.findByText("Stop request sent");
+    expect(actionArgs).toEqual({
+      actionTargetRef: "target-chrome",
+      action: "gracefulStop",
+    });
   });
 
   it("exposes only capability-supported actions and confirms force stop", async () => {

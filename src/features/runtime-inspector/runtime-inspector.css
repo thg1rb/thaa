@@ -23,17 +23,12 @@
   gap: var(--space-3);
 }
 
-.brand-mark {
-  display: grid;
+.brand-icon {
+  display: block;
   width: 42px;
   height: 42px;
-  place-items: center;
-  border: 1px solid #42606a;
-  background: linear-gradient(145deg, #172932, #101b22);
-  color: var(--text);
-  font-size: 21px;
-  font-weight: 760;
-  clip-path: polygon(0 0, 76% 0, 100% 24%, 100% 100%, 24% 100%, 0 76%);
+  flex: 0 0 auto;
+  object-fit: contain;
 }
 
 .eyebrow {
@@ -141,6 +136,95 @@ h1 {
 .scan-time {
   padding-bottom: 3px;
   white-space: nowrap;
+}
+
+.runtime-search-row {
+  min-width: 0;
+  margin: 0 0 16px;
+}
+
+.runtime-search {
+  position: relative;
+  width: 100%;
+  min-width: 0;
+}
+
+.runtime-search input {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  height: 40px;
+  padding: 0 16px 0 39px;
+  border: 1px solid var(--border-emphasis);
+  border-radius: var(--radius-sm);
+  outline: none;
+  background: var(--surface-inset);
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+  transition:
+    border-color var(--motion-fast) var(--motion-ease),
+    box-shadow var(--motion-fast) var(--motion-ease);
+}
+
+.runtime-search.has-query input {
+  padding-right: 42px;
+}
+
+.runtime-search input::placeholder {
+  color: var(--text-muted);
+  opacity: 1;
+}
+
+.runtime-search input:focus-visible {
+  border-color: var(--focus);
+  box-shadow: 0 0 0 3px rgb(40 231 216 / 14%);
+}
+
+.runtime-search input::-webkit-search-cancel-button {
+  display: none;
+}
+
+.runtime-search-icon {
+  position: absolute;
+  top: 50%;
+  left: 13px;
+  width: 17px;
+  height: 17px;
+  transform: translateY(-50%);
+  fill: none;
+  pointer-events: none;
+  stroke: var(--text-muted);
+  stroke-linecap: round;
+  stroke-width: 1.6;
+}
+
+.runtime-search-clear {
+  position: absolute;
+  top: 50%;
+  right: 5px;
+  display: grid;
+  width: 30px;
+  height: 30px;
+  place-items: center;
+  transform: translateY(-50%);
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.runtime-search-clear:hover {
+  border-color: var(--border-emphasis);
+  color: var(--primary);
+}
+
+.runtime-search-clear:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 1px;
 }
 
 .runtime-list {
@@ -669,6 +753,10 @@ h1 {
   text-align: center;
 }
 
+.search-empty {
+  min-height: 190px;
+}
+
 .empty-symbol {
   display: grid;
   width: 52px;
@@ -865,7 +953,7 @@ h1 {
     padding-bottom: 17px;
   }
 
-  .brand-mark {
+  .brand-icon {
     width: 37px;
     height: 37px;
   }
@@ -879,6 +967,14 @@ h1 {
     flex-direction: column;
     gap: 8px;
     margin-top: 22px;
+  }
+
+  .runtime-search-row {
+    margin-bottom: 13px;
+  }
+
+  .runtime-search {
+    width: 100%;
   }
 
   .runtime-details {

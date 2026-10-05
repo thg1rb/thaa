@@ -1,13 +1,18 @@
 import type { RuntimeSnapshot } from "../model/types";
 import { Skeleton } from "../../../shared/ui/skeleton/Skeleton";
+import thaaAppIcon from "../../../../src-tauri/icons/128x128.png";
 
 export function RuntimeHeader({
   snapshot,
+  visibleCount,
+  isSearching,
   loading,
   refreshing,
   onRefresh,
 }: {
   snapshot: RuntimeSnapshot | null;
+  visibleCount: number;
+  isSearching: boolean;
   loading: boolean;
   refreshing: boolean;
   onRefresh: () => void;
@@ -16,9 +21,13 @@ export function RuntimeHeader({
     <>
       <header className="topbar">
         <div className="brand-lockup">
-          <span className="brand-mark" aria-hidden="true">
-            T
-          </span>
+          <img
+            className="brand-icon"
+            src={thaaAppIcon}
+            alt=""
+            aria-hidden="true"
+            draggable={false}
+          />
           <div>
             <p className="eyebrow">LOCAL RUNTIME INSPECTOR</p>
             <h1>Thaa</h1>
@@ -27,7 +36,9 @@ export function RuntimeHeader({
         <div className="topbar-actions">
           {snapshot ? (
             <span className="runtime-count">
-              {snapshot.entries.length} listeners
+              {isSearching
+                ? `${visibleCount} of ${snapshot.entries.length} listeners`
+                : `${snapshot.entries.length} listeners`}
             </span>
           ) : loading ? (
             <Skeleton className="header-count-skeleton" />

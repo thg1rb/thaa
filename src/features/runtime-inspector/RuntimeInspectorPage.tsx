@@ -3,10 +3,15 @@ import { useToast } from "../../shared/ui/toast/useToast";
 import { ForceStopDialog } from "./components/ForceStopDialog";
 import { RuntimeHeader } from "./components/RuntimeHeader";
 import { RuntimeList } from "./components/RuntimeList";
+import { RuntimeSearch } from "./components/RuntimeSearch";
 import { RuntimeCardSkeleton } from "./components/RuntimeCardSkeleton";
 import { useProcessAction } from "./hooks/useProcessAction";
 import { useRuntimeEntryActions } from "./hooks/useRuntimeEntryActions";
 import { useRuntimeInspector } from "./hooks/useRuntimeInspector";
+import {
+  filterRuntimeEntries,
+  normalizeRuntimeQuery,
+} from "./utils/filterRuntimeEntries";
 import type { Action, RuntimeEntry } from "./model/types";
 import "./runtime-inspector.css";
 
@@ -19,7 +24,13 @@ export function RuntimeInspectorPage() {
   );
   const { openListener, copyValue } = useRuntimeEntryActions(showToast);
   const [confirming, setConfirming] = useState<RuntimeEntry | null>(null);
+  const [query, setQuery] = useState("");
   const snapshot = state.snapshot;
+  const visibleEntries = useMemo(
+    () => filterRuntimeEntries(snapshot?.entries ?? [], query),
+    [snapshot?.entries, query],
+  );
+  const isSearching = normalizeRuntimeQuery(query).length > 0;
   const iconSources = useMemo(
     () =>
       new Map(
@@ -56,6 +67,8 @@ export function RuntimeInspectorPage() {
       />
       <RuntimeHeader
         snapshot={snapshot}
+        visibleCount={visibleEntries.length}
+        isSearching={isSearching}
         loading={state.loading}
         refreshing={state.refreshing}
         onRefresh={() => void manualRefresh()}
@@ -112,16 +125,35 @@ export function RuntimeInspectorPage() {
           </button>
         </section>
       ) : snapshot ? (
-        <RuntimeList
-          snapshot={snapshot}
-          pendingTargets={pendingTargets}
-          iconSources={iconSources}
-          iconsLoading={state.iconsLoading}
-          onAction={runAction}
-          onConfirmForce={setConfirming}
-          onOpen={(entryRef) => void openListener(entryRef)}
-          onCopy={(value, label) => void copyValue(value, label)}
-        />
+        <>
+          <RuntimeSearch query={query} onQueryChange={setQuery} />
+          {visibleEntries.length === 0 ? (
+            <section
+              className="empty-panel search-empty"
+              aria-labelledby="search-empty-title"
+            >
+              <div className="empty-symbol" aria-hidden="true">
+                ⌕
+              </div>
+              <h3 id="search-empty-title">No matching listeners</h3>
+              <p>
+                Try another process name or exact port, or clear the search.
+              </p>
+            </section>
+          ) : (
+            <RuntimeList
+              snapshot={snapshot}
+              entries={visibleEntries}
+              pendingTargets={pendingTargets}
+              iconSources={iconSources}
+              iconsLoading={state.iconsLoading}
+              onAction={runAction}
+              onConfirmForce={setConfirming}
+              onOpen={(entryRef) => void openListener(entryRef)}
+              onCopy={(value, label) => void copyValue(value, label)}
+            />
+          )}
+        </>
       ) : null}
 
       <footer className="app-footer">
