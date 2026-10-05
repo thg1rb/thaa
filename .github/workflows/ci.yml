@@ -198,9 +198,9 @@ jobs:
       - name: Shared Rust and provider contract tests
         run: cargo test --manifest-path src-tauri/Cargo.toml -- --show-output
 
-      - name: Tauri Windows debug build (pull request)
+      - name: Tauri Windows debug NSIS package smoke build (pull request)
         if: ${{ github.event_name == 'pull_request' }}
-        run: pnpm tauri build --debug --no-bundle
+        run: pnpm tauri build --debug --bundles nsis
 
       - name: Tauri Windows release build (develop/manual)
         if: ${{ github.event_name != 'pull_request' }}

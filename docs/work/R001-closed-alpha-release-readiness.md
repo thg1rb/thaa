@@ -122,9 +122,13 @@ acceptance.
 - [x] Capture and review a real application screenshot using controlled,
       loopback-only listener data; add it under `docs/assets/readme/`. The
       screenshot contains no personal process path or unrelated listener data.
-- [ ] Verify the rendered README in GitHub Light and Dark Mode. Local links
-      pass `pnpm docs:check`; public release/issues/workflow links returned
-      HTTP 200.
+- [x] Verify the rendered README in GitHub Light Mode. The live PR README was
+      inspected in Chrome; logo sizing, badges, section hierarchy, screenshot,
+      tables, code blocks, and links render correctly. Local links pass
+      `pnpm docs:check`; public release/issues/workflow links returned HTTP 200.
+- [ ] Verify GitHub Dark Mode. Deferred: GitHub exposes appearance selection
+      only through a signed-in profile in the available browser session; no
+      credentials were available, so dark rendering was not claimed as passed.
 - [x] Add root MIT `LICENSE` with 2026 copyright and public owner handle
       `thg1rb`.
 - [x] Declare SPDX `MIT` in Cargo and npm project metadata.
@@ -137,14 +141,17 @@ The README presents the approved application icon, tagline, accurate current
 capabilities, a port-conflict introduction, release status, installation flow,
 usage guidance, platform limits, Security/Contributing/feedback links, separate
 source-build instructions, a sanitized screenshot, and the MIT notice. GitHub
-Light/Dark rendering review remains open; `pnpm docs:check` verifies local
-Markdown links only.
+Light Mode rendering was visually reviewed; Dark Mode remains deferred because
+the available logged-out session cannot switch GitHub's site appearance.
+`pnpm docs:check` verifies local Markdown links.
 
 ## Testing and Security Plan
 
 - Run the existing formatting, lint, typecheck, frontend test/build, Rust
   format/Clippy/test, dependency audits, RustSec, docs/link, and diff checks.
 - Exercise Tauri bundle generation for the selected `dmg` and `nsis` targets.
+  The macOS DMG was generated locally; the Windows PR validation performs an
+  unsigned debug NSIS package smoke build without uploading the installer.
 - Verify release workflow permissions are least-privilege, secrets are read
   only from a protected environment, PRs cannot access signing secrets, and
   release publication cannot occur from ordinary PR/develop validation.
@@ -194,9 +201,10 @@ verify` passed. The mounted app bundle reports version `0.1.0`, identifier
   and integration tests, frontend format/lint/typecheck, 48 frontend tests,
   production frontend build, npm audit, both RustSec target audits, maintained
   documentation formatting, local Markdown links, and `git diff --check`.
-- External README release/issues/CI/badge URLs returned HTTP 200. GitHub
-  rendered Light/Dark review is still pending until the branch is available in
-  a PR.
+- External README release/issues/CI/badge URLs returned HTTP 200. The README
+  rendered in GitHub Light Mode was reviewed in Chrome. Dark Mode is deferred:
+  the available logged-out session did not expose the GitHub appearance
+  selector, and no account credentials were available.
 - RustSec reported two allowed dependency advisories: unmaintained
   `proc-macro-error` (RUSTSEC-2024-0370) and the `glib::VariantStrIter`
   unsoundness advisory (RUSTSEC-2024-0429).
@@ -215,8 +223,8 @@ gates rather than implementation errors:
 
 - Selected-tester distribution visibility is unresolved; GitHub release assets
   in this public repository are publicly downloadable.
-- Rendered GitHub Light/Dark README review is still outstanding. A sanitized
-  real screenshot was captured after the initial review and added to the README.
+- Rendered GitHub Dark Mode README review is still outstanding. Light Mode was
+  inspected in the live PR; a sanitized real screenshot is included.
 - Developer ID signing/notarization/stapling and Windows Authenticode signing
   are not configured; clean-machine installation validation is outstanding.
 - Windows bundle creation, platform performance measurements, and a release
@@ -228,7 +236,10 @@ project license statements and third-party notice boundaries are consistent.
 The follow-up screenshot review found no personal path or unrelated listener
 data. Its suggestion to remove the fixture PID and ambient-listener count was
 applied to the screenshot; the stale screenshot-status text was reconciled.
-GitHub Light/Dark rendering review remains outstanding.
+The final README/license review found no remaining findings in that scope.
+GitHub Light Mode rendering was visually checked; Dark Mode remains explicitly
+deferred because the logged-out browser session cannot change GitHub's site
+appearance.
 
 R001 remains in progress and user acceptance remains pending.
 
