@@ -2,7 +2,7 @@
 
 ## Status
 
-Status: In progress — visual refinement underway; awaiting user acceptance
+Status: In progress — implementation and validation complete; awaiting user acceptance
 
 Branch: `feature/search-filter`
 
