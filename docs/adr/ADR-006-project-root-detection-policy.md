@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted for W015 implementation
+Accepted; implemented in W015 and integrated by PR #35
 
 ## Context
 
