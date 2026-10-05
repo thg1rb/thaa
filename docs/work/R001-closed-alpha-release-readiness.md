@@ -29,8 +29,10 @@ artifacts as part of this pre-acceptance change.
 - W013.1, W014, and W015 are integrated into `develop`; W015 is Done on merge.
 - Version metadata is `0.1.0` in `package.json`, `src-tauri/Cargo.toml`, and
   `src-tauri/tauri.conf.json`.
-- Tauri bundling is enabled with application icon resources, but CI currently
-  builds with `--no-bundle`.
+- Tauri bundling is enabled with application icon resources. macOS PR and
+  develop/manual jobs build with `--no-bundle`; the Windows PR job creates an
+  unsigned debug NSIS package as a smoke check, while the Windows develop/manual
+  job uses `--no-bundle`.
 - The repository has only validation CI. No release package, signing,
   notarization, artifact publishing, or GitHub Release workflow is configured.
 - The GitHub repository is public. GitHub Release assets would be publicly
@@ -227,8 +229,9 @@ gates rather than implementation errors:
   inspected in the live PR; a sanitized real screenshot is included.
 - Developer ID signing/notarization/stapling and Windows Authenticode signing
   are not configured; clean-machine installation validation is outstanding.
-- Windows bundle creation, platform performance measurements, and a release
-  workflow are also outstanding.
+- A Windows unsigned debug NSIS smoke package is now covered by PR CI. A
+  signed/release Windows package, platform performance measurements, and a
+  release workflow remain outstanding.
 
 No code changes were required from review. The reviewer also confirmed that
 project license statements and third-party notice boundaries are consistent.
