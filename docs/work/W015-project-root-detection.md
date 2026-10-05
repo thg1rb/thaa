@@ -141,8 +141,9 @@ An unavailable root is normal and never affects Stop/Force authorization.
 On macOS, use controlled listeners launched from a simple project, a nested
 project inside a Git root, and a directory with no supported markers. Check
 Refresh, Search, existing actions, and long project paths. Record narrow-window
-and interactive Windows validation honestly if unavailable; automated
-Windows Native Validation remains required.
+and interactive Windows validation honestly if unavailable. Hosted Windows
+Native Validation passed on the final PR head; interactive Windows visual
+validation remains deferred.
 
 ## Acceptance Criteria
 
@@ -152,8 +153,7 @@ Windows Native Validation remains required.
 - W014 Search and W013/W013.1 UI behavior remain intact.
 - Rust/frontend tests, local quality/security/docs checks, final PR-head native
   CI, and read-only review pass. User acceptance remains pending.
-- PR targets `develop` and remains open pending corrected final-head CI and
-  explicit user acceptance.
+- PR targets `develop` and remains open pending explicit user acceptance.
 
 ## Evidence
 
