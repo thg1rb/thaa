@@ -1,0 +1,253 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [develop]
+  push:
+    branches: [develop]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  shared-quality:
+    name: Shared quality
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .node-version
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+        with:
+          cache: true
+
+      - name: Report runner and toolchain versions
+        run: |
+          node -e "console.log(JSON.stringify({platform: process.platform, arch: process.arch, node: process.version}))"
+          pnpm --version
+          rustc --version
+          cargo --version
+
+      - name: Set up Rust cache
+        id: rust-cache
+        uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+        with:
+          workspaces: src-tauri -> target
+          key: cargo-audit-0.22.2
+          cache-all-crates: true
+          cache-bin: true
+          save-if: ${{ (github.event_name == 'push' && github.ref == 'refs/heads/develop') || (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository) }}
+
+      - name: Install frontend dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Format check
+        run: pnpm format:check
+
+      - name: Maintained documentation format
+        run: pnpm docs:format:check
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Frontend tests
+        run: pnpm test
+
+      - name: Frontend production build
+        run: pnpm build
+
+      - name: Documentation links
+        run: pnpm docs:check
+
+      - name: JavaScript dependency audit
+        run: pnpm audit --audit-level high
+
+      - name: Install pinned RustSec audit tool
+        shell: bash
+        run: |
+          if cargo audit --version 2>/dev/null | grep -Fxq 'cargo-audit 0.22.2'; then
+            echo 'Using cached cargo-audit 0.22.2'
+          else
+            cargo install cargo-audit --version 0.22.2 --locked
+          fi
+
+      - name: Rust dependency audit for supported targets
+        run: |
+          cargo audit --file src-tauri/Cargo.lock --target-os macos --target-arch aarch64
+          cargo audit --file src-tauri/Cargo.lock --target-os windows --target-arch x86_64
+
+  macos-validation:
+    name: macOS native validation
+    runs-on: macos-15
+    timeout-minutes: 60
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .node-version
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+        with:
+          cache: true
+
+      - name: Report runner and toolchain versions
+        run: |
+          node -e "console.log(JSON.stringify({platform: process.platform, arch: process.arch, node: process.version}))"
+          pnpm --version
+          rustc --version
+          cargo --version
+
+      - name: Set up Rust cache
+        id: rust-cache
+        uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+        with:
+          workspaces: src-tauri -> target
+          save-if: ${{ (github.event_name == 'push' && github.ref == 'refs/heads/develop') || (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository) }}
+
+      - name: Install frontend dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Verify lsof environment
+        run: |
+          test -x /usr/sbin/lsof
+          /usr/sbin/lsof -v
+
+      - name: Rust format
+        run: cargo fmt --manifest-path src-tauri/Cargo.toml --check
+
+      - name: Rust Clippy
+        run: cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings
+
+      - name: Rust and macOS native tests
+        run: cargo test --manifest-path src-tauri/Cargo.toml -- --show-output
+
+      - name: Tauri macOS debug build (pull request)
+        if: ${{ github.event_name == 'pull_request' }}
+        run: pnpm tauri build --debug --no-bundle
+
+      - name: Tauri macOS unsigned release-profile DMG packaging validation (pull request)
+        if: ${{ github.event_name == 'pull_request' }}
+        run: pnpm tauri build --bundles dmg
+
+      - name: Verify unsigned macOS DMG and checksum (pull request)
+        if: ${{ github.event_name == 'pull_request' }}
+        shell: bash
+        run: |
+          dmg="src-tauri/target/release/bundle/dmg/Thaa_0.1.0_aarch64.dmg"
+          test -f "$dmg"
+          hdiutil verify "$dmg"
+          mount_dir="$(mktemp -d)"
+          cleanup_on_exit() {
+            hdiutil detach -quiet "$mount_dir" >/dev/null 2>&1 || true
+            rmdir "$mount_dir" 2>/dev/null || true
+          }
+          trap cleanup_on_exit EXIT
+          diskutil image attach --readOnly --mountOptions nobrowse --mountPoint "$mount_dir" "$dmg"
+          app="$mount_dir/Thaa.app"
+          test -d "$app"
+          executable_name="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleExecutable' "$app/Contents/Info.plist")"
+          executable="$app/Contents/MacOS/$executable_name"
+          test -f "$executable"
+          lipo "$executable" -verify_arch arm64
+          signature="$(codesign -dv --verbose=4 "$executable" 2>&1)"
+          printf '%s\n' "$signature"
+          grep -Fq 'Signature=adhoc' <<< "$signature"
+          grep -Fq 'TeamIdentifier=not set' <<< "$signature"
+          hdiutil detach -quiet "$mount_dir"
+          rmdir "$mount_dir"
+          trap - EXIT
+          cd "$(dirname "$dmg")"
+          shasum -a 256 "$(basename "$dmg")" > SHA256SUMS.txt
+          shasum -a 256 --check SHA256SUMS.txt
+
+      - name: Tauri macOS release build (develop/manual)
+        if: ${{ github.event_name != 'pull_request' }}
+        run: pnpm tauri build --no-bundle
+
+  windows-validation:
+    name: Windows native validation
+    runs-on: windows-2025
+    timeout-minutes: 60
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .node-version
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+        with:
+          cache: true
+
+      - name: Report runner and toolchain versions
+        run: |
+          node -e "console.log(JSON.stringify({platform: process.platform, arch: process.arch, node: process.version}))"
+          pnpm --version
+          rustc --version
+          cargo --version
+
+      - name: Set up Rust cache
+        id: rust-cache
+        uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+        with:
+          workspaces: src-tauri -> target
+          save-if: ${{ (github.event_name == 'push' && github.ref == 'refs/heads/develop') || (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository) }}
+
+      - name: Install frontend dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Rust format
+        run: cargo fmt --manifest-path src-tauri/Cargo.toml --check
+
+      - name: Rust Clippy
+        run: cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings
+
+      - name: Shared Rust and provider contract tests
+        run: cargo test --manifest-path src-tauri/Cargo.toml -- --show-output
+
+      - name: Tauri Windows release-profile NSIS packaging validation (pull request)
+        if: ${{ github.event_name == 'pull_request' }}
+        run: pnpm tauri build --bundles nsis
+
+      - name: Verify unsigned release installer (pull request)
+        if: ${{ github.event_name == 'pull_request' }}
+        shell: pwsh
+        run: |
+          $installer = 'src-tauri/target/release/bundle/nsis/Thaa_0.1.0_x64-setup.exe'
+          if (-not (Test-Path $installer)) { throw "Expected installer missing: $installer" }
+          $signature = Get-AuthenticodeSignature $installer
+          if ($signature.Status -ne 'NotSigned') { throw "Expected unsigned alpha installer; found $($signature.Status)" }
+          $hash = Get-FileHash -Algorithm SHA256 $installer
+          if ($hash.Hash.Length -ne 64) { throw 'Installer SHA-256 was not computed.' }
+
+      - name: Tauri Windows release build (develop/manual)
+        if: ${{ github.event_name != 'pull_request' }}
+        run: pnpm tauri build --no-bundle
