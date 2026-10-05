@@ -2,11 +2,11 @@
 
 ## Status
 
-Status: In progress
+Status: In progress — implementation and validation complete; awaiting user acceptance
 
 Branch: `feature/search-filter`
 
-PR: Pending
+PR: [#34](https://github.com/thg1rb/thaa/pull/34) → `develop` (open; not merged)
 
 ## Objective
 
@@ -119,17 +119,45 @@ validation is not required for this frontend-only change unless available.
 
 ## Validation and Implementation Evidence
 
-The filter helper and Runtime Inspector integration are implemented on
-`feature/search-filter`. The frontend suite passes (44 tests); formatting,
-lint, typecheck, production frontend build, Markdown-link validation, docs
-formatting, and `git diff --check` pass. `pnpm audit --audit-level high`
-reports no known vulnerabilities. Local Rust formatting, Clippy, Cargo tests,
-RustSec audit, and Tauri native build could not run because `cargo` is absent
-from this environment; the Tauri build stopped at `cargo metadata`. Hosted
-Shared Quality and macOS/Windows Native Validation, read-only review, and real
-macOS manual validation remain pending. No manual macOS acceptance is claimed.
+Implementation is on `feature/search-filter`, commit
+`821dd2155502ac8706686b4e46ec9d026ec32866`. PR #34 targets `develop` and
+remains open pending explicit user acceptance. The read-only review reported
+no findings. Its review covered FR-005 matching, derived-state integrity,
+refresh/query behavior, action isolation, empty states, accessibility, and
+responsive layout.
 
-W014 remains unmerged pending those gates and explicit user acceptance.
+Local checks passed: `cargo fmt --check`, `cargo clippy --all-targets -- -D
+warnings`, `cargo test` (61 unit tests plus platform integration suites),
+frontend tests (44 tests), `pnpm format:check`, `pnpm lint`,
+`pnpm typecheck`, `pnpm build`, `pnpm audit --audit-level high`,
+`pnpm docs:check`, `pnpm docs:format:check`, and `git diff --check`. RustSec
+audit passed for macOS and Windows targets with the repository's two existing
+allowed advisories (RUSTSEC-2024-0370 and RUSTSEC-2024-0429). The local Tauri
+release binary and macOS app bundle builds passed.
+
+PR CI run [37250428517](https://github.com/thg1rb/thaa/actions/runs/37250428517)
+passed Shared Quality, macOS Native Validation, and Windows Native
+Validation on the implementation commit. A final documentation-only evidence
+update will require CI to be confirmed again on the resulting PR head.
+
+Manual macOS validation used the bundled app and a controlled local Python
+listener on port 43001. Process-name search was checked with `PYTHON` and
+surrounding whitespace; exact port `43001` returned the listener, while
+partial numeric query `430` returned no match. Refresh preserved the active
+query and re-filtered the returned snapshot. Keyboard editing with Cmd+A and
+typing worked; Clear restored all 17 then-visible listeners without another
+refresh and returned focus to Search. The no-results message was distinct from
+the no-listener state. The controlled listener was stopped after validation.
+No process action was invoked during Search testing. Narrow-window manual
+validation was not completed because the available native UI controls did not
+provide a reliable resize path; this remains a deferred manual check for user
+review. Automated structural tests cover responsive-width safeguards.
+
+Windows interactive UI validation was not performed; Windows Native
+Validation passed. This is not a W014 merge blocker because the feature is
+frontend-side and the native Windows validation job passed.
+
+W014 is not merged and remains pending explicit user acceptance.
 
 ## Risks and Limitations
 
