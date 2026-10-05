@@ -2,16 +2,17 @@
 
 GitHub Actions validates pull requests targeting `develop`, commits pushed to
 `develop`, and manual workflow runs. CI supplements the required read-only
-Sub-agent review; it does not replace it. The workflow is validation-only and
-requires no project secrets.
+Sub-agent review; it does not replace it. Ordinary CI is validation-only and
+requires no project secrets. The separate R001 release workflow is described
+below; it is not triggered by pull requests or ordinary `develop` pushes.
 
 ## Jobs and runners
 
-| Job                       | Runner             | Checks                                                                                                                                               |
-| ------------------------- | ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Shared quality            | `ubuntu-24.04` x64 | Frontend format, W013 docs format, lint, typecheck, tests/build, local Markdown links, pnpm audit, RustSec audit for supported macOS/Windows targets |
-| macOS native validation   | `macos-15` arm64   | Rust format/Clippy/tests including W008 controlled listeners and W013 native snapshot integration, then a Tauri app build                            |
-| Windows native validation | `windows-2025` x64 | Rust format/Clippy/tests including W013 native snapshot integration on Windows, then a Tauri app build                                               |
+| Job                       | Runner             | Checks                                                                                                                                                              |
+| ------------------------- | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Shared quality            | `ubuntu-24.04` x64 | Frontend format, W013 docs format, lint, typecheck, tests/build, local Markdown links, pnpm audit, RustSec audit for supported macOS/Windows targets                |
+| macOS native validation   | `macos-15` arm64   | Rust format/Clippy/tests including W008 controlled listeners and W013 native snapshot integration, then a Tauri app build                                           |
+| Windows native validation | `windows-2025` x64 | Rust format/Clippy/tests including W013 native snapshot integration on Windows; PR builds release-profile unsigned NSIS, develop/manual builds app without bundling |
 
 The hosted macOS image is macOS 15 arm64; it is not equivalent to the local
 macOS 27 arm64 development host. Windows CI uses a GitHub-hosted Windows Server
@@ -34,14 +35,16 @@ cache scope and security model](https://docs.github.com/en/actions/reference/wor
 A cache miss does not skip any check and must build successfully from the
 lockfile.
 
-Pull requests run `pnpm tauri build --debug --no-bundle` to validate frontend
-and native application integration with the faster development profile.
-Pushes to `develop` and manual workflow runs use the release profile via
-`pnpm tauri build --no-bundle`. Native formatting, Clippy, Rust tests, and
-macOS provider integration tests remain required on pull requests. Frontend
-lint, typecheck, unit tests, and documentation checks run once in Shared
-Quality; native jobs still install frontend dependencies because Tauri invokes
-the frontend production build.
+macOS pull requests run `pnpm tauri build --debug --no-bundle`; trusted
+`develop` pushes/manual runs use `pnpm tauri build --no-bundle`. The Windows PR
+job builds `pnpm tauri build --bundles nsis` in release profile and checks the
+unsigned `Thaa_0.1.0_x64-setup.exe` output; this is packaging/compilation
+evidence, not interactive Windows installation or SmartScreen visual
+validation. Windows develop/manual runs use `pnpm tauri build --no-bundle`.
+Native formatting, Clippy, Rust tests, and provider integration tests remain
+required on pull requests. Frontend lint, typecheck, unit tests, and
+documentation checks run once in Shared Quality; native jobs still install
+frontend dependencies because Tauri invokes the frontend production build.
 
 The Shared Quality job also caches the pinned `cargo-audit` 0.22.2 binary and
 its dependencies. It verifies the binary version on each run and installs that
@@ -113,5 +116,13 @@ does not change branch rules; establish required checks after the baseline is
 stable. Until then, the PR merge gate requires the main Agent to inspect the
 current PR-head workflow runs and verify every required job passed.
 
-No release, signing, artifact publishing, Linux product build, self-hosted
-runner, or automated dependency update workflow is configured.
+The separate `.github/workflows/release.yml` is manually dispatched from
+trusted `main`. Candidate mode builds `develop` artifacts without publishing;
+final mode validates and builds the exact `v0.1.0` tag. Only the protected
+publication job can publish a draft GitHub Pre-release.
+The workflow uses protected `release` and `release-publish` environments,
+requires macOS signing/notarization credentials, and documents an unsigned
+Windows NSIS candidate. Those GitHub environments/credentials have not been
+configured and no candidate/release workflow has been run. Linux product
+builds, self-hosted runners, and automated dependency-update workflows remain
+unconfigured.

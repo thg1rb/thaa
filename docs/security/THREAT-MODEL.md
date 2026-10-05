@@ -156,10 +156,10 @@ Likelihood and impact are qualitative design-time estimates. Every mitigation an
 - **Asset / boundary:** Packaged binary, source integrity, and user trust; dependencies/actions/build artifacts → application/release.
 - **Scenario:** Unmaintained or compromised dependency, mutable CI action, incompatible license, leaked credential, or tampered release artifact enters the public build.
 - **Impact / likelihood:** Critical / Low-to-Medium.
-- **Mitigation:** Justify and review dependencies, source/maintenance/security history and license; commit lockfiles; run ecosystem audits when tooling is selected; pin CI actions immutably with minimum permissions; protect release credentials and later verify/sign artifacts. No dependency or CI tooling is added by W004.
-- **Verification:** Dependency/lockfile/config review in bootstrap and recurring CI; secret scanning; artifact/signing verification in release work.
+- **Mitigation:** Justify and review dependencies, source/maintenance/security history and license; commit lockfiles; run ecosystem audits when tooling is selected; pin CI actions immutably with minimum permissions; protect release credentials behind dedicated environments; fail closed if signing/notarization inputs are absent; verify signatures and checksums before publication. Candidate jobs do not publish, and only the tag publication job receives `contents: write`.
+- **Verification:** Dependency/lockfile/config review in bootstrap and recurring CI; secret scanning; static release workflow review; real artifact/signing verification during R001. Candidate and publication evidence remains pending.
 - **Residual risk:** Upstream compromise and build infrastructure attacks cannot be eliminated; minimize dependency and credential exposure.
-- **References / status:** NFR-010; PR-001; prompt §§56–57; TC-SEC-009. **Not implemented.**
+- **References / status:** NFR-010; PR-001; prompt §§56–57; TC-SEC-009. **R001 release workflow implementation is present; protected environments, credentials, candidate verification, and read-only review remain pending.**
 
 ### THR-013 — Misleading exposure or unavailable-state interpretation
 

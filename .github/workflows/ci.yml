@@ -198,9 +198,20 @@ jobs:
       - name: Shared Rust and provider contract tests
         run: cargo test --manifest-path src-tauri/Cargo.toml -- --show-output
 
-      - name: Tauri Windows debug NSIS package smoke build (pull request)
+      - name: Tauri Windows release-profile NSIS packaging validation (pull request)
         if: ${{ github.event_name == 'pull_request' }}
-        run: pnpm tauri build --debug --bundles nsis
+        run: pnpm tauri build --bundles nsis
+
+      - name: Verify unsigned release installer (pull request)
+        if: ${{ github.event_name == 'pull_request' }}
+        shell: pwsh
+        run: |
+          $installer = 'src-tauri/target/release/bundle/nsis/Thaa_0.1.0_x64-setup.exe'
+          if (-not (Test-Path $installer)) { throw "Expected installer missing: $installer" }
+          $signature = Get-AuthenticodeSignature $installer
+          if ($signature.Status -ne 'NotSigned') { throw "Expected unsigned alpha installer; found $($signature.Status)" }
+          $hash = Get-FileHash -Algorithm SHA256 $installer
+          if ($hash.Hash.Length -ne 64) { throw 'Installer SHA-256 was not computed.' }
 
       - name: Tauri Windows release build (develop/manual)
         if: ${{ github.event_name != 'pull_request' }}

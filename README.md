@@ -75,18 +75,20 @@ ambient listener count are omitted.
 
 Thaa's first tester release is being prepared. **No release installer is
 available yet.** These are the planned release instructions; this section will
-be updated after the signed packages have been built and validated.
+be updated after the release candidates have been built and validated.
 
 ### macOS
 
 The planned first release target is Apple Silicon on macOS 15 or later. The
-release package will be a Developer ID signed, notarized, and stapled DMG.
+intended artifact is `Thaa_0.1.0_aarch64.dmg`, a Developer ID signed, notarized,
+and stapled DMG. It is not available until those checks pass.
 
 When available:
 
-1. Download the macOS DMG from [Releases](https://github.com/thg1rb/thaa/releases).
+1. Download `Thaa_0.1.0_aarch64.dmg` and `SHA256SUMS.txt` from [Releases](https://github.com/thg1rb/thaa/releases).
 2. Open the DMG and drag **Thaa** to **Applications**.
 3. Open Thaa from Applications.
+4. To uninstall, quit Thaa and move it from Applications to Trash.
 
 Do not disable Gatekeeper to install Thaa. If macOS reports an unexpected
 verification problem with a published build, report it through
@@ -94,14 +96,18 @@ verification problem with a published build, report it through
 
 ### Windows
 
-The planned first release target is Windows 11 x64. The installer will use
-NSIS and will be Authenticode-signed if signing credentials are available.
-Windows downloads will remain gated if a signed installer cannot be prepared;
-an unsigned build will not be presented as signed.
+The planned first release target is Windows 11 x64. The installer will be an
+unsigned NSIS package named `Thaa_0.1.0_x64-setup.exe`; no MSI is planned. As an
+early tester build, Windows may show the “Windows protected your PC” SmartScreen
+prompt. If Windows offers **More info → Run anyway**, use it only after
+confirming the installer came from the official Thaa release. [Smart App
+Control](https://learn.microsoft.com/en-us/windows/apps/package-and-deploy/smartscreen-reputation)
+or an organization policy may block an unsigned installer entirely. Do not
+disable Windows security protections. The package is not available yet.
 
 When available:
 
-1. Download the Windows installer from [Releases](https://github.com/thg1rb/thaa/releases).
+1. Download `Thaa_0.1.0_x64-setup.exe` and `SHA256SUMS.txt` from [Releases](https://github.com/thg1rb/thaa/releases).
 2. Run the installer and follow its prompts.
 3. Launch Thaa from the Start menu. To uninstall, use **Settings → Apps → Installed apps**.
 
@@ -146,6 +152,9 @@ later scan.
   arbitrary discovered processes. Force Stop remains separate and explicit.
 - Linux is not a supported release target.
 - The first release and its installation packages are not yet available.
+- The planned Windows Closed Alpha installer is unsigned; SmartScreen,
+  Smart App Control, or managed-device policy may warn or block it. The release
+  notes will state this clearly before any download is offered.
 
 ## Security
 
