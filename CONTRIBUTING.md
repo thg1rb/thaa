@@ -1,6 +1,12 @@
 # Contributing to Thaa
 
-Thaa is under active development. Start with the [authoritative development prompt](docs/THAA-DEVELOPMENT-PROMPT.md), [frozen requirements](docs/requirements/), [architecture](docs/architecture/), and [agent workflow](docs/agent/AGENT-WORKFLOW.md). The application shell exists; product inspection features are not implemented yet.
+Thaa is an open-source local runtime inspector for macOS and Windows. The
+runtime inspector, search, process/project context, and supported process
+actions are implemented; release packaging is still being prepared. Start with
+the [README](README.md) for product capabilities and the current release
+status, then review the [development prompt](docs/THAA-DEVELOPMENT-PROMPT.md),
+[requirements](docs/requirements/), [architecture](docs/architecture/), and
+[agent workflow](docs/agent/AGENT-WORKFLOW.md).
 
 ## Branches and pull requests
 
@@ -18,4 +24,9 @@ Thaa is under active development. Start with the [authoritative development prom
 - Update relevant requirements, architecture, security, testing, and work documentation in the same change.
 - Do not add telemetry, cloud dependencies, Linux release scope, or arbitrary execution of detected projects without an approved requirement change.
 
-Follow [local setup](docs/development/LOCAL-SETUP.md), [development commands](docs/development/DEVELOPMENT.md), and [coding standards](docs/development/CODING-STANDARDS.md). Frontend source belongs under `src/`; Rust and Tauri source belong under `src-tauri/`. Agents should consult relevant [Project Skills](docs/agent/SKILLS.md) while following the repository's governing requirements and review rules.
+Follow [local setup](docs/development/LOCAL-SETUP.md), [development
+commands](docs/development/DEVELOPMENT.md), and [coding
+standards](docs/development/CODING-STANDARDS.md). Frontend source belongs
+under `src/`; Rust and Tauri source belong under `src-tauri/`. Agents should
+consult relevant [Project Skills](docs/agent/SKILLS.md) while following the
+repository's governing requirements and review rules.

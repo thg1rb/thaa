@@ -2,8 +2,8 @@
 
 Selected Project Skills listed in [SKILLS.md](SKILLS.md) contain or are based
 on third-party guidance. This file records available attribution and license
-information for the copied skill materials. It does not select or imply a
-license for the Thaa project itself.
+information for the copied skill materials. Thaa's project license is MIT;
+that license does not replace the licenses for third-party skill material.
 
 ## MIT-licensed skill sources
 

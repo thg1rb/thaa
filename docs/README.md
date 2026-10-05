@@ -12,7 +12,8 @@
 - `testing/` — test strategy and platform validation.
 - `adr/` — material technical decisions.
 - `work/` — active and completed implementation work items.
-- `features/` and `releases/` — add only when maintained feature designs or release notes exist.
+- `features/` — add only when maintained feature designs exist.
+- `releases/` — release operations, draft notes, and tester guidance.
 
 ## Initial requirements baseline
 
@@ -46,6 +47,8 @@
 - [Visual design tokens and usage](development/VISUAL-DESIGN.md)
 - [Git workflow](development/GIT-WORKFLOW.md)
 - [Actual application directory structure](architecture/DIRECTORY-STRUCTURE.md)
+- [Draft v0.1.0 release notes](releases/v0.1.0-release-notes.md)
+- [Draft v0.1.0 tester guide](releases/v0.1.0-tester-guide.md)
 
 ## Agent guidance
 
@@ -56,4 +59,4 @@
 
 ## Current state
 
-The requirements, architecture, security, and testing baselines are established. W013 integrates native listener discovery, process inspection, identity-checked actions, refresh, Tauri IPC, a React runtime list, and tray access into the First Usable Build. W013.1 adds the accepted visual identity and process-icon enrichment. Windows generic Graceful Stop remains unsupported by design. W014 adds client-side search/filter for visible listeners by process name or exact numeric port. W015 project-root detection is user accepted and integrated into `develop`; Windows working-directory availability remains limited by the existing provider. See `work/` for current work-item and integration status.
+The requirements, architecture, security, and testing baselines are established. W013 integrates native listener discovery, process inspection, identity-checked actions, refresh, Tauri IPC, a React runtime list, and tray access into the First Usable Build. W013.1 adds the accepted visual identity and process-icon enrichment. Windows generic Graceful Stop remains unsupported by design. W014 adds client-side search/filter for visible listeners by process name or exact numeric port. W015 project-root detection is user accepted and integrated into `develop`; Windows working-directory availability remains limited by the existing provider. R001 closed-alpha release readiness, including tester packaging and public README/license work, is in progress; see the [R001 work record](work/R001-closed-alpha-release-readiness.md). See `work/` for current work-item and integration status.

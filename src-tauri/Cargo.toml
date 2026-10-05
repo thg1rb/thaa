@@ -3,6 +3,7 @@ name = "thaa"
 version = "0.1.0"
 description = "Thaa — Local Runtime Inspector"
 authors = []
+license = "MIT"
 edition = "2021"
 
 [lib]
