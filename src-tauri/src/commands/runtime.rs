@@ -62,6 +62,7 @@ pub struct RuntimeEntryDto {
     pub binding: BindingDto,
     pub process_id: Option<u32>,
     pub process: ProcessDetailsDto,
+    pub project_root: Option<String>,
     pub local_url: Option<String>,
     pub action_target_ref: Option<String>,
     pub process_icon_ref: Option<String>,
@@ -300,6 +301,10 @@ fn snapshot_dto(snapshot: &RuntimeSnapshot) -> RuntimeSnapshotDto {
                             reason: "Process details are unavailable.".into(),
                         },
                     },
+                    project_root: entry
+                        .project_root
+                        .as_ref()
+                        .map(|path| path.to_string_lossy().into_owned()),
                     local_url: crate::application::runtime_inspection::build_local_url(
                         &entry.listener,
                     ),
@@ -445,6 +450,7 @@ mod tests {
     use base64::Engine;
     use std::net::{IpAddr, Ipv4Addr};
     use std::num::NonZeroU16;
+    use std::path::PathBuf;
     use std::time::UNIX_EPOCH;
 
     #[test]
@@ -485,6 +491,7 @@ mod tests {
                     owner_pid: None,
                 },
                 process: None,
+                project_root: Some(PathBuf::from("/sample/project")),
                 action_target_ref: None,
                 process_icon_ref: None,
             }],
@@ -494,6 +501,7 @@ mod tests {
         assert_eq!(json["entries"][0]["entryRef"], "entry-3-0");
         assert_eq!(json["entries"][0]["binding"], "loopbackOnly");
         assert_eq!(json["entries"][0]["process"]["state"], "noOwner");
+        assert_eq!(json["entries"][0]["projectRoot"], "/sample/project");
         assert_eq!(json["capabilities"]["gracefulStop"], false);
         assert_eq!(json["capabilities"]["forceStop"], true);
         assert_eq!(

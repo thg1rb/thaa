@@ -109,8 +109,16 @@ target argv boundaries, and no supported public arbitrary-process current
 directory query was selected. PID zero is the System Idle Process and is
 reported `Unsupported`; access-denied open failures remain `PermissionDenied`.
 
+W015 reuses the normalized working-directory field and adds no Windows process
+inspection. Project-root metadata is therefore unavailable on Windows while
+the provider reports `ProviderLimitation`; listener discovery and actions are
+unaffected.
+
 The Windows-only Microsoft `windows-sys` 0.61.2 binding adds only the
-`Win32_System_Threading` feature. The native controlled-child test validates
+`Win32_System_Threading` and `Win32_Storage_FileSystem` features. The latter
+supports the platform adapter's mounted-volume boundary check for W015. The
+detector does not use this API to discover a process working directory. The
+native controlled-child test validates
 image path, basename, creation time, unsupported-field availability, W010
 contract behavior, W011 orchestration, and post-exit disappearance. Its child
 is the integration-test executable; it does not inspect unrelated runner

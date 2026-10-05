@@ -23,6 +23,7 @@ export type RuntimeEntry = {
   binding: "loopbackOnly" | "potentiallyReachable" | "unknown";
   processId: number | null;
   process: ProcessDetails;
+  projectRoot: string | null;
   localUrl: string | null;
   actionTargetRef: string | null;
   processIconRef: string | null;

@@ -35,8 +35,10 @@ authorization check for destructive actions.
 `ProcessInfo` associates the identity with command argument elements and
 working-directory metadata. Arguments are stored as `Vec<OsString>`, not
 reconstructed into a shell string. A provider that cannot reliably normalize
-arguments reports them unavailable. Project root and Git context remain P1
-and are not part of the P0 model.
+arguments reports them unavailable. W015 derives an optional project-root
+path from available working-directory metadata in the application runtime
+snapshot; it does not change `ProcessInfo` or process identity. Git context
+remains deferred.
 
 ## Per-field availability
 

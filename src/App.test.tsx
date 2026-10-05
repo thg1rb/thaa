@@ -67,6 +67,7 @@ const row = (overrides: Record<string, unknown> = {}) => ({
       },
     },
   },
+  projectRoot: null as string | null,
   localUrl: "http://127.0.0.1:5173",
   actionTargetRef: "target-1-0",
   processIconRef: null as string | null,
@@ -126,6 +127,46 @@ describe("runtime inspector", () => {
           element.textContent?.includes("PID 123") === true,
       ),
     ).toBeInTheDocument();
+  });
+
+  it("shows a distinct project root without confusing it with working directory", async () => {
+    const sampleRow = row({
+      projectRoot: "/sample/workspace/app",
+      process: {
+        ...row().process,
+        details: {
+          ...row().process.details,
+          workingDirectory: available("/sample/workspace/app/src"),
+        },
+      },
+    });
+    mockIPC((command) =>
+      command === "get_runtime_snapshot" ? snapshot([sampleRow]) : undefined,
+    );
+    render(<App />);
+
+    const projectRoot = await screen.findByText(
+      "Project root · /sample/workspace/app",
+    );
+    expect(projectRoot).toHaveAttribute("title", "/sample/workspace/app");
+    expect(
+      screen.getByText("in /sample/workspace/app/src"),
+    ).toBeInTheDocument();
+  });
+
+  it("renders project paths without control or bidirectional override characters", async () => {
+    const unsafePath = "/sample/project/\u202Etxt\u0007";
+    mockIPC((command) =>
+      command === "get_runtime_snapshot"
+        ? snapshot([row({ projectRoot: unsafePath })])
+        : undefined,
+    );
+    render(<App />);
+
+    const projectRoot = await screen.findByText(
+      "Project root · /sample/project/�txt�",
+    );
+    expect(projectRoot).toHaveAttribute("title", "/sample/project/�txt�");
   });
 
   it("uses the approved Thaa application icon as decorative header branding", async () => {

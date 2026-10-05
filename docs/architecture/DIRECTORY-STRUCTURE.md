@@ -46,6 +46,7 @@ src-tauri/
     application/           # shared use-case orchestration
       mod.rs
       process_inspection.rs # per-PID inspection using ProcessProvider
+      project_root.rs       # bounded marker-based ancestor lookup from process cwd
       process_icons.rs      # bounded, snapshot-scoped icon presentation contract
       runtime_inspection.rs # listener/process snapshot and refresh coordinator
     domain/               # shared, platform-neutral domain values and rules
