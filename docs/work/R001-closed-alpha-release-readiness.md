@@ -44,8 +44,10 @@ publishing.
   trusted `main`; unsigned is the explicit default and trusted macOS signing is
   an opt-in future path. Candidate run `37313991657` built from the exact
   `main` SHA recorded below; trusted signing and publish jobs were skipped.
-- No local Developer ID identity, GitHub release environment, Actions secret,
-  or Actions variable is configured. No secret values belong in this repo.
+- No local Developer ID identity, signing Actions secret, or signing variable
+  is configured. No secret values belong in this repo. The separate
+  `release-publish` environment was configured later; its current protection
+  settings are recorded in the final publication section below.
 - The README previously had no screenshots or end-user installation guidance.
   CONTRIBUTING also incorrectly said product inspection features were not
   implemented.
@@ -81,8 +83,12 @@ publishing.
 - The app bundle must advertise macOS 15.0 to match the selected Apple Silicon
   tester target. Package inspection found Tauri's default 10.13 minimum and
   `tauri.conf.json` now sets 15.0 and explicitly enables Hardened Runtime.
-- Draft release notes and a selected-tester guide live under `docs/releases/`;
-  both clearly state packages are not available.
+- Candidate-source release notes and a selected-tester guide live under
+  `docs/releases/`. The candidate-source notes disclose the unsigned builds
+  and planned official-release download path. The updated release-note draft
+  below reflects the accepted candidate artifact names/hashes; it is on
+  `develop` and is not the body automatically read by the frozen candidate
+  source's publish workflow.
 
 ## Scope
 
@@ -352,12 +358,14 @@ with this exact artifact):
 - [ ] Uninstall/remove and reinstall.
 - [ ] Record issues and environment; do not infer PASS from CI packaging.
 
-Measure idle CPU/memory and representative scan duration per frozen NFR-006.
-Run the packaged app for approximately eight continuous hours, periodically
-using Refresh, Search/clear, listener appearance/disappearance, window/tray,
-Copy and metadata inspection. Record start/end, duration, samples, refresh
-observations, CPU/memory, errors/crashes, listener duplication/staleness, and
-final condition. This is observational evidence, not a new threshold.
+Optional tester evidence: measure idle CPU/memory and representative scan
+duration per frozen NFR-006. Power testers may run the packaged app for
+approximately eight continuous hours, periodically using Refresh,
+Search/clear, listener appearance/disappearance, window/tray, Copy and
+metadata inspection. Record start/end, duration, samples, refresh observations,
+CPU/memory, errors/crashes, listener duplication/staleness, and final
+condition. This is observational evidence, not a new threshold, and is not
+required from every tester or before publication.
 
 ### Windows evidence
 
@@ -629,7 +637,13 @@ publication. The public release should attach the workflow-generated checksum
 manifest. The release-notes draft on the candidate source already contains the
 Early Preview and unsigned-platform disclosures. PR #41 on `develop` changes
 only internal evidence documentation; it is not required for runtime release
-safety and must not be promoted before this candidate is published.
+safety and must not be promoted before this candidate is published. The
+expanded release-notes draft edited in this task is on `develop`; the current
+publish workflow checks out the tagged candidate SHA and uses the notes file
+from that source instead. That frozen-source notes body already contains the
+necessary Early Preview/platform-warning language. Use the actual body from
+the workflow when approving publication; do not assume the expanded draft is
+automatically attached.
 
 ### `v0.1.0` Publication Gate
 
