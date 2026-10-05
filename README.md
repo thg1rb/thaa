@@ -2,7 +2,7 @@
 
 Thaa is a desktop utility for understanding local listening TCP ports and their owning processes. The current First Usable Build provides a runtime list, refresh, local URL/copy actions, and identity-checked process actions supported by the active platform.
 
-Thaa runs locally. Search/filter, project/Git context, resource metrics, and runtime/framework detection remain future work.
+Thaa runs locally. Git repository/branch context, resource metrics, and runtime/framework detection remain future work.
 
 ## Run locally
 

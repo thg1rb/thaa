@@ -189,7 +189,7 @@ Likelihood and impact are qualitative design-time estimates. Every mitigation an
 - **Mitigation:** Canonicalize the supplied working directory; inspect only documented marker existence/types in that directory and its ancestors; stop at filesystem boundaries; fail closed to no project root on access/canonicalization errors; never read marker contents, execute project code, log paths, or make actions depend on the result. Preserve the listener when metadata is unavailable.
 - **Verification:** Temporary fixtures cover marker precedence, nested/workspace roots, symlinked starting paths, unavailable paths, and listener/action-target preservation; review confirms no recursive scan or subprocess use.
 - **Residual risk:** The filesystem can change between metadata checks and later display; the value is contextual best-effort metadata and must not authorize filesystem/process operations.
-- **References / status:** FR-012; PR-001/004/007; ADR-006; TC-012. **W015 implementation accepted; integration into `develop` pending.**
+- **References / status:** FR-012; PR-001/004/007; ADR-006; TC-012. **W015 implemented and integrated into `develop` by PR #35; interactive validation limits remain documented.**
 
 ## Security review and finding disposition
 

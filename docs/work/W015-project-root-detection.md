@@ -2,9 +2,13 @@
 
 ## Status
 
-Status: User accepted — integration pending
+Status: Done on merge — PR #35 merged into `develop`; post-merge CI passed
 
 Branch: `feature/project-root-detection`
+
+PR: [#35](https://github.com/thg1rb/thaa/pull/35) → `develop`
+
+Merge commit: `591cc394fbac2fbc5a1efbb59248310cacfee1eb`
 
 Base: `develop` at `34b3bd8dad499abe9d3ec7161d4c042f1961a921`
 
@@ -132,9 +136,10 @@ An unavailable root is normal and never affects Stop/Force authorization.
 - Packaged macOS Search regression check matched the controlled listener by
   exact port `43871`; Clear restored the 20-listener view. No process action was
   invoked by Search.
-- Final PR-head CI run `37264993742` passed Shared Quality, macOS Native
-  Validation, and Windows Native Validation. The final read-only re-review of
-  `91001d1` found no actionable findings.
+- Final PR-head CI run `37269422907` passed Shared Quality, macOS Native
+  Validation, and Windows Native Validation on accepted head
+  `f3f419b630b5b4accaa7379c51872b7530fb2ae3`. Read-only review of that head
+  found no actionable findings.
 
 ## Final User Acceptance
 
@@ -174,9 +179,10 @@ validation remains deferred.
 
 ## Evidence
 
-Implementation is on the dedicated branch. The final read-only review and
-final-head PR CI and user acceptance are complete. The packaged macOS
-simple-root/no-root, Refresh, Search-by-port, and Clear checks are recorded
-above. Narrow-window and interactive Windows visual validation remain
-deferred. W015 status becomes Done on merge after integration and post-merge
-verification.
+PR #35 was merged into `develop` with merge commit
+`591cc394fbac2fbc5a1efbb59248310cacfee1eb`. Post-merge CI run `37269745870`
+passed Shared Quality, macOS Native Validation/release build, and Windows
+Native Validation/release build. The final read-only review found no
+actionable findings. The packaged macOS simple-root/no-root, Refresh,
+Search-by-port, and Clear checks plus user acceptance are recorded above.
+Narrow-window and interactive Windows visual validation remain deferred.
