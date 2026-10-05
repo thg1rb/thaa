@@ -1,5 +1,6 @@
 import type { RuntimeSnapshot } from "../model/types";
 import { Skeleton } from "../../../shared/ui/skeleton/Skeleton";
+import thaaAppIcon from "../../../../src-tauri/icons/128x128.png";
 
 export function RuntimeHeader({
   snapshot,
@@ -20,9 +21,13 @@ export function RuntimeHeader({
     <>
       <header className="topbar">
         <div className="brand-lockup">
-          <span className="brand-mark" aria-hidden="true">
-            T
-          </span>
+          <img
+            className="brand-icon"
+            src={thaaAppIcon}
+            alt=""
+            aria-hidden="true"
+            draggable={false}
+          />
           <div>
             <p className="eyebrow">LOCAL RUNTIME INSPECTOR</p>
             <h1>Thaa</h1>

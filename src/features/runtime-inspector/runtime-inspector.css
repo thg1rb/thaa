@@ -23,17 +23,12 @@
   gap: var(--space-3);
 }
 
-.brand-mark {
-  display: grid;
+.brand-icon {
+  display: block;
   width: 42px;
   height: 42px;
-  place-items: center;
-  border: 1px solid #42606a;
-  background: linear-gradient(145deg, #172932, #101b22);
-  color: var(--text);
-  font-size: 21px;
-  font-weight: 760;
-  clip-path: polygon(0 0, 76% 0, 100% 24%, 100% 100%, 24% 100%, 0 76%);
+  flex: 0 0 auto;
+  object-fit: contain;
 }
 
 .eyebrow {
@@ -150,7 +145,7 @@ h1 {
 
 .runtime-search {
   position: relative;
-  width: min(100%, 560px);
+  width: 100%;
   min-width: 0;
 }
 
@@ -159,7 +154,7 @@ h1 {
   width: 100%;
   min-width: 0;
   height: 40px;
-  padding: 0 42px 0 39px;
+  padding: 0 16px 0 39px;
   border: 1px solid var(--border-emphasis);
   border-radius: var(--radius-sm);
   outline: none;
@@ -170,6 +165,10 @@ h1 {
   transition:
     border-color var(--motion-fast) var(--motion-ease),
     box-shadow var(--motion-fast) var(--motion-ease);
+}
+
+.runtime-search.has-query input {
+  padding-right: 42px;
 }
 
 .runtime-search input::placeholder {
@@ -954,7 +953,7 @@ h1 {
     padding-bottom: 17px;
   }
 
-  .brand-mark {
+  .brand-icon {
     width: 37px;
     height: 37px;
   }

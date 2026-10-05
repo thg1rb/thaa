@@ -2,7 +2,7 @@
 
 ## Status
 
-Status: In progress — implementation and validation complete; awaiting user acceptance
+Status: In progress — visual refinement underway; awaiting user acceptance
 
 Branch: `feature/search-filter`
 
@@ -77,6 +77,31 @@ no-listeners state. Search is not announced on every keystroke. Input editing,
 selection, clipboard, and keyboard behavior remain native; no-results and
 runtime action semantics remain accessible.
 
+## W014 Visual Refinement
+
+Search remains immediate with no debounce: typing updates the controlled query,
+then visible entries are derived locally. The listener collection is small,
+and filtering triggers no I/O or native operation, so delaying it would add
+latency without a demonstrated performance benefit.
+
+The Search wrapper previously stopped at 560px despite its row spanning the
+content column. It now fills that column. Right padding is compact when the
+query is empty and reserves the Clear button's actual area only while that
+button is present. The Search input remains a regular editable control.
+
+The header uses the existing Tauri-generated `src-tauri/icons/128x128.png`
+application icon as a decorative image beside the text heading. Its accepted
+canonical source and 824/1024 geometry are unchanged. Menu Bar and runtime
+process icons remain separate.
+
+The document scrollbar is styled in the global stylesheet: the track uses the
+application background, the rounded thumb uses the existing muted-text token,
+hover uses secondary text, and active drag uses the interaction-active token.
+The thumb remains distinguishable against the background. Standard scrollbar
+properties cover supported engines, with WebKit selectors for WKWebView and
+WebView2. macOS overlay scrollbars may hide until scrolling; when visible, the
+thumb retains a usable width and contrast.
+
 ## Process Actions and Data Integrity
 
 Search changes only which existing cards are rendered. It does not call Stop,
@@ -91,7 +116,8 @@ its original validated references and capability behavior.
   partial numeric input, OR behavior, stable ordering, and source immutability.
 - Feature tests cover labeled input, typing, clear/focus, filtered count,
   no-results versus no-listeners, refresh with an active query, original action
-  target preservation, and no process-action IPC during Search changes.
+  target preservation, and no process-action IPC during Search changes. New
+  checks cover immediate per-keystroke results and the decorative app icon.
 - Existing icon, Skeleton, Toast, refresh, tray, copy/open, and action tests
   remain required.
 - The testing catalog maps frontend evidence to TC-005 / TC-UI-003.
@@ -119,17 +145,16 @@ validation is not required for this frontend-only change unless available.
 
 ## Validation and Implementation Evidence
 
-Implementation is on `feature/search-filter`, commit
-`821dd2155502ac8706686b4e46ec9d026ec32866`. PR #34 targets `develop` and
-remains open pending explicit user acceptance. The read-only review reported
-no findings. Its review covered FR-005 matching, derived-state integrity,
+The base implementation was reviewed on its earlier PR head; that review
+reported no findings for FR-005 matching, derived-state integrity,
 refresh/query behavior, action isolation, empty states, accessibility, and
-responsive layout.
+responsive layout. This visual refinement requires its own read-only review.
+PR #34 targets `develop` and remains open pending explicit user acceptance.
 
-Local checks passed: `cargo fmt --check`, `cargo clippy --all-targets -- -D
-warnings`, `cargo test` (61 unit tests plus platform integration suites),
-frontend tests (44 tests), `pnpm format:check`, `pnpm lint`,
-`pnpm typecheck`, `pnpm build`, `pnpm audit --audit-level high`,
+The base implementation checks passed: `cargo fmt --check`,
+`cargo clippy --all-targets -- -D warnings`, `cargo test` (61 unit tests plus
+platform integration suites), frontend tests (44 tests), `pnpm format:check`,
+`pnpm lint`, `pnpm typecheck`, `pnpm build`, `pnpm audit --audit-level high`,
 `pnpm docs:check`, `pnpm docs:format:check`, and `git diff --check`. RustSec
 audit passed for macOS and Windows targets with the repository's two existing
 allowed advisories (RUSTSEC-2024-0370 and RUSTSEC-2024-0429). The local Tauri
@@ -156,6 +181,51 @@ review. Automated structural tests cover responsive-width safeguards.
 Windows interactive UI validation was not performed; Windows Native
 Validation passed. This is not a W014 merge blocker because the feature is
 frontend-side and the native Windows validation job passed.
+
+### Visual refinement evidence
+
+The user had already accepted W014's functional process-name/port Search
+behavior. Refinement inspection found no debounce, timeout, deferred query, or
+delayed state: `RuntimeInspectorPage` updates the controlled query directly
+and derives visible entries with `useMemo`. Search therefore remains immediate;
+filtering is local over the small current snapshot and does no I/O.
+
+The Search field's right-side blank area came from its 560px maximum width
+while the surrounding content row was wider. The field now fills the content
+column. Empty queries use compact right padding; the Clear affordance's space
+is reserved only while a query is present. A macOS app run showed the empty
+field, a short query, and a long query without Clear overlap or horizontal
+overflow. Rapid character-by-character typing updated results immediately;
+Clear restored the full current snapshot.
+
+The temporary text `T` branding mark is replaced by the approved generated
+128px Thaa application icon, rendered as a decorative, non-draggable image.
+The canonical artwork and accepted 824px-on-1024px production composition are
+unchanged. The rebuilt macOS app displayed the icon sharply beside the Thaa
+heading. Tray and inspected-process icons are unchanged.
+
+Scrollbar styling is centralized in `src/styles/global.css`, uses existing
+background/text/interaction tokens, and leaves the vertical scrollbar usable.
+In the rebuilt macOS WebView, the rounded muted thumb was visible with runtime
+rows, and vertical scroll content remained present. macOS controls scrollbar
+visibility with its overlay-scrollbar behavior; the application does not hide
+it. No horizontal scrollbar appeared. Narrow-window manual validation remains
+deferred because the available native window-resize controls failed with
+`noWindowsAvailable`; no evidence is claimed for that check.
+
+Refinement tests increased the frontend suite from 44 to 46 tests, all passing
+locally. The final native UI check used the rebuilt `.app`; screenshots were
+not retained because the full runtime list can expose unrelated local process
+metadata. Narrow-window layout remains the only deferred macOS visual check.
+
+Final local refinement checks passed: Rust format, Clippy with warnings denied,
+all 61 Rust unit tests and the macOS integration suites; all 46 frontend tests;
+frontend format, lint, typecheck, and production build; pnpm audit; documentation
+link and format checks; and `git diff --check`. The Tauri release app bundle was
+built and launched for the native visual checks. RustSec audits for macOS arm64
+and Windows x64 completed with the same two existing allowed advisories,
+RUSTSEC-2024-0370 and RUSTSEC-2024-0429. Final PR CI and refinement review are
+pending on the pushed refinement head.
 
 W014 is not merged and remains pending explicit user acceptance.
 

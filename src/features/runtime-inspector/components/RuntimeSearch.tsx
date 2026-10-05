@@ -11,7 +11,7 @@ export function RuntimeSearch({
 
   return (
     <div className="runtime-search-row">
-      <div className="runtime-search">
+      <div className={`runtime-search${query.length > 0 ? " has-query" : ""}`}>
         <label className="sr-only" htmlFor="runtime-search-input">
           Search listeners by process or port
         </label>

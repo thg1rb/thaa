@@ -128,6 +128,22 @@ describe("runtime inspector", () => {
     ).toBeInTheDocument();
   });
 
+  it("uses the approved Thaa application icon as decorative header branding", async () => {
+    mockIPC((command) =>
+      command === "get_runtime_snapshot" ? snapshot([row()]) : undefined,
+    );
+    const { container } = render(<App />);
+
+    await screen.findByText(":5173");
+    const icon = container.querySelector(".brand-icon");
+    expect(icon).toBeInTheDocument();
+    expect(icon).toHaveAttribute("alt", "");
+    expect(icon).toHaveAttribute("aria-hidden", "true");
+    expect(icon).toHaveAttribute("draggable", "false");
+    expect(icon).toHaveAttribute("src", expect.stringContaining("128x128.png"));
+    expect(screen.getByRole("heading", { name: "Thaa" })).toBeInTheDocument();
+  });
+
   it("renders a resolved process icon from the snapshot icon request", async () => {
     mockIPC((command) =>
       command === "get_runtime_snapshot"
@@ -401,6 +417,7 @@ describe("runtime inspector", () => {
     fireEvent.click(screen.getByRole("button", { name: "Clear search" }));
     expect(search).toHaveValue("");
     expect(search).toHaveFocus();
+    expect(search.closest(".runtime-search")).not.toHaveClass("has-query");
     expect(
       screen.getByRole("heading", { name: "Google Chrome" }),
     ).toBeInTheDocument();
@@ -410,6 +427,43 @@ describe("runtime inspector", () => {
     ).toBeInTheDocument();
     expect(
       screen.getByRole("heading", { name: "Node Service" }),
+    ).toBeInTheDocument();
+  });
+
+  it("filters immediately as each Search character is entered", async () => {
+    mockIPC((command) =>
+      command === "get_runtime_snapshot"
+        ? snapshot([
+            namedRow("Google Chrome", 9222, "chrome"),
+            namedRow("Code", 3000, "code"),
+          ])
+        : undefined,
+    );
+    render(<App />);
+    const search = await screen.findByRole("searchbox", {
+      name: "Search listeners by process or port",
+    });
+    expect(search.closest(".runtime-search")).not.toHaveClass("has-query");
+
+    fireEvent.change(search, { target: { value: "c" } });
+    expect(screen.getByRole("heading", { name: "Code" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "Google Chrome" }),
+    ).toBeInTheDocument();
+    expect(search.closest(".runtime-search")).toHaveClass("has-query");
+
+    fireEvent.change(search, { target: { value: "ch" } });
+    expect(
+      screen.getByRole("heading", { name: "Google Chrome" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("heading", { name: "Code" }),
+    ).not.toBeInTheDocument();
+    expect(search.closest(".runtime-search")).toHaveClass("has-query");
+
+    fireEvent.change(search, { target: { value: "chr" } });
+    expect(
+      screen.getByRole("heading", { name: "Google Chrome" }),
     ).toBeInTheDocument();
   });
 
