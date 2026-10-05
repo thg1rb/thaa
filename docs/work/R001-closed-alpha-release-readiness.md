@@ -3,12 +3,13 @@
 ## Status
 
 In progress. **Gate A has been explicitly accepted and PR #37 is integrated
-into `develop`**; post-merge validation passed. Release-promotion PR
-preparation is next. README/MIT presentation is complete. The zero-budget
-macOS and Windows artifacts are intentionally unsigned for selected testers;
-paid signing is deferred release hardening, not a v0.1.0 blocker. Gate B
-candidate validation remains after promotion. Do not promote to `main` or
-publish a release without explicit acceptance at the applicable gate.
+into `develop`**; post-merge validation passed. PR #39 promoted the accepted
+release infrastructure to `main`, and candidate workflow run `37313991657`
+successfully built the unsigned macOS and Windows packages from the exact
+`main` SHA. macOS clean/isolated validation and NFR-006 measurements remain
+pending. README/MIT presentation is complete. Paid signing remains deferred
+release hardening. Do not tag, publish, or distribute artifacts without
+explicit candidate acceptance.
 
 Branch: `feature/r001-closed-alpha-readiness`
 
@@ -39,7 +40,8 @@ artifacts as part of this pre-acceptance change.
   is GitHub **Pre-release**; version/tag are exactly `0.1.0` / `v0.1.0`.
 - `.github/workflows/release.yml` defines manual candidate/publish paths from
   trusted `main`; unsigned is the explicit default and trusted macOS signing is
-  an opt-in future path. The workflow has not been dispatched.
+  an opt-in future path. Candidate run `37313991657` built from the exact
+  `main` SHA recorded below; trusted signing and publish jobs were skipped.
 - No local Developer ID identity, GitHub release environment, Actions secret,
   or Actions variable is configured. No secret values belong in this repo.
 - The README previously had no screenshots or end-user installation guidance.
@@ -147,16 +149,16 @@ notarization, stapling, Authenticode, or actual release publication.
 
 ### Gate B — release candidate acceptance after promotion
 
-- [ ] Promote the accepted `develop` state through a separate reviewed
+- [x] Promote the accepted `develop` state through a separate reviewed
       `develop` → `main` PR; merge does not publish a release.
-- [ ] Run the manual non-publishing candidate workflow from the exact intended
+- [x] Run the manual non-publishing candidate workflow from the exact intended
       `main` commit; record its SHA and both artifact/checksum results.
 - [ ] Validate macOS 15+ Apple Silicon DMG integrity, unsigned first-launch
       behavior, clean/isolated installation, full packaged regression, quit/
       relaunch, uninstall and reinstall.
 - [ ] Measure macOS idle CPU/memory and representative scan duration and
       complete the approximately 8-hour continuous packaged-app soak.
-- [ ] Confirm Windows release-profile unsigned NSIS output, checksum, and
+- [x] Confirm Windows release-profile unsigned NSIS output, checksum, and
       automated CI; interactive clean-machine install and soak remain
       NOT RUN / deferred and are nonblocking for this selected-tester release.
 - [ ] Recheck all user-facing release claims and receive explicit approval of
@@ -169,6 +171,36 @@ notarization, stapling, Authenticode, or actual release publication.
 
 Gate B does **not** require paid Developer ID, notarization, stapling, or
 Authenticode credentials. Those remain deferred release hardening.
+
+#### Candidate run evidence — 2026-10-05
+
+- Workflow run [37313991657](https://github.com/thg1rb/thaa/actions/runs/37313991657)
+  completed successfully in manual `candidate` mode from `main`, with explicit
+  macOS distribution mode `unsigned` and application version `0.1.0`.
+- Exact candidate source SHA: `2edc9cc934517b935f14c85f606296a3539481b5`
+  (PR #39 merge commit). Source validation and platform build jobs checked out
+  that exact SHA.
+- Retained workflow artifacts expire 2027-01-03. Candidate package identity:
+
+  | Platform            | File                       | SHA-256                                                            | Candidate evidence                                                                                                                                                                        |
+  | ------------------- | -------------------------- | ------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+  | macOS Apple Silicon | `Thaa_0.1.0_aarch64.dmg`   | `4365f2a0d91ef5865f3aaad953fdce004c80ed8425272af9ad2c5af8fb438297` | Workflow: DMG integrity/mount, app bundle, arm64 executable, ad-hoc signature with no Team ID, checksum PASS. Separate local inspection: bundle version `0.1.0` and `icon.icns` presence. |
+  | Windows x64         | `Thaa_0.1.0_x64-setup.exe` | `f2503274b4a6d432b27c3203029f37126791ccf851f7900d6f092c45a9944073` | Release-profile NSIS build, unsigned status, and checksum PASS; interactive installation NOT RUN / deferred.                                                                              |
+
+- Downloaded copies were checked against each artifact's `SHA256SUMS.txt`.
+  Candidate artifacts are internal Actions workflow artifacts only, not public
+  release assets. The trusted Developer ID/notarization job and Publish job
+  were skipped; unsigned jobs did not access signing secrets. No tag, GitHub
+  Release, or public asset was created. No Gatekeeper or clean-machine result
+  is inferred from automated package checks.
+- The workflow package-validation step does not itself assert the app bundle
+  version or icon resource; those two observations came from the separate local
+  inspection of the downloaded candidate, not from CI.
+- Gate B remains pending user-run macOS first-launch/quarantine observation,
+  clean/isolated installation, packaged regression, uninstall/reinstall,
+  frozen NFR-006 idle and scan measurements, and the approved approximately
+  eight-hour soak. Windows interactive validation and soak remain
+  **NOT RUN / deferred**.
 
 ## README and Open-source Presentation
 
@@ -280,15 +312,44 @@ future Apple credential names and setup.
 
 ### macOS clean/isolated candidate validation
 
-Use the exact unsigned release-profile DMG from the main-commit candidate
-workflow. Record macOS version, Apple Silicon architecture/model category,
-physical/VM/isolated environment, whether developer tools are installed, how
-the DMG was transferred/downloaded, checksum, and whether quarantine/Gatekeeper
-behavior was triggered. Install/copy, launch, record warnings and any normal
-per-app System Settings approval offered; never disable security controls.
-Exercise tray, listener discovery, process identity/icons, Search, Refresh,
-Working Directory/Project Root, Copy/Open, safe process actions, Toast,
-scroll/layout, quit/relaunch, remove, and reinstall.
+Use the exact unsigned release-profile DMG from run `37313991657`; do not
+substitute a local rebuild. Obtain the `macos-aarch64` workflow artifact from
+the [candidate run](https://github.com/thg1rb/thaa/actions/runs/37313991657),
+extract it, and verify `Thaa_0.1.0_aarch64.dmg` against its adjacent
+`SHA256SUMS.txt` with `shasum -a 256 --check SHA256SUMS.txt`. Confirm the
+digest matches the candidate record above before opening it. Record macOS
+version, Apple Silicon architecture/model category, physical/VM/isolated
+environment, whether developer tools are installed, how the artifact was
+obtained, and whether quarantine/Gatekeeper behavior was triggered. Open the
+DMG, copy Thaa.app to Applications, attempt first launch, and record the actual
+OS message. If macOS offers normal per-application approval through System
+Settings / Privacy & Security, use only that supported flow. Never disable
+Gatekeeper, SIP, or other security controls globally; stop if managed policy
+prevents launch. Exercise tray, listener discovery, process identity/icons,
+Search, Refresh, Working Directory/Project Root, Copy/Open, safe Stop/Force
+validation using a disposable process, Toast, scroll/layout, quit/relaunch,
+remove, and reinstall.
+
+Gate B macOS packaged regression checklist (leave unchecked until exercised
+with this exact artifact):
+
+- [ ] Candidate artifact and SHA-256 verified.
+- [ ] DMG opened; Thaa.app installed/copied.
+- [ ] First launch attempted; actual OS warning/block and normal approval path
+      recorded.
+- [ ] Tray and Runtime Inspector open/close behavior.
+- [ ] Listener discovery and process identity.
+- [ ] Native/fallback process icons.
+- [ ] Search by Process Name and exact Port; clear Search.
+- [ ] Refresh while Search is active.
+- [ ] Working Directory and Project Root.
+- [ ] Copy URL, Copy Port, Copy PID, and Open URL.
+- [ ] Stop and Force Stop against a safe disposable test process; confirmation
+      target checked.
+- [ ] Toast, scrollbar/layout, vertical scrolling, and no horizontal overflow.
+- [ ] Quit and relaunch.
+- [ ] Uninstall/remove and reinstall.
+- [ ] Record issues and environment; do not infer PASS from CI packaging.
 
 Measure idle CPU/memory and representative scan duration per frozen NFR-006.
 Run the packaged app for approximately eight continuous hours, periodically
@@ -308,6 +369,60 @@ Record the OS version, architecture, installer hash and actual results for all
 performed checks. No Gatekeeper-success, notarization or signed status is
 claimed for the unsigned candidate. README Dark Mode remains nonblocking and
 deferred absent a known rendering defect.
+
+### NFR-006 measurement and soak evidence template
+
+Re-read and apply the frozen NFR-006 wording above. This template records
+observations without adding numeric product thresholds. Use the packaged
+candidate identified in the run evidence above.
+
+```text
+Candidate source SHA: 2edc9cc934517b935f14c85f606296a3539481b5
+Artifact: Thaa_0.1.0_aarch64.dmg
+Artifact SHA-256: 4365f2a0d91ef5865f3aaad953fdce004c80ed8425272af9ad2c5af8fb438297
+
+Environment:
+macOS version:
+Architecture/model category:
+Physical / VM / isolated environment:
+Developer tools installed (yes/no):
+Artifact transfer/download method:
+
+Idle observation duration:
+Runtime Inspector state:
+Listener/process count (approximate):
+Measurement tool/method:
+CPU observations:
+Memory observations:
+
+Scan/Refresh measurement boundaries:
+Refresh samples and durations:
+
+Soak start (date/time/time zone):
+Soak end (date/time/time zone):
+Total continuous duration:
+Initial CPU:
+Initial memory:
+
+Intermediate observations:
+- Time:
+  CPU:
+  Memory:
+  Interaction:
+  Refresh/scan observation:
+  Result:
+
+Final CPU:
+Final memory:
+Crashes:
+UI hangs:
+Duplicate/stale listeners:
+Refresh failures:
+Tray failures:
+Other defects:
+Final condition:
+Result: PASS / FAIL (against frozen NFR-006; do not invent thresholds)
+```
 
 ## Current Implementation Evidence
 
@@ -333,8 +448,9 @@ verify` passed. The mounted app bundle reports version `0.1.0`, identifier
   are present.
 - `README.md` accurately marks installers as not yet published and describes
   the selected package paths as planned, not available releases.
-- No Git tag, GitHub Release, or tester distribution has been created. The
-  unsigned local candidate remains only in the ignored Cargo target folder.
+- The Gate B candidate workflow has produced retained Actions artifacts; these
+  are not public release assets and have not been distributed to testers. No
+  Git tag or GitHub Release has been created.
 - The locally built DMG SHA-256 is
   `01812275b38a2d89afec6df25cb94789aa32695eefd75ff8885e871e5331fe6e`; this
   checksum is evidence for the local unsigned candidate only, not a release
@@ -370,8 +486,8 @@ verify` passed. The mounted app bundle reports version `0.1.0`, identifier
   `4cbc71a30b51f8d526560b08e2957f23d3dfe746` also passed Shared Quality,
   macOS Native Validation, and Windows Native Validation in runs
   `37298810275` and `37300608805`, respectively. The latter includes the final
-  checklist synchronization. No candidate was run and no release workflow was
-  dispatched.
+  checklist synchronization. At that point no candidate had yet been run; the
+  later candidate run is recorded in the Gate B section above.
 - External README release/issues/CI/badge URLs returned HTTP 200. The README
   rendered in GitHub Light Mode was reviewed in Chrome. Dark Mode is deferred:
   the available logged-out session did not expose the GitHub appearance
@@ -415,7 +531,8 @@ gates rather than implementation errors:
   passed all three required checks on head `fa995a0606f07fb6e5fb22a3ed6c530097cbb0d9`.
   The final checklist synchronization is recorded in run `37300608805` on head
   `4cbc71a30b51f8d526560b08e2957f23d3dfe746`; all three required CI jobs
-  passed. No candidate was run and no release workflow was dispatched.
+  passed. Those Gate A review/CI records predate the candidate workflow run
+  recorded above.
 
 The read-only review confirmed the README's per-artifact checksum
 instructions, 90-day candidate artifact retention, cross-run download
@@ -426,6 +543,14 @@ architecture validation, or cleanup behavior.
 
 No code changes were required from review. The reviewer also confirmed that
 project license statements and third-party notice boundaries are consistent.
+
+The focused read-only review of candidate run `37313991657` found no blockers.
+It confirmed exact source/run binding, unsigned artifacts and checksum matches,
+skipped trusted/publish jobs, and no tag or release. It noted that workflow
+validation does not assert bundle version/icon; the candidate record now
+distinguishes those observations from CI by attributing them to the separate
+local inspection of the downloaded macOS artifact. Manual Gate B checks remain
+pending.
 
 The follow-up screenshot review found no personal path or unrelated listener
 data. Its suggestion to remove the fixture PID and ambient-listener count was
@@ -439,8 +564,11 @@ R001 remains in progress. Gate A was accepted by the user on 2026-10-05 at
 feature head `afa11eec0be72d517b4a1048b000ad64f3974cac`, then merged by PR #37
 as commit `5955ae02d283728a0a611389789b468edcdc058f`. Post-merge CI passed on
 that `develop` head; its tree is identical to the source tree that passed PR
-packaging CI. Gate B remains a later post-promotion candidate-validation gate;
-paid signing credentials are not a Gate A or zero-budget Gate B prerequisite.
+packaging CI. PR #39 promoted that accepted release source to `main` at merge
+commit `2edc9cc934517b935f14c85f606296a3539481b5`. Gate B candidate run
+`37313991657` succeeded from that exact SHA; manual macOS validation and NFR
+evidence remain pending. Paid signing credentials are not a Gate A or
+zero-budget Gate B prerequisite.
 
 ## Gate A Acceptance Record
 
@@ -465,12 +593,16 @@ signing/notarization is deferred hardening, not a release gate.
   and Windows Native Validation. The merged tree is identical to PR head
   `8e0fa40eb92b3d4d30420ab38465090e3f3e0e51`; PR run `37303335329` passed
   unsigned macOS DMG and Windows NSIS packaging checks on that tree.
-- `main` remains unchanged. No release candidate was dispatched, and no tag,
-  GitHub Release, or tester artifact exists.
+- PR #39 (`develop` → `main`) merged as `2edc9cc934517b935f14c85f606296a3539481b5`.
+- Candidate run `37313991657` built the unsigned DMG and NSIS installer from
+  that exact `main` commit; automated package/checksum validation passed.
+- `v0.1.0` tag, GitHub Release, and public tester distribution do not exist.
 
 ## Stop Boundary
 
-Gate A is integrated and validated. Prepare a reviewed `develop` → `main`
-release PR and stop for explicit approval before merging it. Do not dispatch
-candidate workflows, create the `v0.1.0` tag, publish a GitHub Release,
-distribute artifacts, or begin W016 during this Gate A integration.
+Gate A and release promotion are integrated and validated. Gate B remains
+open until the required manual macOS packaged validation, frozen NFR-006
+measurements, and approximately eight-hour soak are completed. Keep the
+candidate artifacts internal; do not create `v0.1.0`, publish a GitHub
+Release, distribute artifacts, or begin W016 without the later explicit
+release approval.
