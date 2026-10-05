@@ -74,9 +74,12 @@ publishing.
 - **Promotion sequence:** after R001 acceptance and integration into `develop`,
   prepare a separate reviewed PR from `develop` to `main`, require release
   validation, merge it, then create `v0.1.0` at the accepted `main` commit.
-  Finally dispatch this workflow from `main` in `publish` mode. Protected
-  environment approvals gate signing and publication. This sequence is
-  documented only; no promotion or release action occurs in this task.
+  Finally dispatch this workflow from `main` in `publish` mode. The
+  `release-publish` environment gates publication. The separate `release`
+  environment for future trusted signing is not configured or protected yet;
+  configure its approval rules before adding signing credentials or selecting
+  trusted mode. This sequence is documented only; no release action occurs in
+  this task.
 - User-approved NFR-006 evidence method is an approximately 8-hour continuous
   macOS soak. This is test methodology, not a new requirement threshold.
   Windows interactive measurements and soak are NOT RUN / deferred.
@@ -273,9 +276,11 @@ choice is explicit and defaults to `unsigned`. That path requires no signing
 environment/secrets and verifies the ad-hoc app signature, DMG integrity and
 checksums without claiming notarization or Gatekeeper acceptance. Optional
 `trusted` mode retains Developer ID and notarization support for candidate
-validation, runs only when selected, and reads signing secrets only from the
-protected `release` environment. The fixed `v0.1.0` publication path requires
-unsigned mode. Windows remains unsigned NSIS.
+validation, runs only when selected, and reads signing secrets from the
+`release` environment. That signing environment currently has no protection
+rules; configure and verify those rules before setting secrets or using
+trusted mode. The fixed `v0.1.0` publication path requires unsigned mode.
+Windows remains unsigned NSIS.
 
 Publish mode is a separate manual action. It requires the accepted candidate
 SHA, candidate workflow run ID, and exact `v0.1.0` tag to resolve to that same
@@ -287,13 +292,14 @@ before creating the public Pre-release. Pushing a tag alone cannot publish. Glob
 does not trigger the release workflow or receive release credentials.
 
 GitHub environments and tag rulesets are administrative configuration, not
-repository files. Configure `release` only for trusted signing and
-`release-publish` for final publication, with reviewer protection where
-available at no cost. GitHub rulesets are available on Free for public
-repositories. Protect `v0.1.0` against unauthorized creation, updates and
-deletion; if a desired rule is unavailable, use the documented exact-SHA/tag
-verification and release-owner confirmation. Before approving trusted signing,
-reviewers inspect the source SHA printed in the validation job summary. See
+repository files. `release-publish` has reviewer protection and is restricted
+to `main`; the future signing environment `release` is not yet configured.
+Before adding credentials or running trusted mode, configure `release` with
+reviewer protection. GitHub rulesets are available on Free for public
+repositories. Protect `v0.1.0` against unauthorized updates and deletion; if a
+desired rule is unavailable, use exact-SHA/tag verification and release-owner
+confirmation. Before approving trusted signing, reviewers inspect the source
+SHA printed in the validation job summary. See
 [credential checklist](../releases/v0.1.0-release-credentials.md) for the
 future Apple credential names and setup.
 
@@ -661,7 +667,7 @@ publish is still required after this gate passes.
 | PASS — REQUIRED BEFORE PUBLICATION | No known release-blocking defect  | Recheck open findings and candidate evidence. No known defect currently indicates unusable/corrupt packages, wrong source/artifact, unsafe process termination, or serious security risk.                                                                                                                           |
 | PASS — REQUIRED BEFORE PUBLICATION | Publication workflow safety       | Confirm publish mode reuses the accepted candidate artifacts, verifies candidate run/source/tag/checksums, does not rebuild platform packages, creates a GitHub Pre-release, and uses least-privilege publication permission. Candidate mode cannot publish.                                                        |
 | PASS — REQUIRED BEFORE PUBLICATION | Tag safeguards                    | Before publication, ensure tag does not exist, target exact SHA, and use configured tag protection if available; otherwise apply exact-SHA verification and procedural no-force-update/no-reuse rule. See Tag Protection below.                                                                                     |
-| BLOCKING until explicitly approved | Final release authorization       | The user must explicitly approve creation of `v0.1.0` and publication using these exact candidate artifacts. This approval has not yet been given.                                                                                                                                                                  |
+| BLOCKING                           | Final release authorization       | The user must explicitly approve creation of `v0.1.0` and publication using these exact candidate artifacts. This approval has not yet been given.                                                                                                                                                                  |
 
 Do not classify missing interactive validation as PASS. Classification of
 post-publication work is:
