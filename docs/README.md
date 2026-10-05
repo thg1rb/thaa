@@ -56,4 +56,4 @@
 
 ## Current state
 
-The requirements, architecture, security, and testing baselines are established. W013 integrates native listener discovery, process inspection, identity-checked actions, refresh, Tauri IPC, a React runtime list, and tray access into the First Usable Build. Windows generic Graceful Stop remains unsupported by design. Search/filter and P1 context remain deferred. See `work/` for current work-item status.
+The requirements, architecture, security, and testing baselines are established. W013 integrates native listener discovery, process inspection, identity-checked actions, refresh, Tauri IPC, a React runtime list, and tray access into the First Usable Build. W013.1 adds the accepted visual identity and process-icon enrichment. Windows generic Graceful Stop remains unsupported by design. W014 implements client-side search/filter for visible listeners by process name or exact numeric port; its PR and user acceptance are pending. P1 context remains deferred. See `work/` for current work-item status.

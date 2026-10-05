@@ -3,11 +3,15 @@ import { Skeleton } from "../../../shared/ui/skeleton/Skeleton";
 
 export function RuntimeHeader({
   snapshot,
+  visibleCount,
+  isSearching,
   loading,
   refreshing,
   onRefresh,
 }: {
   snapshot: RuntimeSnapshot | null;
+  visibleCount: number;
+  isSearching: boolean;
   loading: boolean;
   refreshing: boolean;
   onRefresh: () => void;
@@ -27,7 +31,9 @@ export function RuntimeHeader({
         <div className="topbar-actions">
           {snapshot ? (
             <span className="runtime-count">
-              {snapshot.entries.length} listeners
+              {isSearching
+                ? `${visibleCount} of ${snapshot.entries.length} listeners`
+                : `${snapshot.entries.length} listeners`}
             </span>
           ) : loading ? (
             <Skeleton className="header-count-skeleton" />

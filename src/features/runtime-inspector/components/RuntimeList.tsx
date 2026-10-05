@@ -3,6 +3,7 @@ import { RuntimeCard } from "./RuntimeCard";
 
 export function RuntimeList({
   snapshot,
+  entries,
   pendingTargets,
   iconSources,
   iconsLoading,
@@ -12,6 +13,7 @@ export function RuntimeList({
   onCopy,
 }: {
   snapshot: RuntimeSnapshot;
+  entries: RuntimeEntry[];
   pendingTargets: Set<string>;
   iconSources: Map<string, string>;
   iconsLoading: boolean;
@@ -22,7 +24,7 @@ export function RuntimeList({
 }) {
   return (
     <section className="runtime-list" aria-label="Listening TCP ports">
-      {snapshot.entries.map((entry) => (
+      {entries.map((entry) => (
         <RuntimeCard
           key={entry.entryRef}
           entry={entry}

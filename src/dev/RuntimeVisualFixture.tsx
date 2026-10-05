@@ -97,6 +97,8 @@ export function RuntimeVisualFixture({
       />
       <RuntimeHeader
         snapshot={mode === "loading" ? null : fixtureSnapshot}
+        visibleCount={fixtureSnapshot.entries.length}
+        isSearching={false}
         loading={mode === "loading"}
         refreshing={false}
         onRefresh={() =>
