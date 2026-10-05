@@ -2,11 +2,11 @@
 
 ## Status
 
-Status: In progress — implementation and validation complete; awaiting user acceptance
+Status: Done on merge
 
 Branch: `feature/search-filter`
 
-PR: [#34](https://github.com/thg1rb/thaa/pull/34) → `develop` (open; not merged)
+PR: [#34](https://github.com/thg1rb/thaa/pull/34) → `develop`
 
 ## Objective
 
@@ -160,11 +160,11 @@ audit passed for macOS and Windows targets with the repository's two existing
 allowed advisories (RUSTSEC-2024-0370 and RUSTSEC-2024-0429). The local Tauri
 release binary and macOS app bundle builds passed.
 
-PR CI run [37254342991](https://github.com/thg1rb/thaa/actions/runs/37254342991)
+PR CI run [37254993278](https://github.com/thg1rb/thaa/actions/runs/37254993278)
 passed Shared Quality, macOS Native Validation, and Windows Native Validation
-on refinement commit `6205e53`. It ran formatting, lint, typecheck, all
-frontend tests/build, documentation links, pnpm and RustSec audits, Rust
-format/Clippy/tests, and macOS and Windows Tauri debug builds.
+on final PR head `14b55ea`. It ran formatting, lint, typecheck, all frontend
+tests/build, documentation links, pnpm and RustSec audits, Rust format/Clippy/
+tests, and macOS and Windows Tauri debug builds.
 
 Manual macOS validation used the bundled app and a controlled local Python
 listener on port 43001. Process-name search was checked with `PYTHON` and
@@ -182,6 +182,25 @@ review. Automated structural tests cover responsive-width safeguards.
 Windows interactive UI validation was not performed; Windows Native
 Validation passed. This is not a W014 merge blocker because the feature is
 frontend-side and the native Windows validation job passed.
+
+### Final user acceptance
+
+On 2026-10-05, the user accepted W014 after manual macOS review. Accepted
+behavior is process display-name case-insensitive substring matching OR exact
+numeric port matching; whitespace is normalized, and an empty query shows all
+listeners. Filtering remains immediate, local, and derived from the current
+authoritative listener snapshot. Refresh preserves the query and filters the
+new snapshot. The user accepted the balanced Search/Clear layout, approved
+Thaa application icon in the header, usable Thaa-styled vertical scrollbar,
+vertical scrolling, and absence of unwanted horizontal scrolling. Runtime
+inspection and process actions showed no regression.
+
+The following checks remain explicitly deferred and nonblocking:
+
+- Narrow-window interactive validation: **NOT RUN / deferred** because native
+  resizing was unavailable in the validation environment (`noWindowsAvailable`).
+- Windows interactive visual validation: **NOT RUN / deferred**. Windows
+  Native Validation passed; no interactive Windows visual result is claimed.
 
 ### Visual refinement evidence
 
@@ -230,7 +249,7 @@ reported no findings. All three required CI jobs passed on the pushed
 refinement head. Narrow-window manual validation remains deferred; final user
 acceptance is pending.
 
-W014 is not merged and remains pending explicit user acceptance.
+W014 has user acceptance and is complete when PR #34 is merged to `develop`.
 
 ## Risks and Limitations
 

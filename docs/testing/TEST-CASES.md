@@ -6,13 +6,13 @@ This catalog anchors requirement and threat verification. Per-case status record
 
 ## Existing P0 acceptance cases
 
-| ID            | Requirement   | Future evidence                                                                      | Status                                                                                             |
-| ------------- | ------------- | ------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------- |
-| TC-001–TC-004 | FR-001–FR-004 | Native port discovery, normalization/binding, and refresh behavior                   | Not implemented                                                                                    |
-| TC-005        | FR-005        | Search by process display name or exact numeric port; filtering is presentation-only | W014 implementation and refinement review/local checks/final PR CI passed; user acceptance pending |
-| TC-006–TC-007 | FR-006–FR-007 | Process presentation, validated local URL/copy behavior                              | Implemented in W013; prior evidence retained                                                       |
-| TC-008–TC-009 | FR-008–FR-009 | Safe graceful and explicit force-stop outcomes                                       | Not implemented                                                                                    |
-| TC-010–TC-011 | FR-010–FR-011 | macOS menu-bar/Windows tray and required UI/error states                             | Not implemented                                                                                    |
+| ID            | Requirement   | Future evidence                                                                      | Status                                                                                       |
+| ------------- | ------------- | ------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------- |
+| TC-001–TC-004 | FR-001–FR-004 | Native port discovery, normalization/binding, and refresh behavior                   | Not implemented                                                                              |
+| TC-005        | FR-005        | Search by process display name or exact numeric port; filtering is presentation-only | Implemented and user accepted; current integration state is recorded in the W014 work record |
+| TC-006–TC-007 | FR-006–FR-007 | Process presentation, validated local URL/copy behavior                              | Implemented in W013; prior evidence retained                                                 |
+| TC-008–TC-009 | FR-008–FR-009 | Safe graceful and explicit force-stop outcomes                                       | Not implemented                                                                              |
+| TC-010–TC-011 | FR-010–FR-011 | macOS menu-bar/Windows tray and required UI/error states                             | Not implemented                                                                              |
 
 ## Provider and action contracts
 
@@ -148,7 +148,7 @@ search/filter remains assigned to W014.
 
 ## Search and filter (W014)
 
-| ID        | Scenario and expected evidence                                                                                                                                                                | Fixture                       | Links              | Status                                                                                                                      |
-| --------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------- | ------------------ | --------------------------------------------------------------------------------------------------------------------------- |
-| TC-005    | Name matching is trimmed, whitespace-collapsed, case-insensitive substring; numeric port matching is exact and restricted to 0–65535; order/source are preserved; filtering causes no actions | Vitest helper and UI fixtures | FR-005             | Automated tests pass; immediate local filtering has no debounce; manual macOS matching checks are documented in W014 record |
-| TC-UI-003 | Search field filters visible cards, clear restores results, no-results differs from no-listeners, refresh preserves query, and filtered rows retain safe actions                              | Vitest / Testing Library      | FR-005, FR-007–009 | Feature, branding, and Search-response tests pass; native visual evidence and review are tracked in W014 record             |
+| ID        | Scenario and expected evidence                                                                                                                                                                | Fixture                       | Links              | Status                                                                                                                                 |
+| --------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------- | ------------------ | -------------------------------------------------------------------------------------------------------------------------------------- |
+| TC-005    | Name matching is trimmed, whitespace-collapsed, case-insensitive substring; numeric port matching is exact and restricted to 0–65535; order/source are preserved; filtering causes no actions | Vitest helper and UI fixtures | FR-005             | Automated and PR CI pass; macOS manual acceptance recorded; narrow-window and Windows interactive visual validation NOT RUN / deferred |
+| TC-UI-003 | Search field filters visible cards, clear restores results, no-results differs from no-listeners, refresh preserves query, and filtered rows retain safe actions                              | Vitest / Testing Library      | FR-005, FR-007–009 | User accepted the Search UI and visual refinements; deferred interactive checks are listed in the W014 record                          |
