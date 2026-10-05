@@ -175,7 +175,7 @@ validation remains deferred.
 - W014 Search and W013/W013.1 UI behavior remain intact.
 - Rust/frontend tests, local quality/security/docs checks, final PR-head native
   CI, read-only review, and user manual acceptance pass.
-- PR targets `develop`; merge and post-merge verification remain pending.
+- PR #35 targeted `develop` and is merged; post-merge verification passed.
 
 ## Evidence
 
