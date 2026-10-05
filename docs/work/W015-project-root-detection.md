@@ -2,7 +2,7 @@
 
 ## Status
 
-Status: In progress — implementation, read-only review, PR CI, and macOS fixture validation complete; user acceptance pending
+Status: User accepted — integration pending
 
 Branch: `feature/project-root-detection`
 
@@ -136,6 +136,23 @@ An unavailable root is normal and never affects Stop/Force authorization.
   Validation, and Windows Native Validation. The final read-only re-review of
   `91001d1` found no actionable findings.
 
+## Final User Acceptance
+
+Manual validation: **PASS** — the user reports no blocking issue and accepts
+W015. Accepted behavior includes detection from the existing process Working
+Directory, nearest supported marker selection by ancestor-only traversal,
+nearer project markers taking precedence over more distant Git/workspace
+markers, no whole-filesystem scan or Git CLI dependency, optional
+presentation-only Project Root metadata, no effect on process identity or
+Stop/Force authorization, listener visibility when root metadata is absent,
+and continued Search/Runtime Inspector operation.
+
+The user's overall manual acceptance does not change the record of checks that
+were not individually performed in the controlled fixture session: narrow-
+window validation and interactive Windows validation remain **NOT RUN /
+deferred**. The current Windows provider does not expose process Working
+Directory metadata. The automated Windows Native Validation passed.
+
 ## Manual Validation Plan
 
 On macOS, use controlled listeners launched from a simple project, a nested
@@ -152,13 +169,14 @@ validation remains deferred.
   behavior remain unchanged.
 - W014 Search and W013/W013.1 UI behavior remain intact.
 - Rust/frontend tests, local quality/security/docs checks, final PR-head native
-  CI, and read-only review pass. User acceptance remains pending.
-- PR targets `develop` and remains open pending explicit user acceptance.
+  CI, read-only review, and user manual acceptance pass.
+- PR targets `develop`; merge and post-merge verification remain pending.
 
 ## Evidence
 
 Implementation is on the dedicated branch. The final read-only review and
-final-head PR CI are complete. The packaged macOS simple-root/no-root, Refresh,
-Search-by-port, and Clear checks are recorded above. Long-path, narrow-window,
-and interactive Windows visual validation remain deferred; explicit user
-acceptance is pending.
+final-head PR CI and user acceptance are complete. The packaged macOS
+simple-root/no-root, Refresh, Search-by-port, and Clear checks are recorded
+above. Narrow-window and interactive Windows visual validation remain
+deferred. W015 status becomes Done on merge after integration and post-merge
+verification.
