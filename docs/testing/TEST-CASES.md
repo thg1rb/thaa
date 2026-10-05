@@ -6,13 +6,13 @@ This catalog anchors requirement and threat verification. Per-case status record
 
 ## Existing P0 acceptance cases
 
-| ID            | Requirement   | Future evidence                                                                      | Status                                                                                                 |
-| ------------- | ------------- | ------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------ |
-| TC-001–TC-004 | FR-001–FR-004 | Native port discovery, normalization/binding, and refresh behavior                   | Not implemented                                                                                        |
-| TC-005        | FR-005        | Search by process display name or exact numeric port; filtering is presentation-only | W014 implementation, read-only review, local checks, and initial PR CI passed; user acceptance pending |
-| TC-006–TC-007 | FR-006–FR-007 | Process presentation, validated local URL/copy behavior                              | Implemented in W013; prior evidence retained                                                           |
-| TC-008–TC-009 | FR-008–FR-009 | Safe graceful and explicit force-stop outcomes                                       | Not implemented                                                                                        |
-| TC-010–TC-011 | FR-010–FR-011 | macOS menu-bar/Windows tray and required UI/error states                             | Not implemented                                                                                        |
+| ID            | Requirement   | Future evidence                                                                      | Status                                                                                             |
+| ------------- | ------------- | ------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------- |
+| TC-001–TC-004 | FR-001–FR-004 | Native port discovery, normalization/binding, and refresh behavior                   | Not implemented                                                                                    |
+| TC-005        | FR-005        | Search by process display name or exact numeric port; filtering is presentation-only | W014 implementation and refinement review/local checks/final PR CI passed; user acceptance pending |
+| TC-006–TC-007 | FR-006–FR-007 | Process presentation, validated local URL/copy behavior                              | Implemented in W013; prior evidence retained                                                       |
+| TC-008–TC-009 | FR-008–FR-009 | Safe graceful and explicit force-stop outcomes                                       | Not implemented                                                                                    |
+| TC-010–TC-011 | FR-010–FR-011 | macOS menu-bar/Windows tray and required UI/error states                             | Not implemented                                                                                    |
 
 ## Provider and action contracts
 

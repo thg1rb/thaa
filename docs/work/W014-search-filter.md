@@ -145,11 +145,11 @@ validation is not required for this frontend-only change unless available.
 
 ## Validation and Implementation Evidence
 
-The base implementation was reviewed on its earlier PR head; that review
-reported no findings for FR-005 matching, derived-state integrity,
-refresh/query behavior, action isolation, empty states, accessibility, and
-responsive layout. This visual refinement requires its own read-only review.
-PR #34 targets `develop` and remains open pending explicit user acceptance.
+The base implementation and this visual refinement were reviewed read-only.
+The refinement review on commit `6205e53` reported no findings for Search
+timing/semantics, Clear spacing, branding, scrollbar styling, architecture, or
+scope. PR #34 targets `develop` and remains open pending explicit user
+acceptance.
 
 The base implementation checks passed: `cargo fmt --check`,
 `cargo clippy --all-targets -- -D warnings`, `cargo test` (61 unit tests plus
@@ -160,10 +160,11 @@ audit passed for macOS and Windows targets with the repository's two existing
 allowed advisories (RUSTSEC-2024-0370 and RUSTSEC-2024-0429). The local Tauri
 release binary and macOS app bundle builds passed.
 
-PR CI run [37251383479](https://github.com/thg1rb/thaa/actions/runs/37251383479)
-passed Shared Quality, macOS Native Validation, and Windows Native
-Validation on the documentation-evidence update head. Confirm all three
-checks remain green on the latest reviewed PR head before merge.
+PR CI run [37254342991](https://github.com/thg1rb/thaa/actions/runs/37254342991)
+passed Shared Quality, macOS Native Validation, and Windows Native Validation
+on refinement commit `6205e53`. It ran formatting, lint, typecheck, all
+frontend tests/build, documentation links, pnpm and RustSec audits, Rust
+format/Clippy/tests, and macOS and Windows Tauri debug builds.
 
 Manual macOS validation used the bundled app and a controlled local Python
 listener on port 43001. Process-name search was checked with `PYTHON` and
@@ -224,8 +225,10 @@ frontend format, lint, typecheck, and production build; pnpm audit; documentatio
 link and format checks; and `git diff --check`. The Tauri release app bundle was
 built and launched for the native visual checks. RustSec audits for macOS arm64
 and Windows x64 completed with the same two existing allowed advisories,
-RUSTSEC-2024-0370 and RUSTSEC-2024-0429. Final PR CI and refinement review are
-pending on the pushed refinement head.
+RUSTSEC-2024-0370 and RUSTSEC-2024-0429. The read-only refinement review
+reported no findings. All three required CI jobs passed on the pushed
+refinement head. Narrow-window manual validation remains deferred; final user
+acceptance is pending.
 
 W014 is not merged and remains pending explicit user acceptance.
 
