@@ -36,9 +36,14 @@ A cache miss does not skip any check and must build successfully from the
 lockfile.
 
 macOS pull requests run the debug no-bundle app build and an unsigned release-
-profile `dmg` packaging check. The package check verifies ad-hoc signature
-state, DMG integrity and checksum; it does not claim notarization, Gatekeeper
-acceptance or interactive installation. Trusted `develop` pushes/manual runs
+profile `dmg` packaging check. Because Tauri removes its staging app bundle
+after DMG creation, the package check mounts the DMG read-only, checks the
+application executable's ad-hoc signature metadata and arm64 architecture, and
+checks DMG integrity and checksum. The executable is linker-signed but the
+unsigned app bundle has no sealed resource directory, so `codesign --verify` is
+not treated as a valid bundle-integrity check for this unsigned path. It does
+not claim notarization, Gatekeeper acceptance or interactive installation.
+Trusted `develop` pushes/manual runs
 use `pnpm tauri build --no-bundle`. The Windows PR job builds
 `pnpm tauri build --bundles nsis` in release profile and checks the unsigned
 `Thaa_0.1.0_x64-setup.exe` output and SHA-256 manifest; this is

@@ -126,10 +126,8 @@ acceptance.
       records with accurate unsigned warnings and deferred hardening.
 - [x] Prepare the MIT license, release notes, tester guide and announcement.
 - [x] Run local quality/security/docs/workflow static checks.
-- [x] Complete the read-only review of the zero-budget workflow and docs; the
-      checksum guidance and candidate artifact provenance findings were fixed.
-- [ ] Confirm CI passes on the final PR head, including macOS DMG and Windows
-      NSIS packaging.
+- [ ] Re-review the corrected mounted-DMG verification path and updated release
+      workflow, then confirm all required CI on the final PR head.
 - [ ] Present Gate A for explicit user acceptance. Keep PR #37 open until then.
 
 Gate A does **not** require Apple Developer Program membership, Developer ID,
@@ -312,6 +310,11 @@ verify` passed. The mounted app bundle reports version `0.1.0`, identifier
   Developer ID signed, notarized, or stapled. This is acceptable for the
   zero-budget candidate policy, but this local build has not passed Gate B and
   must not be distributed as the accepted release candidate.
+- The ad-hoc linker signature is on the arm64 executable; the unsigned app
+  bundle has no sealed resource directory, so `codesign --verify` reports that
+  bundle resources are absent. CI validates the DMG container/checksum, mounts
+  it read-only, and checks executable architecture plus ad-hoc/no-Team-ID
+  signature metadata. This does not claim Developer ID trust or notarization.
 - Local signing is unavailable: `security find-identity -v -p codesigning`
   reported zero valid identities. The explicit unsigned workflow path requires
   no secrets; the future trusted mode still fails closed unless its credentials
@@ -336,11 +339,16 @@ verify` passed. The mounted app bundle reports version `0.1.0`, identifier
   checksum instructions and candidate artifact retention/provenance findings.
   Final-head CI is pending; earlier CI results do not validate the revised
   workflow.
-- Earlier head `8a896a9edd159afe3d80f0487b700876327e238d` passed CI run
-  `37287257327`, including Windows release-profile NSIS packaging, unsigned
-  status, and checksum checks. This predates the zero-budget workflow changes
-  and does not count as final-head CI. Fresh Shared Quality, macOS DMG, and
-  Windows NSIS validation are pending.
+- CI run `37295364882` passed Shared Quality and Windows Native Validation,
+  including release-profile unsigned NSIS packaging and checksum verification.
+  The macOS DMG built successfully, but its verification step initially failed
+  because Tauri removes its staging app bundle after packaging. CI and release
+  workflow checks now mount the DMG read-only and inspect the bundled app's
+  executable metadata. Local reproduction showed the unsigned linker-signed
+  executable has no sealed app resources, so bundle-level `codesign --verify`
+  is not applicable; the package check instead confirms the arm64 executable,
+  ad-hoc signature metadata, DMG integrity, and SHA-256. A fresh read-only
+  review and CI are pending.
 - External README release/issues/CI/badge URLs returned HTTP 200. The README
   rendered in GitHub Light Mode was reviewed in Chrome. Dark Mode is deferred:
   the available logged-out session did not expose the GitHub appearance
@@ -372,18 +380,21 @@ gates rather than implementation errors:
 - Developer ID signing/notarization/stapling and Windows Authenticode are
   intentionally deferred; the user approved an unsigned preview for both
   platforms with explicit OS warning disclosures.
-- The manual workflow and PR release-profile package validation were reviewed
-  on earlier heads. This zero-budget update superseded their signed-only macOS
-  assumptions. The latest read-only review checked this updated workflow,
-  verified run/SHA/artifact binding and checksum handling, and found no
-  remaining findings. Fresh final-head CI is still required. No candidate was
-  run and no release workflow was dispatched.
+- The zero-budget review checked the README checksum guidance and candidate
+  run/SHA/artifact binding, and the retention mismatch it found was fixed. A
+  follow-up review checked the 90-day retention. The subsequent CI run exposed
+  a staging-app-path assumption in DMG verification; the first correction
+  review identified best-effort cleanup handling, and local reproduction
+  showed bundle-level `codesign --verify` is not valid for this intentionally
+  unsealed unsigned app. The updated mount, executable-metadata, architecture,
+  and strict normal-path cleanup checks require fresh review and CI. No
+  candidate was run and no release workflow was dispatched.
 
-The zero-budget read-only review also confirmed the README's per-artifact
-checksum instructions, 90-day retention for both unsigned candidate artifacts,
-cross-run download permissions, and the Gate B instruction to verify actual
-`release-publish` environment protection before publication. No review
-findings remain.
+The read-only review confirmed the README's per-artifact checksum
+instructions, 90-day candidate artifact retention, cross-run download
+permissions, and the Gate B instruction to verify actual `release-publish`
+environment protection before publication. The mounted-DMG verification
+correction remains under review.
 
 No code changes were required from review. The reviewer also confirmed that
 project license statements and third-party notice boundaries are consistent.

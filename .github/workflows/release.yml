@@ -189,16 +189,29 @@ jobs:
 
       - name: Verify ad-hoc signature, DMG integrity, and checksum
         run: |
-          app="src-tauri/target/release/bundle/macos/Thaa.app"
           dmg="src-tauri/target/release/bundle/dmg/Thaa_0.1.0_aarch64.dmg"
-          test -d "$app"
           test -f "$dmg"
-          codesign --verify --deep --strict --verbose=2 "$app"
-          signature="$(codesign -dv --verbose=4 "$app" 2>&1 || true)"
+          hdiutil verify "$dmg"
+          mount_dir="$(mktemp -d)"
+          cleanup_on_exit() {
+            hdiutil detach -quiet "$mount_dir" >/dev/null 2>&1 || true
+            rmdir "$mount_dir" 2>/dev/null || true
+          }
+          trap cleanup_on_exit EXIT
+          diskutil image attach --readOnly --mountOptions nobrowse --mountPoint "$mount_dir" "$dmg"
+          app="$mount_dir/Thaa.app"
+          test -d "$app"
+          executable_name="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleExecutable' "$app/Contents/Info.plist")"
+          executable="$app/Contents/MacOS/$executable_name"
+          test -f "$executable"
+          lipo -verify_arch arm64 "$executable"
+          signature="$(codesign -dv --verbose=4 "$executable" 2>&1)"
           printf '%s\n' "$signature"
           grep -Fq 'Signature=adhoc' <<< "$signature"
           grep -Fq 'TeamIdentifier=not set' <<< "$signature"
-          hdiutil verify "$dmg"
+          hdiutil detach -quiet "$mount_dir"
+          rmdir "$mount_dir"
+          trap - EXIT
           cd "$(dirname "$dmg")"
           shasum -a 256 "$(basename "$dmg")" > SHA256SUMS.txt
           shasum -a 256 --check SHA256SUMS.txt
@@ -300,16 +313,26 @@ jobs:
         env:
           APPLE_TEAM_ID: ${{ vars.APPLE_TEAM_ID }}
         run: |
-          app="src-tauri/target/release/bundle/macos/Thaa.app"
           dmg="src-tauri/target/release/bundle/dmg/Thaa_0.1.0_aarch64.dmg"
-          test -d "$app"
           test -f "$dmg"
+          hdiutil verify "$dmg"
+          mount_dir="$(mktemp -d)"
+          cleanup_on_exit() {
+            hdiutil detach -quiet "$mount_dir" >/dev/null 2>&1 || true
+            rmdir "$mount_dir" 2>/dev/null || true
+          }
+          trap cleanup_on_exit EXIT
+          diskutil image attach --readOnly --mountOptions nobrowse --mountPoint "$mount_dir" "$dmg"
+          app="$mount_dir/Thaa.app"
+          test -d "$app"
           codesign --verify --deep --strict --verbose=2 "$app"
           codesign -dv --verbose=4 "$app" 2>&1 | grep -F "TeamIdentifier=$APPLE_TEAM_ID"
           xcrun stapler validate "$dmg"
           xcrun stapler validate "$app"
           spctl --assess --type execute --verbose=2 "$app"
-          hdiutil verify "$dmg"
+          hdiutil detach -quiet "$mount_dir"
+          rmdir "$mount_dir"
+          trap - EXIT
           cd "$(dirname "$dmg")"
           shasum -a 256 "$(basename "$dmg")" > SHA256SUMS.txt
           shasum -a 256 --check SHA256SUMS.txt
