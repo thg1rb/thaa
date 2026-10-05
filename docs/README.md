@@ -47,11 +47,11 @@
 - [Visual design tokens and usage](development/VISUAL-DESIGN.md)
 - [Git workflow](development/GIT-WORKFLOW.md)
 - [Actual application directory structure](architecture/DIRECTORY-STRUCTURE.md)
-- [Draft v0.1.0 release notes](releases/v0.1.0-release-notes.md)
-- [Draft v0.1.0 tester guide](releases/v0.1.0-tester-guide.md)
-- [Draft v0.1.0 tester feedback template](releases/v0.1.0-tester-feedback-template.md)
+- [Published v0.1.0 release notes](releases/v0.1.0-release-notes.md)
+- [v0.1.0 selected tester guide](releases/v0.1.0-tester-guide.md)
+- [v0.1.0 tester feedback template](releases/v0.1.0-tester-feedback-template.md)
 - [v0.1.0 release credential checklist](releases/v0.1.0-release-credentials.md)
-- [Draft selected-tester announcement](releases/v0.1.0-tester-announcement.md)
+- [Prepared selected-tester announcement (not sent)](releases/v0.1.0-tester-announcement.md)
 
 ## Agent guidance
 
