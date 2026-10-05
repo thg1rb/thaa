@@ -117,7 +117,7 @@ acceptance.
 - [x] Select Windows 11 x64 unsigned NSIS-only packaging; no MSI.
 - [x] Implement explicit unsigned-default candidate/publish workflow while
       preserving trusted signing as an opt-in path.
-- [ ] Build/verify macOS DMG and Windows NSIS installer in credential-free PR
+- [x] Build/verify macOS DMG and Windows NSIS installer in credential-free PR
       CI; generate and verify SHA-256 checksums.
 - [x] Define the reviewed `develop` → `main` release PR and post-promotion
       candidate, accepted-SHA tag, and manual-publication sequence. Do not
@@ -126,8 +126,10 @@ acceptance.
       records with accurate unsigned warnings and deferred hardening.
 - [x] Prepare the MIT license, release notes, tester guide and announcement.
 - [x] Run local quality/security/docs/workflow static checks.
-- [ ] Re-review the corrected mounted-DMG verification path and updated release
-      workflow, then confirm all required CI on the final PR head.
+- [x] Re-review the corrected mounted-DMG verification path and updated release
+      workflow.
+- [ ] Confirm all required CI on the final PR head after the latest
+      documentation status update.
 - [ ] Present Gate A for explicit user acceptance. Keep PR #37 open until then.
 
 Gate A does **not** require Apple Developer Program membership, Developer ID,
@@ -349,8 +351,13 @@ verify` passed. The mounted app bundle reports version `0.1.0`, identifier
   linker-signed executable has no sealed app resources, so bundle-level
   `codesign --verify` is not applicable; the package check confirms the arm64
   executable, ad-hoc signature metadata, DMG integrity, and SHA-256. The Xcode
-  argument order is corrected and passed read-only follow-up review; fresh CI
-  for that correction is pending.
+  argument order is corrected and passed read-only follow-up review. CI run
+  `37298088535` passed Shared Quality, macOS Native Validation (including the
+  mounted-DMG architecture/signature/checksum step), and Windows Native
+  Validation including release-profile NSIS packaging, on head
+  `fa995a0606f07fb6e5fb22a3ed6c530097cbb0d9`. A documentation-only status
+  update is now being reviewed and requires a fresh CI run. No candidate was
+  run and no release workflow was dispatched.
 - External README release/issues/CI/badge URLs returned HTTP 200. The README
   rendered in GitHub Light Mode was reviewed in Chrome. Dark Mode is deferred:
   the available logged-out session did not expose the GitHub appearance
@@ -390,14 +397,17 @@ gates rather than implementation errors:
   showed bundle-level `codesign --verify` is not valid for this intentionally
   unsealed unsigned app. CI then identified an Xcode `lipo` argument-order
   mismatch after successfully mounting and inspecting the DMG. The corrected
-  argument order passed read-only follow-up review; fresh CI is still pending.
-  No candidate was run and no release workflow was dispatched.
+  argument order passed read-only follow-up review, and CI run `37298088535`
+  passed all three required checks on head `fa995a0606f07fb6e5fb22a3ed6c530097cbb0d9`.
+  A documentation-only update is pending final-head review/CI. No candidate
+  was run and no release workflow was dispatched.
 
 The read-only review confirmed the README's per-artifact checksum
 instructions, 90-day candidate artifact retention, cross-run download
 permissions, and the Gate B instruction to verify actual `release-publish`
-environment protection before publication. The mounted-DMG verification
-correction remains under review.
+environment protection before publication. Its follow-up review found no
+blocking issues in mounted-DMG inspection, executable signature metadata,
+architecture validation, or cleanup behavior.
 
 No code changes were required from review. The reviewer also confirmed that
 project license statements and third-party notice boundaries are consistent.
