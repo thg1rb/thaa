@@ -163,7 +163,7 @@ The coordinator publishes one committed snapshot and safe status to interested U
 
 ## Traceability
 
-These flows support FR-001–FR-006, FR-008–FR-011, NFR-003/005/006/008/009, and PR-004/005/006/009. Project context (FR-012/013) remains later P1 enrichment and is not inserted into the P0 scan path.
+These flows support FR-001–FR-006, FR-008–FR-012, NFR-003/005/006/008/009, and PR-004/005/006/009. Git context (FR-013) remains deferred.
 
 W013.1 keeps optional process-icon work outside the critical runtime scan. The
 runtime snapshot assigns snapshot-scoped icon references to inspected processes
@@ -175,3 +175,15 @@ that snapshot. The UI shows Thaa fallback marks while resolution is pending or
 unavailable. Icon failure cannot fail process inspection or remove a listener
 row, and stale-generation requests return no assets. Icons never participate
 in `ProcessIdentity` or `ProcessActionTarget`.
+
+W015 derives optional project-root context during the existing blocking
+runtime scan, after each unique process inspection. It canonicalizes the
+available working directory and checks documented markers in that directory
+and its ancestors, nearest first, stopping before an ancestor crosses a
+mounted-filesystem boundary. The platform adapter uses Unix device identity or
+the Windows volume mount path for this check. The optional path is attached to each
+runtime entry and transported to the Runtime Card; detection failure does not
+fail the scan or remove a listener. It is not part of process identity or
+action-target construction. Windows currently has no working-directory value
+from its provider, so root context is unavailable there without changing that
+provider.

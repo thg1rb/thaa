@@ -34,6 +34,7 @@ export function RuntimeCard({
   const processName = displayName(entry);
   const executable = info ? availableText(info.executablePath) : null;
   const workingDirectory = info ? availableText(info.workingDirectory) : null;
+  const projectRoot = entry.projectRoot ? safeDisplay(entry.projectRoot) : null;
   const pid = entry.processId;
 
   return (
@@ -106,6 +107,9 @@ export function RuntimeCard({
           {workingDirectory && (
             <span title={workingDirectory}>in {workingDirectory}</span>
           )}
+          {projectRoot && (
+            <span title={projectRoot}>Project root · {projectRoot}</span>
+          )}
           {info && info.name.state !== "available" && (
             <span className="muted-metadata">Process name unavailable</span>
           )}
@@ -116,7 +120,7 @@ export function RuntimeCard({
                 : "Owner not identified"}
             </span>
           )}
-          {info && !executable && !workingDirectory && (
+          {info && !executable && !workingDirectory && !projectRoot && (
             <span className="muted-metadata">
               Additional process details unavailable
             </span>

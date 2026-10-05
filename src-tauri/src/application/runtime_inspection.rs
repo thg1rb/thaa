@@ -2,6 +2,7 @@
 
 use std::collections::HashMap;
 use std::fmt;
+use std::path::PathBuf;
 use std::sync::{Arc, Condvar, Mutex, MutexGuard};
 use std::time::SystemTime;
 
@@ -10,9 +11,11 @@ use crate::application::process_icons::{
     SNAPSHOT_ICON_MAX_COUNT,
 };
 use crate::application::process_inspection::inspect_processes;
+use crate::application::project_root::detect_project_root;
 use crate::domain::capabilities::{
     CapabilitySupport, PlatformCapabilities, PlatformCapabilitiesProvider,
 };
+use crate::domain::metadata::FieldAvailability;
 use crate::domain::network::NetworkListener;
 use crate::domain::port_provider::{PortProvider, PortProviderErrorKind, PortScanCompleteness};
 use crate::domain::process::{ProcessId, ProcessInfo};
@@ -28,6 +31,9 @@ pub struct RuntimeEntry {
     pub entry_ref: String,
     pub listener: NetworkListener,
     pub process: Option<Result<ProcessInfo, ProcessProviderError>>,
+    /// Optional local context derived from the observed working directory.
+    /// This is presentation metadata, never process identity evidence.
+    pub project_root: Option<PathBuf>,
     /// A snapshot-scoped lookup reference, not an authorization token.
     pub action_target_ref: Option<String>,
     /// Snapshot-scoped presentation reference; never used as process identity.
@@ -91,10 +97,16 @@ impl RuntimeScanner {
         let mut action_targets = HashMap::new();
         let mut reference_by_pid = HashMap::new();
         let mut icon_reference_by_pid = HashMap::new();
+        let mut project_root_by_pid = HashMap::new();
         let mut icon_sources = Vec::new();
         for (index, outcome) in inspections.into_iter().enumerate() {
             let pid = outcome.requested_process_id.get();
             if let Ok(info) = &outcome.result {
+                if let FieldAvailability::Available(working_directory) = &info.working_directory {
+                    if let Some(project_root) = detect_project_root(working_directory) {
+                        project_root_by_pid.insert(pid, project_root);
+                    }
+                }
                 if icon_sources.len() < SNAPSHOT_ICON_MAX_COUNT {
                     let reference = format!("icon-{generation:x}-{:x}", icon_sources.len());
                     icon_reference_by_pid.insert(pid, reference.clone());
@@ -119,6 +131,7 @@ impl RuntimeScanner {
                     entry_ref: next_entry_ref(generation, index),
                     listener,
                     process: pid.and_then(|pid| inspection_by_pid.get(&pid).cloned()),
+                    project_root: pid.and_then(|pid| project_root_by_pid.get(&pid).cloned()),
                     action_target_ref: pid.and_then(|pid| reference_by_pid.get(&pid).cloned()),
                     process_icon_ref: pid.and_then(|pid| icon_reference_by_pid.get(&pid).cloned()),
                 }
@@ -479,6 +492,7 @@ mod tests {
     use std::ffi::OsString;
     use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
     use std::num::NonZeroU16;
+    use std::path::PathBuf;
     use std::sync::atomic::{AtomicUsize, Ordering};
     use std::sync::{Arc, Barrier, Mutex};
     use std::thread;
@@ -565,6 +579,16 @@ mod tests {
     }
 
     fn process(pid: u32) -> ProcessInfo {
+        process_with_working_directory(
+            pid,
+            FieldAvailability::Unavailable(UnavailableReason::ProviderLimitation),
+        )
+    }
+
+    fn process_with_working_directory(
+        pid: u32,
+        working_directory: FieldAvailability<PathBuf>,
+    ) -> ProcessInfo {
         ProcessInfo {
             identity: ProcessIdentity {
                 pid: ProcessId::new(pid),
@@ -577,9 +601,7 @@ mod tests {
             command_arguments: FieldAvailability::Unavailable(
                 UnavailableReason::ProviderLimitation,
             ),
-            working_directory: FieldAvailability::Unavailable(
-                UnavailableReason::ProviderLimitation,
-            ),
+            working_directory,
         }
     }
 
@@ -634,6 +656,92 @@ mod tests {
             snapshot.capabilities.force_stop,
             CapabilitySupport::Supported
         );
+    }
+
+    #[test]
+    fn project_root_enrichment_is_optional_and_does_not_change_action_target() {
+        static NEXT_PROJECT_FIXTURE: AtomicUsize = AtomicUsize::new(0);
+        let fixture_id = NEXT_PROJECT_FIXTURE.fetch_add(1, Ordering::Relaxed);
+        let working_directory = std::env::temp_dir().join(format!(
+            "thaa-runtime-project-root-{}-{fixture_id}",
+            std::process::id()
+        ));
+        let project_root = working_directory.join("project");
+        let nested = project_root.join("src");
+        std::fs::create_dir_all(&nested).expect("create working directory fixture");
+        std::fs::write(project_root.join("package.json"), b"{}").expect("create marker");
+
+        let (inspector, _, _) = inspector(
+            complete(vec![
+                listener(Some(IpAddr::V4(Ipv4Addr::LOCALHOST)), 3000, Some(7)),
+                listener(Some(IpAddr::V4(Ipv4Addr::LOCALHOST)), 3001, Some(7)),
+            ]),
+            [(
+                7,
+                Ok(process_with_working_directory(
+                    7,
+                    FieldAvailability::Available(nested),
+                )),
+            )],
+        );
+        let snapshot = inspector.snapshot_or_initialize().expect("scan succeeds");
+        let expected_root = std::fs::canonicalize(&project_root).expect("canonical fixture root");
+        assert_eq!(snapshot.entries.len(), 2);
+        assert!(snapshot.entries.iter().all(|entry| {
+            entry.project_root.as_ref() == Some(&expected_root) && entry.action_target_ref.is_some()
+        }));
+
+        std::fs::remove_dir_all(working_directory).expect("remove working directory fixture");
+    }
+
+    #[test]
+    fn unavailable_project_root_does_not_hide_listener_or_action() {
+        let (inspector, _, _) = inspector(
+            complete(vec![listener(
+                Some(IpAddr::V4(Ipv4Addr::LOCALHOST)),
+                3000,
+                Some(7),
+            )]),
+            [(7, Ok(process(7)))],
+        );
+        let snapshot = inspector.snapshot_or_initialize().expect("scan succeeds");
+        assert_eq!(snapshot.entries.len(), 1);
+        assert_eq!(snapshot.entries[0].project_root, None);
+        assert!(snapshot.entries[0].action_target_ref.is_some());
+    }
+
+    #[test]
+    fn no_project_marker_does_not_hide_listener_or_action() {
+        static NEXT_NO_ROOT_FIXTURE: AtomicUsize = AtomicUsize::new(0);
+        let fixture_id = NEXT_NO_ROOT_FIXTURE.fetch_add(1, Ordering::Relaxed);
+        let working_directory = std::env::temp_dir().join(format!(
+            "thaa-runtime-no-project-{}-{fixture_id}/nested",
+            std::process::id()
+        ));
+        std::fs::create_dir_all(&working_directory).expect("create unmarked working directory");
+
+        let (inspector, _, _) = inspector(
+            complete(vec![listener(
+                Some(IpAddr::V4(Ipv4Addr::LOCALHOST)),
+                3000,
+                Some(7),
+            )]),
+            [(
+                7,
+                Ok(process_with_working_directory(
+                    7,
+                    FieldAvailability::Available(working_directory.clone()),
+                )),
+            )],
+        );
+        let snapshot = inspector.snapshot_or_initialize().expect("scan succeeds");
+
+        assert_eq!(snapshot.entries.len(), 1);
+        assert_eq!(snapshot.entries[0].project_root, None);
+        assert!(snapshot.entries[0].action_target_ref.is_some());
+
+        std::fs::remove_dir_all(working_directory.parent().expect("fixture parent"))
+            .expect("remove unmarked fixture");
     }
 
     #[test]

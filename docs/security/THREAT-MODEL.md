@@ -181,6 +181,16 @@ Likelihood and impact are qualitative design-time estimates. Every mitigation an
 - **Residual risk:** Compromised frontend code can still issue valid requests; backend policy and identity/action checks remain authoritative.
 - **References / status:** NFR-003/005; PR-005/008; W003 Tauri boundary and ADR-003; TC-SEC-008. **Not implemented.**
 
+### THR-015 — Unsafe or misleading project-root metadata
+
+- **Asset / boundary:** Local filesystem path privacy and user trust; process working directory → application filesystem checks → runtime DTO/UI.
+- **Scenario:** An inaccessible, deleted, symlinked, or attacker-controlled path causes unbounded traversal, false project context, project-file execution, data disclosure, or a runtime scan failure.
+- **Impact / likelihood:** Medium / Low.
+- **Mitigation:** Canonicalize the supplied working directory; inspect only documented marker existence/types in that directory and its ancestors; stop at filesystem boundaries; fail closed to no project root on access/canonicalization errors; never read marker contents, execute project code, log paths, or make actions depend on the result. Preserve the listener when metadata is unavailable.
+- **Verification:** Temporary fixtures cover marker precedence, nested/workspace roots, symlinked starting paths, unavailable paths, and listener/action-target preservation; review confirms no recursive scan or subprocess use.
+- **Residual risk:** The filesystem can change between metadata checks and later display; the value is contextual best-effort metadata and must not authorize filesystem/process operations.
+- **References / status:** FR-012; PR-001/004/007; ADR-006; TC-012. **W015 in progress.**
+
 ## Security review and finding disposition
 
 Mandatory review triggers are listed in [Engineering Security Baseline](SECURITY.md). Critical and High findings block merge. Medium findings block when required safety or acceptance remains unmet; other Medium/Low issues need explicit follow-up/owner and rationale. All findings use the repository severity terms; no CVSS score is required.
