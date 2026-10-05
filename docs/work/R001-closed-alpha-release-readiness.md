@@ -265,6 +265,16 @@ verify` passed. The mounted app bundle reports version `0.1.0`, identifier
   and integration tests, frontend format/lint/typecheck, 48 frontend tests,
   production frontend build, npm audit, both RustSec target audits, maintained
   documentation formatting, local Markdown links, and `git diff --check`.
+- Release workflow static checks passed: actionlint, Ruby YAML parsing,
+  Prettier, and static read-only security review. The final workflow review
+  found no blocking findings; protected GitHub environments, immutable tag
+  ruleset, credentials, and runtime candidate validation remain unconfigured
+  or unperformed.
+- PR head `8a896a9edd159afe3d80f0487b700876327e238d` passed CI run `37287257327`:
+  Shared Quality, macOS Native Validation, and Windows Native Validation. The
+  Windows job built the release-profile NSIS package, checked its expected
+  name, confirmed it is unsigned, and verified its SHA-256 manifest. This is
+  packaging CI evidence, not a clean-machine installation test.
 - External README release/issues/CI/badge URLs returned HTTP 200. The README
   rendered in GitHub Light Mode was reviewed in Chrome. Dark Mode is deferred:
   the available logged-out session did not expose the GitHub appearance
@@ -294,9 +304,10 @@ gates rather than implementation errors:
 - Developer ID signing/notarization/stapling and clean-machine validation are
   outstanding. Windows Authenticode is intentionally not configured: user
   approved unsigned NSIS distribution with explicit warning.
-- A manual/tag release workflow and release-profile Windows NSIS validation are
-  now configured in source; they require fresh CI/review. No candidate was run
-  and no release workflow was dispatched.
+- The manual release workflow and release-profile Windows NSIS validation are
+  configured in source. Static/read-only review and CI run `37287257327` passed
+  on head `8a896a9edd159afe3d80f0487b700876327e238d`. No candidate was run and
+  no release workflow was dispatched.
 
 No code changes were required from review. The reviewer also confirmed that
 project license statements and third-party notice boundaries are consistent.
