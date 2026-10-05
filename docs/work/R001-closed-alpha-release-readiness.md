@@ -128,7 +128,7 @@ acceptance.
 - [x] Run local quality/security/docs/workflow static checks.
 - [x] Re-review the corrected mounted-DMG verification path and updated release
       workflow.
-- [ ] Confirm all required CI on the final PR head after the latest
+- [x] Confirm all required CI on the final PR head after the latest
       documentation status update.
 - [ ] Present Gate A for explicit user acceptance. Keep PR #37 open until then.
 
@@ -355,9 +355,9 @@ verify` passed. The mounted app bundle reports version `0.1.0`, identifier
   `37298088535` passed Shared Quality, macOS Native Validation (including the
   mounted-DMG architecture/signature/checksum step), and Windows Native
   Validation including release-profile NSIS packaging, on head
-  `fa995a0606f07fb6e5fb22a3ed6c530097cbb0d9`. A documentation-only status
-  update is now being reviewed and requires a fresh CI run. No candidate was
-  run and no release workflow was dispatched.
+  `fa995a0606f07fb6e5fb22a3ed6c530097cbb0d9`. A documentation-only checklist
+  synchronization is the only remaining repository change and will receive
+  fresh CI. No candidate was run and no release workflow was dispatched.
 - External README release/issues/CI/badge URLs returned HTTP 200. The README
   rendered in GitHub Light Mode was reviewed in Chrome. Dark Mode is deferred:
   the available logged-out session did not expose the GitHub appearance
@@ -399,8 +399,9 @@ gates rather than implementation errors:
   mismatch after successfully mounting and inspecting the DMG. The corrected
   argument order passed read-only follow-up review, and CI run `37298088535`
   passed all three required checks on head `fa995a0606f07fb6e5fb22a3ed6c530097cbb0d9`.
-  A documentation-only update is pending final-head review/CI. No candidate
-  was run and no release workflow was dispatched.
+  A final checklist synchronization records the completed Gate A checks and
+  is being validated by fresh CI. No candidate was run and no release workflow
+  was dispatched.
 
 The read-only review confirmed the README's per-artifact checksum
 instructions, 90-day candidate artifact retention, cross-run download
