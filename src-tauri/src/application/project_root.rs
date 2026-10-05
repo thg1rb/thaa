@@ -15,7 +15,11 @@ pub(crate) fn detect_project_root(working_directory: &Path) -> Option<PathBuf> {
 
     let mut current = canonical_directory.as_path();
     loop {
-        match crate::platform::same_filesystem(working_directory, current) {
+        // Use the canonicalized start path here as well as for traversal. On
+        // Windows, the original path may be a DOS path while canonicalize
+        // returns an extended-length path; comparing volume names derived
+        // from those two spellings can falsely report different volumes.
+        match crate::platform::same_filesystem(&canonical_directory, current) {
             Ok(true) => {}
             Ok(false) | Err(_) => return None,
         }

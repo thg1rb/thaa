@@ -2,7 +2,7 @@
 
 ## Status
 
-Status: In progress — implementation and local automated validation complete; review, PR CI, and user acceptance pending
+Status: In progress — implementation, read-only review, and macOS fixture validation complete; PR CI and user acceptance pending
 
 Branch: `feature/project-root-detection`
 
@@ -109,21 +109,26 @@ An unavailable root is normal and never affects Stop/Force authorization.
   `glib`; no new dependency was introduced.
 - The macOS `pnpm tauri build --debug --no-bundle` build passed.
 - A full Windows cross-target check on this macOS host stopped in Tauri's
-  Windows resource build because `llvm-rc` is unavailable. The Windows volume
-  API binding compiled in an isolated Windows-target probe; hosted Windows
-  Native Validation remains authoritative and pending.
-- A controlled macOS Python listener launched from
-  `/tmp/thaa-w015-manual/project/nested` appeared in the running Runtime
-  Inspector with its expected port and working directory. The surfaced native
-  window was an older dev UI (temporary `T` branding and no Project Root row),
-  while another pre-existing Tauri/Vite session owned port 1420. That UI session
-  could not be safely replaced, so this is not recorded as a W015 UI pass.
-- Manual nested-root, no-root, refresh-with-root, long-path, and action checks
-  remain pending for a current W015 build. Interactive Windows validation is
-  also NOT RUN / deferred; Windows working-directory metadata is unavailable in
-  the existing provider, and Windows Native Validation remains required.
-- No Windows Native Validation or hosted PR CI result is claimed before the PR
-  exists and its final head completes those workflows.
+  Windows resource build because `llvm-rc` is unavailable. The hosted Windows
+  Native Validation ran against the PR but exposed a volume-boundary bug in
+  tests: the detector compared an original DOS path with its canonical
+  extended-length path. The detector now uses the canonical start path
+  consistently for volume comparisons; the corrected final-head hosted check
+  is required before acceptance.
+- A bundled macOS debug app was copied to an isolated temporary app identity
+  and launched, avoiding the pre-existing dev server on port 1420. A controlled
+  Python listener from
+  `/private/tmp/thaa-w015-manual/project/nested` showed the distinct Project
+  Root `/private/tmp/thaa-w015-manual/project`. A second controlled listener
+  from an unmarked directory also remained visible after Refresh and showed no
+  Project Root row. Refresh retained both entries. No Stop/Force action was
+  invoked during this metadata validation.
+- Manual nested Git-root precedence, long-path display, narrow-window
+  validation, and action execution were not separately exercised in the
+  packaged UI. Narrow-window interactive validation remains NOT RUN / deferred
+  because native resizing was unavailable in the validation environment.
+  Interactive Windows visual validation remains NOT RUN / deferred; the
+  existing Windows provider does not provide working-directory metadata.
 
 ## Manual Validation Plan
 
@@ -142,10 +147,13 @@ Windows Native Validation remains required.
 - Rust/frontend tests and local quality/security/docs checks pass; native CI,
   read-only review, current-build macOS manual validation, and user acceptance
   remain pending.
-- PR targets `develop` and remains open pending explicit user acceptance.
+- PR targets `develop` and remains open pending corrected final-head CI and
+  explicit user acceptance.
 
 ## Evidence
 
-Implementation is on the dedicated branch. Local automated validation is
-recorded above. Final PR review, CI, current-build native UI validation, and
-user acceptance remain pending.
+Implementation is on the dedicated branch. The final read-only review found no
+blocking findings; its review covered commit `8aa7060` before the Windows
+volume-path correction. Re-review is required for the updated head. The
+packaged macOS simple-root/no-root and Refresh checks are recorded above.
+Corrected final-head PR CI, re-review, and user acceptance remain pending.
