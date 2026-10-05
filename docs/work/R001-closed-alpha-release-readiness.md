@@ -342,13 +342,15 @@ verify` passed. The mounted app bundle reports version `0.1.0`, identifier
 - CI run `37295364882` passed Shared Quality and Windows Native Validation,
   including release-profile unsigned NSIS packaging and checksum verification.
   The macOS DMG built successfully, but its verification step initially failed
-  because Tauri removes its staging app bundle after packaging. CI and release
-  workflow checks now mount the DMG read-only and inspect the bundled app's
-  executable metadata. Local reproduction showed the unsigned linker-signed
-  executable has no sealed app resources, so bundle-level `codesign --verify`
-  is not applicable; the package check instead confirms the arm64 executable,
-  ad-hoc signature metadata, DMG integrity, and SHA-256. A fresh read-only
-  review and CI are pending.
+  because Tauri removes its staging app bundle after packaging. The mounted-DMG
+  correction then exposed an Xcode `lipo` argument-order mismatch in run
+  `37297128392`; the DMG integrity and read-only mount passed before that
+  architecture check failed. Local reproduction showed the unsigned
+  linker-signed executable has no sealed app resources, so bundle-level
+  `codesign --verify` is not applicable; the package check confirms the arm64
+  executable, ad-hoc signature metadata, DMG integrity, and SHA-256. The Xcode
+  argument order is corrected and passed read-only follow-up review; fresh CI
+  for that correction is pending.
 - External README release/issues/CI/badge URLs returned HTTP 200. The README
   rendered in GitHub Light Mode was reviewed in Chrome. Dark Mode is deferred:
   the available logged-out session did not expose the GitHub appearance
@@ -386,9 +388,10 @@ gates rather than implementation errors:
   a staging-app-path assumption in DMG verification; the first correction
   review identified best-effort cleanup handling, and local reproduction
   showed bundle-level `codesign --verify` is not valid for this intentionally
-  unsealed unsigned app. The updated mount, executable-metadata, architecture,
-  and strict normal-path cleanup checks require fresh review and CI. No
-  candidate was run and no release workflow was dispatched.
+  unsealed unsigned app. CI then identified an Xcode `lipo` argument-order
+  mismatch after successfully mounting and inspecting the DMG. The corrected
+  argument order passed read-only follow-up review; fresh CI is still pending.
+  No candidate was run and no release workflow was dispatched.
 
 The read-only review confirmed the README's per-artifact checksum
 instructions, 90-day candidate artifact retention, cross-run download

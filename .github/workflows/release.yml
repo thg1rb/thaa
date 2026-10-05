@@ -204,7 +204,7 @@ jobs:
           executable_name="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleExecutable' "$app/Contents/Info.plist")"
           executable="$app/Contents/MacOS/$executable_name"
           test -f "$executable"
-          lipo -verify_arch arm64 "$executable"
+          lipo "$executable" -verify_arch arm64
           signature="$(codesign -dv --verbose=4 "$executable" 2>&1)"
           printf '%s\n' "$signature"
           grep -Fq 'Signature=adhoc' <<< "$signature"
