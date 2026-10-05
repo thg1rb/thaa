@@ -2,13 +2,13 @@
 
 ## Status
 
-In progress. **Gate A has been explicitly accepted**; PR #37 integration into
-`develop` and post-merge validation are pending. README/MIT presentation is
-complete. The zero-budget macOS and Windows artifacts are intentionally
-unsigned for selected testers; paid signing is deferred release hardening, not
-a v0.1.0 blocker. Gate B candidate validation remains after Gate A integration
-and promotion. Do not promote to `main` or publish a release without explicit
-acceptance at the applicable gate.
+In progress. **Gate A has been explicitly accepted and PR #37 is integrated
+into `develop`**; post-merge validation passed. Release-promotion PR
+preparation is next. README/MIT presentation is complete. The zero-budget
+macOS and Windows artifacts are intentionally unsigned for selected testers;
+paid signing is deferred release hardening, not a v0.1.0 blocker. Gate B
+candidate validation remains after promotion. Do not promote to `main` or
+publish a release without explicit acceptance at the applicable gate.
 
 Branch: `feature/r001-closed-alpha-readiness`
 
@@ -134,6 +134,13 @@ acceptance.
 - [x] User explicitly accepted Gate A on 2026-10-05 at feature head
       `afa11eec0be72d517b4a1048b000ad64f3974cac`; scope is release
       infrastructure readiness, not Gate B or final `v0.1.0` acceptance.
+- [x] Merge PR #37 into `develop`; merge commit and resulting head are
+      `5955ae02d283728a0a611389789b468edcdc058f`.
+- [x] Post-merge CI run `37304041326` passed Shared Quality, macOS Native
+      Validation, and Windows Native Validation on that resulting `develop`
+      head. The tree matches the PR-tested source tree; PR CI run `37303335329`
+      passed macOS DMG and Windows NSIS packaging verification on the same
+      tree.
 
 Gate A does **not** require Apple Developer Program membership, Developer ID,
 notarization, stapling, Authenticode, or actual release publication.
@@ -429,10 +436,11 @@ deferred because the logged-out browser session cannot change GitHub's site
 appearance.
 
 R001 remains in progress. Gate A was accepted by the user on 2026-10-05 at
-head `afa11eec0be72d517b4a1048b000ad64f3974cac`; integration into `develop`
-and post-merge checks remain pending. Gate B remains a later post-promotion
-candidate-validation gate; paid signing credentials are not a Gate A or
-zero-budget Gate B prerequisite.
+feature head `afa11eec0be72d517b4a1048b000ad64f3974cac`, then merged by PR #37
+as commit `5955ae02d283728a0a611389789b468edcdc058f`. Post-merge CI passed on
+that `develop` head; its tree is identical to the source tree that passed PR
+packaging CI. Gate B remains a later post-promotion candidate-validation gate;
+paid signing credentials are not a Gate A or zero-budget Gate B prerequisite.
 
 ## Gate A Acceptance Record
 
@@ -447,10 +455,22 @@ clean/isolated install, packaged regression, NFR-006 evidence and soak before
 the exact candidate commit may be tagged and published. Paid
 signing/notarization is deferred hardening, not a release gate.
 
+## Gate A Integration Record
+
+- PR: #37, `feature/r001-closed-alpha-readiness` → `develop`, merged using a
+  merge commit.
+- Merge commit and resulting `develop` head:
+  `5955ae02d283728a0a611389789b468edcdc058f`.
+- Post-merge run `37304041326` passed Shared Quality, macOS Native Validation,
+  and Windows Native Validation. The merged tree is identical to PR head
+  `8e0fa40eb92b3d4d30420ab38465090e3f3e0e51`; PR run `37303335329` passed
+  unsigned macOS DMG and Windows NSIS packaging checks on that tree.
+- `main` remains unchanged. No release candidate was dispatched, and no tag,
+  GitHub Release, or tester artifact exists.
+
 ## Stop Boundary
 
-After accepted Gate A is integrated into `develop` and post-merge validation
-passes, prepare a reviewed `develop` → `main` release PR and stop for explicit
-approval before merging it. Do not dispatch candidate workflows, create the
-`v0.1.0` tag, publish a GitHub Release, distribute artifacts, or begin W016
-during this Gate A integration.
+Gate A is integrated and validated. Prepare a reviewed `develop` → `main`
+release PR and stop for explicit approval before merging it. Do not dispatch
+candidate workflows, create the `v0.1.0` tag, publish a GitHub Release,
+distribute artifacts, or begin W016 during this Gate A integration.
