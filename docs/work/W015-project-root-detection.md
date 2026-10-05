@@ -2,7 +2,7 @@
 
 ## Status
 
-Status: In progress — implementation, read-only review, and macOS fixture validation complete; PR CI and user acceptance pending
+Status: In progress — implementation, read-only review, PR CI, and macOS fixture validation complete; user acceptance pending
 
 Branch: `feature/project-root-detection`
 
@@ -109,12 +109,12 @@ An unavailable root is normal and never affects Stop/Force authorization.
   `glib`; no new dependency was introduced.
 - The macOS `pnpm tauri build --debug --no-bundle` build passed.
 - A full Windows cross-target check on this macOS host stopped in Tauri's
-  Windows resource build because `llvm-rc` is unavailable. The hosted Windows
-  Native Validation ran against the PR but exposed a volume-boundary bug in
-  tests: the detector compared an original DOS path with its canonical
-  extended-length path. The detector now uses the canonical start path
-  consistently for volume comparisons; the corrected final-head hosted check
-  is required before acceptance.
+  Windows resource build because `llvm-rc` is unavailable. The first hosted
+  Windows Native Validation exposed a volume-boundary mismatch: the detector
+  compared an original DOS path with its canonical extended-length path. The
+  detector now uses the canonical start path consistently for volume
+  comparisons. Corrected Windows Native Validation passed on final head
+  `91001d1096489799f1a122db326f53c0d3a8f3b7`.
 - A bundled macOS debug app was copied to an isolated temporary app identity
   and launched, avoiding the pre-existing dev server on port 1420. A controlled
   Python listener from
@@ -129,6 +129,12 @@ An unavailable root is normal and never affects Stop/Force authorization.
   because native resizing was unavailable in the validation environment.
   Interactive Windows visual validation remains NOT RUN / deferred; the
   existing Windows provider does not provide working-directory metadata.
+- Packaged macOS Search regression check matched the controlled listener by
+  exact port `43871`; Clear restored the 20-listener view. No process action was
+  invoked by Search.
+- Final PR-head CI run `37264993742` passed Shared Quality, macOS Native
+  Validation, and Windows Native Validation. The final read-only re-review of
+  `91001d1` found no actionable findings.
 
 ## Manual Validation Plan
 
@@ -144,16 +150,15 @@ Windows Native Validation remains required.
 - Root detection is optional and failure-safe; listener and process action
   behavior remain unchanged.
 - W014 Search and W013/W013.1 UI behavior remain intact.
-- Rust/frontend tests and local quality/security/docs checks pass; native CI,
-  read-only review, current-build macOS manual validation, and user acceptance
-  remain pending.
+- Rust/frontend tests, local quality/security/docs checks, final PR-head native
+  CI, and read-only review pass. User acceptance remains pending.
 - PR targets `develop` and remains open pending corrected final-head CI and
   explicit user acceptance.
 
 ## Evidence
 
-Implementation is on the dedicated branch. The final read-only review found no
-blocking findings; its review covered commit `8aa7060` before the Windows
-volume-path correction. Re-review is required for the updated head. The
-packaged macOS simple-root/no-root and Refresh checks are recorded above.
-Corrected final-head PR CI, re-review, and user acceptance remain pending.
+Implementation is on the dedicated branch. The final read-only review and
+final-head PR CI are complete. The packaged macOS simple-root/no-root, Refresh,
+Search-by-port, and Clear checks are recorded above. Long-path, narrow-window,
+and interactive Windows visual validation remain deferred; explicit user
+acceptance is pending.
