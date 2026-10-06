@@ -64,5 +64,9 @@ expect_result 'unknown finding fails closed' 1 70
 : >"$test_dir/report.txt"
 expect_result 'unrecognized nonzero diagnostic fails closed' 1 70
 expect_result 'empty successful diagnostic passes' 0 0
+printf '%s\n' 'Internal Xprotect Error occurred unexpectedly' >"$test_dir/report.txt"
+expect_result 'unstructured output fails closed even with success exit' 1 0
+printf '\n  \n' >"$test_dir/report.txt"
+expect_result 'whitespace-only successful output passes' 0 0
 
 echo 'All macOS syspolicy finding classification tests passed.'

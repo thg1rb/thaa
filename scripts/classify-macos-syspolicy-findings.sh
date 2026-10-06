@@ -18,6 +18,10 @@ thaa_check_syspolicy_findings() {
   ' "$report_file")"
 
   if [[ -z "$findings" ]]; then
+    if grep -q '[^[:space:]]' "$report_file"; then
+      echo "::error::syspolicy_check produced unrecognized output with no structured finding (exit $exit_status); review required."
+      return 1
+    fi
     if [[ "$exit_status" -ne 0 ]]; then
       echo "::error::syspolicy_check exited $exit_status without a recognized finding; review required."
       return 1
