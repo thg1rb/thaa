@@ -60,6 +60,15 @@ expect_result 'unknown structured field inside wrapped error fails closed' 1 70
 write_report <<'EOF'
 Internal Xprotect Error
     Severity: Fatal
+    Full Error: One or more files in your application triggered an Xprotect
+        Severity: Warning
+    Type: Distribution Error
+EOF
+expect_result 'nested recognized field inside wrapped error fails closed' 1 70
+
+write_report <<'EOF'
+Internal Xprotect Error
+    Severity: Fatal
 EOF
 ImageOS=macos15 ImageVersion=20260907.0337.1
 export ImageOS ImageVersion

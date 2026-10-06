@@ -20,12 +20,15 @@ thaa_check_syspolicy_findings() {
       previous_field = ""
       next
     }
-    /^[[:space:]]+(Severity|Full Error|Type):/ {
+    /^    (Severity|Full Error|Type):/ {
       if (!finding) {
         print "__UNSTRUCTURED_SYSPOLICY_OUTPUT__"
         next
       }
-      if ($0 ~ /^[[:space:]]+Severity:/) has_severity = 1
+      if ($0 ~ /^    Severity:/) {
+        if (has_severity) print "__UNSTRUCTURED_SYSPOLICY_OUTPUT__"
+        has_severity = 1
+      }
       previous_field = $0
       next
     }
