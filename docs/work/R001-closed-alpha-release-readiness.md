@@ -820,3 +820,43 @@ the immutable `v0.1.0` tag or replacing its binaries.
 
 The post-publication documentation correction is limited to `develop`; it
 does not change `main`, the tag, or published binaries. W016 remains unstarted.
+
+## macOS v0.1.0 release incident (2026-10-06)
+
+Tester-driven Gate B uncovered a **release-critical macOS distribution
+defect**. The user downloaded the exact published
+`Thaa_0.1.0_aarch64.dmg`; its SHA-256 matched the published digest
+`4365f2a0d91ef5865f3aaad953fdce004c80ed8425272af9ad2c5af8fb438297`. After
+copying the app to `/Applications`, macOS reported “Thaa is damaged and can’t
+be opened.” Strict `codesign --verify --deep --strict --verbose=4` failed with
+`code has no resources but signature indicates they must be present`.
+`syspolicy_check distribution` additionally reported that the bundle signature
+did not fully cover `Info.plist`. These are invalid-bundle-signature defects,
+not the expected ad-hoc identity and missing-notarization findings.
+
+Investigation reproduced the failure from the exact release DMG. The bundle
+contained only an ad-hoc linker signature on the executable (`Info.plist=not
+bound`, `Sealed Resources=none`) and no `_CodeSignature/CodeResources`.
+`tauri.conf.json` did not configure a macOS signing identity, so the completed
+application bundle was not sealed. No post-signing resource mutation was
+identified; DMG integrity passed and the mounted app itself failed strict
+verification. Earlier R001 statements that bundle verification was
+inapplicable to the unsigned path are retained as historical notes and are
+superseded by this incident evidence.
+
+The immutable `v0.1.0` tag and its macOS/Windows assets have not been changed.
+The GitHub Pre-release now carries a temporary macOS known-issue notice.
+macOS testing is paused pending a corrected candidate; Windows testing may
+continue, and the Windows artifact is not currently implicated. Do not bypass
+the invalid signature, remove quarantine, disable Gatekeeper, or weaken system
+security.
+
+R001 remains open in **tester-driven validation plus macOS release-incident
+remediation**. The fix is on `fix/r001-macos-bundle-signature` and prepares
+`0.1.1`; it configures Tauri ad-hoc bundle signing and adds strict checks to
+the completed app and exact mounted-DMG app. Local Apple Silicon release
+packaging passes both strict checks. CI and read-only review are pending. No
+`v0.1.1` candidate/tag/release exists. Before publication, the user must
+download the exact workflow candidate, verify its checksum, install it, pass
+strict codesign verification on `/Applications/Thaa.app`, and confirm the
+invalid-signature “damaged” failure is not reproduced. W016 remains paused.

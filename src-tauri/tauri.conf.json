@@ -1,7 +1,7 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "Thaa",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "identifier": "io.github.thg1rb.thaa",
   "build": {
     "beforeDevCommand": "pnpm dev",
@@ -32,7 +32,8 @@
     "active": true,
     "macOS": {
       "minimumSystemVersion": "15.0",
-      "hardenedRuntime": true
+      "hardenedRuntime": true,
+      "signingIdentity": "-"
     },
     "icon": [
       "icons/32x32.png",

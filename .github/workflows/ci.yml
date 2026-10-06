@@ -148,40 +148,9 @@ jobs:
         if: ${{ github.event_name == 'pull_request' }}
         run: pnpm tauri build --debug --no-bundle
 
-      - name: Tauri macOS unsigned release-profile DMG packaging validation (pull request)
+      - name: Tauri macOS ad-hoc app and DMG packaging validation (pull request)
         if: ${{ github.event_name == 'pull_request' }}
-        run: pnpm tauri build --bundles dmg
-
-      - name: Verify unsigned macOS DMG and checksum (pull request)
-        if: ${{ github.event_name == 'pull_request' }}
-        shell: bash
-        run: |
-          dmg="src-tauri/target/release/bundle/dmg/Thaa_0.1.0_aarch64.dmg"
-          test -f "$dmg"
-          hdiutil verify "$dmg"
-          mount_dir="$(mktemp -d)"
-          cleanup_on_exit() {
-            hdiutil detach -quiet "$mount_dir" >/dev/null 2>&1 || true
-            rmdir "$mount_dir" 2>/dev/null || true
-          }
-          trap cleanup_on_exit EXIT
-          diskutil image attach --readOnly --mountOptions nobrowse --mountPoint "$mount_dir" "$dmg"
-          app="$mount_dir/Thaa.app"
-          test -d "$app"
-          executable_name="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleExecutable' "$app/Contents/Info.plist")"
-          executable="$app/Contents/MacOS/$executable_name"
-          test -f "$executable"
-          lipo "$executable" -verify_arch arm64
-          signature="$(codesign -dv --verbose=4 "$executable" 2>&1)"
-          printf '%s\n' "$signature"
-          grep -Fq 'Signature=adhoc' <<< "$signature"
-          grep -Fq 'TeamIdentifier=not set' <<< "$signature"
-          hdiutil detach -quiet "$mount_dir"
-          rmdir "$mount_dir"
-          trap - EXIT
-          cd "$(dirname "$dmg")"
-          shasum -a 256 "$(basename "$dmg")" > SHA256SUMS.txt
-          shasum -a 256 --check SHA256SUMS.txt
+        run: scripts/package-macos-release.sh 0.1.1
 
       - name: Tauri macOS release build (develop/manual)
         if: ${{ github.event_name != 'pull_request' }}
@@ -241,7 +210,7 @@ jobs:
         if: ${{ github.event_name == 'pull_request' }}
         shell: pwsh
         run: |
-          $installer = 'src-tauri/target/release/bundle/nsis/Thaa_0.1.0_x64-setup.exe'
+          $installer = 'src-tauri/target/release/bundle/nsis/Thaa_0.1.1_x64-setup.exe'
           if (-not (Test-Path $installer)) { throw "Expected installer missing: $installer" }
           $signature = Get-AuthenticodeSignature $installer
           if ($signature.Status -ne 'NotSigned') { throw "Expected unsigned alpha installer; found $($signature.Status)" }
