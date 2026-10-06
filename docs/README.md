@@ -57,6 +57,7 @@
 - [Prepared v0.1.1 tester announcement (not sent)](releases/v0.1.1-tester-announcement.md)
 - [v0.1.1 macOS candidate retest](releases/v0.1.1-macos-retest.md)
 - [v0.1.1 release-notes draft](releases/v0.1.1-release-notes.md)
+- [Authoritative branch and release workflow](releases/RELEASE-WORKFLOW.md)
 
 ## Agent guidance
 
