@@ -109,5 +109,7 @@ format/Clippy/tests and a Tauri build; macOS tests include the W008 controlled
 listener integration. W013 adds the native runtime snapshot integration to
 both macOS and Windows runners. See [CI](../development/CI.md) and [Platform Testing](PLATFORM-TESTING.md)
 for the actual runner/evidence boundaries. Automated checks supplement, never
-replace, the mandatory read-only Sub-agent PR review. Branch protection is not
-configured yet, so PR reviewers must verify the relevant workflow run directly.
+replace, the mandatory read-only Sub-agent PR review. Active `main` and
+`develop` rulesets require PRs and the Shared Quality, macOS Native
+Validation, and Windows Native Validation checks. PR reviewers must still
+inspect the actual run and confirm every required job passed.

@@ -1,7 +1,7 @@
 # Continuous Integration
 
-GitHub Actions validates pull requests targeting `develop`, commits pushed to
-`develop`, and manual workflow runs. CI supplements the required read-only
+GitHub Actions validates pull requests targeting `develop` and `main`, commits
+pushed to `develop` and `main`, and manual workflow runs. CI supplements the required read-only
 Sub-agent review; it does not replace it. Ordinary CI is validation-only and
 requires no project secrets. The separate R001 release workflow is described
 below; it is not triggered by pull requests or ordinary `develop` pushes.
@@ -122,22 +122,22 @@ formatted with `cargo fmt`; Prettier does not format Rust.
 
 ## Required status checks and limitations
 
-GitHub Actions is enabled and workflows use read-only token permissions.
-Branch protection is not currently configured for `develop` or `main`, so
-passing checks are not yet enforced by GitHub as merge requirements. This work
-does not change branch rules; establish required checks after the baseline is
-stable. Until then, the PR merge gate requires the main Agent to inspect the
-current PR-head workflow runs and verify every required job passed.
+GitHub Actions is enabled and ordinary CI uses read-only token permissions.
+The `main` and `develop` branch rulesets require pull requests and the `Shared
+quality`, `macOS native validation`, and `Windows native validation` checks;
+they block force-pushes and deletion and have no bypass actors. The dedicated
+read-only Sub-agent review remains a separate manual merge gate. GitHub
+approval count is not required because the repository has one maintainer.
 
 The separate `.github/workflows/release.yml` is manually dispatched from
-trusted `main`. Candidate mode builds the exact dispatched main commit without
-publishing; macOS defaults to an explicit unsigned/ad-hoc path, while an
-opt-in trusted candidate path retains Developer ID/notarization support. The
-fixed `v0.1.0` publish mode requires unsigned macOS. Windows is unsigned NSIS.
-Publish mode requires the accepted candidate SHA to match the
-`v0.1.0` tag and is manually invoked; a tag push or merge cannot publish. Only
-the publishing job receives `contents: write`. Gate A validates workflow and
-packaging statically/through PR CI; Gate B candidate and interactive release
-validation occur after approved promotion. No candidate/release workflow has
-been run. Linux product builds, self-hosted runners, and automated
-dependency-update workflows remain unconfigured.
+trusted `main`; pushes, merges, and tag creation do not publish. Candidate mode
+builds the exact dispatched main commit without publishing; macOS defaults to
+an explicit ad-hoc bundle-signing path, while an opt-in trusted candidate path
+retains Developer ID/notarization support. The current publish mode is fixed
+to v0.1.1, verifies the accepted source and tag, reuses the candidate
+artifacts, and grants `contents: write` only to the publishing job. Future
+versions require deliberate workflow and release-note updates through the
+reviewed promotion process. See the authoritative [Release Workflow](../releases/RELEASE-WORKFLOW.md)
+for candidate invalidation, tag/artifact identity, post-release
+reconciliation, and the release checklist. Linux product builds, self-hosted
+runners, and automated dependency-update workflows remain unconfigured.
