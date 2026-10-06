@@ -18,4 +18,7 @@ The reviewer inspects the diff, tests, documentation, architecture, security, pl
 
 ## Branch protection
 
-Once the remote repository is initialized and access is available, require PRs and applicable CI checks for `develop` and `main`. Do not treat local branch existence as remote protection.
+The active `Protect main and develop` GitHub ruleset requires pull requests
+and Shared Quality, macOS Native Validation, and Windows Native Validation
+checks; it blocks force-pushes and deletion and has no bypass actors. The
+read-only Sub-agent review remains a separate manual merge gate.
