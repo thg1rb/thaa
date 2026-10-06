@@ -871,3 +871,42 @@ not publication. The user must still verify the downloaded checksum, install
 the app, pass strict codesign verification on `/Applications/Thaa.app`, and
 confirm the invalid-signature “damaged” failure is not reproduced. W016
 remains paused.
+
+## v0.1.1 publication and R001.1 incident closeout (2026-10-06)
+
+The user completed the mandatory manual retest of the exact v0.1.1 macOS
+candidate. The downloaded DMG SHA-256 matched
+`552253c0f8706f8e92bc12e73b3d62cf361f71072ded7bced3b0f45b432a8cb4`.
+Installed-app strict codesign verification returned exit `0`, with “valid on
+disk” and “satisfies its Designated Requirement.” The user reported ad-hoc
+runtime signing, no Team ID, `Info.plist entries=14`, and a valid sealed
+resource section (`version=2 rules=13 files=1`). macOS showed its malware
+verification warning; **System Settings → Privacy & Security → Open Anyway**
+was available and the app launched. The `v0.1.0` “damaged” message did not
+recur, no explicit XProtect malware block occurred, and the user reported the
+tested functionality worked normally. The OS version was not provided, and no
+individual feature PASS claims are inferred from the general smoke result.
+
+The frozen candidate source remains
+`b2784bf97b115e7e8ad10dff4f4ef5c29c3171fb`, candidate run `37404687237`.
+Annotated tag `v0.1.1` points to that exact source. Publish run
+[37417122125](https://github.com/thg1rb/thaa/actions/runs/37417122125)
+reused both candidate artifacts without platform rebuild, then published
+[Thaa v0.1.1](https://github.com/thg1rb/thaa/releases/tag/v0.1.1) as a public
+Pre-release. Publicly downloaded macOS and Windows assets match their accepted
+candidate hashes exactly; the checksum manifest verifies. The tag ruleset is
+active for tag updates/deletion with no bypass actors.
+
+The original v0.1.0 macOS signature defect is resolved by v0.1.1. The
+v0.1.0 tag and binary assets remain unchanged; its release notice now
+identifies the historical defect and links to v0.1.1. XProtect's generic
+internal error remains classified as a hosted-runner environment diagnostic
+for the tested images, not a candidate-specific finding. Strict bundle
+signature validation remains a hard gate and unknown security findings fail
+closed.
+
+R001.1 is **RESOLVED**. Parent R001 remains **OPEN — TESTER-DRIVEN
+VALIDATION**. Windows interactive clean-machine validation, optional extended
+checks, longer-run stability evidence, and the eight-hour soak were not
+performed as part of this macOS incident retest. W016 remains paused for this
+task; this publication does not start it.
