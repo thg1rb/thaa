@@ -42,7 +42,7 @@ jobs:
           dmg="$RUNNER_TEMP/thaa-candidate/Thaa_0.1.1_aarch64.dmg"
           test -f "$dmg"
           cat "$RUNNER_TEMP/thaa-candidate/SHA256SUMS.txt"
-          scripts/triage-macos-xprotect.sh "$dmg" "$RUNNER_TEMP/xprotect-report"
+          bash scripts/triage-macos-xprotect.sh "$dmg" "$RUNNER_TEMP/xprotect-report"
 
       - name: Upload bounded diagnostic evidence
         if: always()
