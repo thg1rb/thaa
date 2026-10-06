@@ -13,8 +13,10 @@ thaa_check_syspolicy_findings() {
   findings="$(awk '
     /^[[:space:]]*$/ { next }
     /^[[:alnum:]][[:alnum:] .-]*$/ {
+      if (finding && !has_severity) print "__UNSTRUCTURED_SYSPOLICY_OUTPUT__"
       print $0
       finding = 1
+      has_severity = 0
       previous_field = ""
       next
     }
@@ -23,11 +25,23 @@ thaa_check_syspolicy_findings() {
         print "__UNSTRUCTURED_SYSPOLICY_OUTPUT__"
         next
       }
+      if ($0 ~ /^[[:space:]]+Severity:/) has_severity = 1
       previous_field = $0
       next
     }
-    /^[[:space:]]+/ && previous_field ~ /^[[:space:]]+Full Error:/ { next }
+    /^[[:space:]]+/ && previous_field ~ /^[[:space:]]+Full Error:/ {
+      continuation = $0
+      match(continuation, /[^[:space:]]/)
+      indent = RSTART - 1
+      sub(/^[[:space:]]+/, "", continuation)
+      if (indent >= 8 && continuation !~ /^[[:alnum:] .-]+:/) next
+      print "__UNSTRUCTURED_SYSPOLICY_OUTPUT__"
+      next
+    }
     { print "__UNSTRUCTURED_SYSPOLICY_OUTPUT__" }
+    END {
+      if (finding && !has_severity) print "__UNSTRUCTURED_SYSPOLICY_OUTPUT__"
+    }
   ' "$report_file")"
 
   unstructured_output="$(grep -F '__UNSTRUCTURED_SYSPOLICY_OUTPUT__' <<< "$findings" || true)"

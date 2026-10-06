@@ -50,6 +50,16 @@ expect_result 'recognized finding with structured detail fields' 0 70
 write_report <<'EOF'
 Internal Xprotect Error
     Severity: Fatal
+    Full Error: One or more files in your application triggered an Xprotect
+        error.
+        Future Field: unclassified nested content
+    Type: Distribution Error
+EOF
+expect_result 'unknown structured field inside wrapped error fails closed' 1 70
+
+write_report <<'EOF'
+Internal Xprotect Error
+    Severity: Fatal
 EOF
 ImageOS=macos15 ImageVersion=20260907.0337.1
 export ImageOS ImageVersion
@@ -90,6 +100,13 @@ Adhoc Signed App
     Future Field: unclassified output
 EOF
 expect_result 'unknown structured field fails closed beside recognized finding' 1 70
+printf '%s\n' 'Adhoc Signed App' >"$test_dir/report.txt"
+expect_result 'recognized finding without severity fails closed' 1 70
+write_report <<'EOF'
+Adhoc Signed App
+    Type: Distribution Error
+EOF
+expect_result 'recognized finding without severity fails closed despite details' 1 70
 printf '\n  \n' >"$test_dir/report.txt"
 expect_result 'whitespace-only successful output passes' 0 0
 
