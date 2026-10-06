@@ -852,11 +852,14 @@ the invalid signature, remove quarantine, disable Gatekeeper, or weaken system
 security.
 
 R001 remains open in **tester-driven validation plus macOS release-incident
-remediation**. The fix is on `fix/r001-macos-bundle-signature` and prepares
-`0.1.1`; it configures Tauri ad-hoc bundle signing and adds strict checks to
-the completed app and exact mounted-DMG app. Local Apple Silicon release
-packaging passes both strict checks. CI and read-only review are pending. No
-`v0.1.1` candidate/tag/release exists. Before publication, the user must
+remediation**. PR #44 merged the `0.1.1` fix into `develop` as
+`0dfe3dd9c59ecfeebcdcf75c4d8ebba12a9d7ea8`. The fix configures Tauri
+ad-hoc bundle signing and strictly verifies the completed app before DMG
+creation and the exact app mounted from the DMG. Shared Quality, macOS Native
+Validation, and Windows Native Validation passed on merged `develop` in run
+`37401203196`; the merge commit tree exactly matches the PR head whose run
+`37399740861` passed the final-DMG signature gate and Windows NSIS packaging.
+No `v0.1.1` candidate/tag/release exists. Before publication, the user must
 download the exact workflow candidate, verify its checksum, install it, pass
 strict codesign verification on `/Applications/Thaa.app`, and confirm the
 invalid-signature “damaged” failure is not reproduced. W016 remains paused.
