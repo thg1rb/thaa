@@ -35,18 +35,20 @@ cache scope and security model](https://docs.github.com/en/actions/reference/wor
 A cache miss does not skip any check and must build successfully from the
 lockfile.
 
-macOS pull requests run the debug no-bundle app build and an unsigned release-
-profile `dmg` packaging check. Because Tauri removes its staging app bundle
-after DMG creation, the package check mounts the DMG read-only, checks the
-application executable's ad-hoc signature metadata and arm64 architecture, and
-checks DMG integrity and checksum. The executable is linker-signed but the
-unsigned app bundle has no sealed resource directory, so `codesign --verify` is
-not treated as a valid bundle-integrity check for this unsigned path. It does
-not claim notarization, Gatekeeper acceptance or interactive installation.
+macOS pull requests run the debug no-bundle app build and the release-profile
+`scripts/package-macos-release.sh` path. Tauri signs the completed app bundle
+with the explicit ad-hoc identity `-`. CI runs strict `codesign --verify
+--deep --strict` before DMG creation and again against the exact app mounted
+from the final DMG. It checks the sealed `CodeResources`, `Info.plist`
+signature coverage, arm64 executable, version, icon, key bundle-file hashes,
+DMG integrity, and checksum. A failure at either signature gate fails CI.
+`syspolicy_check` is diagnostic: expected ad-hoc and missing-notarization
+findings do not claim Apple trust or notarization. This automated package check
+does not claim interactive installation or Gatekeeper acceptance.
 Trusted `develop` pushes/manual runs
 use `pnpm tauri build --no-bundle`. The Windows PR job builds
 `pnpm tauri build --bundles nsis` in release profile and checks the unsigned
-`Thaa_0.1.0_x64-setup.exe` output and SHA-256 manifest; this is
+`Thaa_0.1.1_x64-setup.exe` output and SHA-256 manifest; this is
 packaging/compilation evidence, not interactive Windows installation or
 SmartScreen visual validation. Windows develop/manual runs use
 `pnpm tauri build --no-bundle`.

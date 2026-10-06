@@ -1,6 +1,6 @@
 [package]
 name = "thaa"
-version = "0.1.0"
+version = "0.1.1"
 description = "Thaa — Local Runtime Inspector"
 authors = []
 license = "MIT"

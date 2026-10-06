@@ -1,13 +1,13 @@
 name: Release
 
 run-name: >-
-  Thaa ${{ inputs.mode == 'publish' && 'v0.1.0 pre-release' || 'release candidate' }}
+  Thaa ${{ inputs.mode == 'publish' && 'v0.1.1 pre-release' || 'release candidate' }}
 
 on:
   workflow_dispatch:
     inputs:
       mode:
-        description: Candidate builds artifacts only; publish validates the accepted v0.1.0 source and creates a pre-release
+        description: Candidate builds artifacts only; publish validates the accepted v0.1.1 source and creates a pre-release
         required: true
         type: choice
         options:
@@ -15,7 +15,7 @@ on:
           - publish
         default: candidate
       macos_distribution:
-        description: v0.1.0 publish is unsigned; trusted mode is an optional candidate-only signing/notarization validation path
+        description: v0.1.1 publish is unsigned; trusted mode is an optional candidate-only signing/notarization validation path
         required: true
         type: choice
         options:
@@ -23,10 +23,10 @@ on:
           - trusted
         default: unsigned
       release_tag:
-        description: Final mode accepts only the v0.1.0 tag
+        description: Final mode accepts only the v0.1.1 tag
         required: false
         type: string
-        default: v0.1.0
+        default: v0.1.1
       accepted_candidate_sha:
         description: In publish mode, the exact main commit accepted during candidate validation
         required: false
@@ -98,12 +98,12 @@ jobs:
             exit 0
           fi
 
-          if [[ "$MODE" != "publish" || "$RELEASE_TAG" != "v0.1.0" ]]; then
-            echo "Final publication accepts only mode=publish and release_tag=v0.1.0." >&2
+          if [[ "$MODE" != "publish" || "$RELEASE_TAG" != "v0.1.1" ]]; then
+            echo "Final publication accepts only mode=publish and release_tag=v0.1.1." >&2
             exit 1
           fi
           if [[ "$MACOS_DISTRIBUTION" != "unsigned" ]]; then
-            echo "v0.1.0 publication must use the approved zero-budget unsigned macOS path." >&2
+            echo "v0.1.1 publication must use the approved zero-budget unsigned macOS path." >&2
             exit 1
           fi
           if [[ ! "$ACCEPTED_CANDIDATE_SHA" =~ ^[0-9a-f]{40}$ ]]; then
@@ -114,14 +114,14 @@ jobs:
             echo "Publish mode requires the successful candidate workflow run ID." >&2
             exit 1
           fi
-          git fetch origin refs/tags/v0.1.0:refs/tags/v0.1.0 --no-tags
-          git merge-base --is-ancestor v0.1.0 origin/main || {
-            echo "v0.1.0 must point to an approved commit reachable from main." >&2
+          git fetch origin refs/tags/v0.1.1:refs/tags/v0.1.1 --no-tags
+          git merge-base --is-ancestor v0.1.1 origin/main || {
+            echo "v0.1.1 must point to an approved commit reachable from main." >&2
             exit 1
           }
-          source_commit="$(git rev-parse 'v0.1.0^{commit}')"
+          source_commit="$(git rev-parse 'v0.1.1^{commit}')"
           if [[ "$source_commit" != "$ACCEPTED_CANDIDATE_SHA" ]]; then
-            echo "v0.1.0 must point to the exact accepted candidate commit." >&2
+            echo "v0.1.1 must point to the exact accepted candidate commit." >&2
             exit 1
           fi
           candidate_run="$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$ACCEPTED_CANDIDATE_RUN_ID")"
@@ -184,38 +184,8 @@ jobs:
       - name: Install frontend dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Build unsigned release-profile DMG
-        run: pnpm tauri build --bundles dmg
-
-      - name: Verify ad-hoc signature, DMG integrity, and checksum
-        run: |
-          dmg="src-tauri/target/release/bundle/dmg/Thaa_0.1.0_aarch64.dmg"
-          test -f "$dmg"
-          hdiutil verify "$dmg"
-          mount_dir="$(mktemp -d)"
-          cleanup_on_exit() {
-            hdiutil detach -quiet "$mount_dir" >/dev/null 2>&1 || true
-            rmdir "$mount_dir" 2>/dev/null || true
-          }
-          trap cleanup_on_exit EXIT
-          diskutil image attach --readOnly --mountOptions nobrowse --mountPoint "$mount_dir" "$dmg"
-          app="$mount_dir/Thaa.app"
-          test -d "$app"
-          executable_name="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleExecutable' "$app/Contents/Info.plist")"
-          executable="$app/Contents/MacOS/$executable_name"
-          test -f "$executable"
-          lipo "$executable" -verify_arch arm64
-          signature="$(codesign -dv --verbose=4 "$executable" 2>&1)"
-          printf '%s\n' "$signature"
-          grep -Fq 'Signature=adhoc' <<< "$signature"
-          grep -Fq 'TeamIdentifier=not set' <<< "$signature"
-          hdiutil detach -quiet "$mount_dir"
-          rmdir "$mount_dir"
-          trap - EXIT
-          cd "$(dirname "$dmg")"
-          shasum -a 256 "$(basename "$dmg")" > SHA256SUMS.txt
-          shasum -a 256 --check SHA256SUMS.txt
-          echo "Built an ad-hoc/unsigned macOS preview; notarization and Gatekeeper acceptance are not claimed." >> "$GITHUB_STEP_SUMMARY"
+      - name: Build and verify ad-hoc app bundle and final DMG
+        run: scripts/package-macos-release.sh 0.1.1
         shell: bash
 
       - name: Upload macOS candidate/release artifact
@@ -223,7 +193,7 @@ jobs:
         with:
           name: macos-aarch64
           path: |
-            src-tauri/target/release/bundle/dmg/Thaa_0.1.0_aarch64.dmg
+            src-tauri/target/release/bundle/dmg/Thaa_0.1.1_aarch64.dmg
             src-tauri/target/release/bundle/dmg/SHA256SUMS.txt
           if-no-files-found: error
           retention-days: 90
@@ -313,7 +283,7 @@ jobs:
         env:
           APPLE_TEAM_ID: ${{ vars.APPLE_TEAM_ID }}
         run: |
-          dmg="src-tauri/target/release/bundle/dmg/Thaa_0.1.0_aarch64.dmg"
+          dmg="src-tauri/target/release/bundle/dmg/Thaa_0.1.1_aarch64.dmg"
           test -f "$dmg"
           hdiutil verify "$dmg"
           mount_dir="$(mktemp -d)"
@@ -343,7 +313,7 @@ jobs:
         with:
           name: macos-aarch64
           path: |
-            src-tauri/target/release/bundle/dmg/Thaa_0.1.0_aarch64.dmg
+            src-tauri/target/release/bundle/dmg/Thaa_0.1.1_aarch64.dmg
             src-tauri/target/release/bundle/dmg/SHA256SUMS.txt
           if-no-files-found: error
           retention-days: 90
@@ -380,12 +350,12 @@ jobs:
       - name: Verify unsigned installer identity and checksum
         shell: pwsh
         run: |
-          $installer = 'src-tauri/target/release/bundle/nsis/Thaa_0.1.0_x64-setup.exe'
+          $installer = 'src-tauri/target/release/bundle/nsis/Thaa_0.1.1_x64-setup.exe'
           if (-not (Test-Path $installer)) { throw "Expected installer missing: $installer" }
           $signature = Get-AuthenticodeSignature $installer
           if ($signature.Status -ne 'NotSigned') { throw "Expected unsigned preview installer; found $($signature.Status)" }
           $hash = Get-FileHash -Algorithm SHA256 $installer
-          "$($hash.Hash.ToLower())  Thaa_0.1.0_x64-setup.exe" | Set-Content -NoNewline -Encoding ascii 'src-tauri/target/release/bundle/nsis/SHA256SUMS.txt'
+          "$($hash.Hash.ToLower())  Thaa_0.1.1_x64-setup.exe" | Set-Content -NoNewline -Encoding ascii 'src-tauri/target/release/bundle/nsis/SHA256SUMS.txt'
           $expected = (Get-Content 'src-tauri/target/release/bundle/nsis/SHA256SUMS.txt' -Raw).Trim().Split(' ')[0]
           if ((Get-FileHash -Algorithm SHA256 $installer).Hash.ToLower() -ne $expected) { throw 'Windows installer checksum verification failed.' }
 
@@ -394,7 +364,7 @@ jobs:
         with:
           name: windows-x64
           path: |
-            src-tauri/target/release/bundle/nsis/Thaa_0.1.0_x64-setup.exe
+            src-tauri/target/release/bundle/nsis/Thaa_0.1.1_x64-setup.exe
             src-tauri/target/release/bundle/nsis/SHA256SUMS.txt
           if-no-files-found: error
           retention-days: 90
@@ -435,14 +405,14 @@ jobs:
 
       - name: Assemble exact release assets and checksum manifest
         run: |
-          test -f release-assets/macos/Thaa_0.1.0_aarch64.dmg
-          test -f release-assets/windows/Thaa_0.1.0_x64-setup.exe
+          test -f release-assets/macos/Thaa_0.1.1_aarch64.dmg
+          test -f release-assets/windows/Thaa_0.1.1_x64-setup.exe
           (cd release-assets/macos && shasum -a 256 --check SHA256SUMS.txt)
           (cd release-assets/windows && sha256sum --check SHA256SUMS.txt)
-          cp release-assets/macos/Thaa_0.1.0_aarch64.dmg release-assets/
-          cp release-assets/windows/Thaa_0.1.0_x64-setup.exe release-assets/
+          cp release-assets/macos/Thaa_0.1.1_aarch64.dmg release-assets/
+          cp release-assets/windows/Thaa_0.1.1_x64-setup.exe release-assets/
           cd release-assets
-          sha256sum Thaa_0.1.0_aarch64.dmg Thaa_0.1.0_x64-setup.exe > SHA256SUMS.txt
+          sha256sum Thaa_0.1.1_aarch64.dmg Thaa_0.1.1_x64-setup.exe > SHA256SUMS.txt
           sha256sum --check SHA256SUMS.txt
 
       - name: Confirm immutable tag and create pre-release
@@ -450,20 +420,20 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           EXPECTED_RELEASE_COMMIT: ${{ needs.validate-source.outputs.source_ref }}
         run: |
-          git fetch origin refs/tags/v0.1.0:refs/tags/v0.1.0 --no-tags
-          actual_commit="$(git rev-parse 'refs/tags/v0.1.0^{commit}')"
+          git fetch origin refs/tags/v0.1.1:refs/tags/v0.1.1 --no-tags
+          actual_commit="$(git rev-parse 'refs/tags/v0.1.1^{commit}')"
           if [[ "$actual_commit" != "$EXPECTED_RELEASE_COMMIT" ]]; then
-            echo "v0.1.0 changed after source validation; refusing publication." >&2
+            echo "v0.1.1 changed after source validation; refusing publication." >&2
             exit 1
           fi
-          gh release create v0.1.0 \
+          gh release create v0.1.1 \
             --draft \
             --prerelease \
             --verify-tag \
-            --title 'Thaa v0.1.0' \
-            --notes-file docs/releases/v0.1.0-release-notes.md \
-            release-assets/Thaa_0.1.0_aarch64.dmg \
-            release-assets/Thaa_0.1.0_x64-setup.exe \
+            --title 'Thaa v0.1.1' \
+            --notes-file docs/releases/v0.1.1-release-notes.md \
+            release-assets/Thaa_0.1.1_aarch64.dmg \
+            release-assets/Thaa_0.1.1_x64-setup.exe \
             release-assets/SHA256SUMS.txt
-          gh release edit v0.1.0 --draft=false --prerelease
+          gh release edit v0.1.1 --draft=false --prerelease
         shell: bash
