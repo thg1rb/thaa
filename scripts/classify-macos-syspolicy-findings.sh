@@ -12,6 +12,8 @@ thaa_check_syspolicy_findings() {
 
   findings="$(awk '
     /^[[:space:]]*$/ { next }
+    /^App has failed one or more pre-distribution checks\.$/ { next }
+    /^-{10,}$/ { next }
     /^[[:alnum:]][[:alnum:] .-]*$/ {
       if (finding && !has_severity) print "__UNSTRUCTURED_SYSPOLICY_OUTPUT__"
       print $0
@@ -20,7 +22,7 @@ thaa_check_syspolicy_findings() {
       previous_field = ""
       next
     }
-    /^    (Severity|Full Error|Type):/ {
+    /^    (File|Severity|Full Error|Type):/ {
       if (!finding) {
         print "__UNSTRUCTURED_SYSPOLICY_OUTPUT__"
         next

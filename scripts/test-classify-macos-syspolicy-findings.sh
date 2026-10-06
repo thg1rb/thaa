@@ -48,6 +48,24 @@ export ImageOS ImageVersion
 expect_result 'recognized finding with structured detail fields' 0 70
 
 write_report <<'EOF'
+App has failed one or more pre-distribution checks.
+---------------------------------------------------------------
+Notary Ticket Missing
+    File: Thaa.app
+    Severity: Fatal
+    Full Error: A Notarization ticket is not stapled to this application.
+    Type: Distribution Error
+
+Internal Xprotect Error
+    Severity: Fatal
+    Full Error: One or more files in your application triggered an Xprotect
+        error.
+    Type: Distribution Error
+---------------------------------------------------------------
+EOF
+expect_result 'observed syspolicy distribution report structure' 0 70
+
+write_report <<'EOF'
 Internal Xprotect Error
     Severity: Fatal
     Full Error: One or more files in your application triggered an Xprotect
