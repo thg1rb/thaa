@@ -1,0 +1,54 @@
+name: R001.1 XProtect diagnostic triage
+
+on:
+  pull_request:
+    branches: [develop]
+    paths:
+      - .github/workflows/xprotect-triage.yml
+      - scripts/triage-macos-xprotect.sh
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  xprotect-triage:
+    if: ${{ github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.head.ref == 'fix/r0011-xprotect-triage' }}
+    name: XProtect triage (${{ matrix.runner }})
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        runner: [macos-15, macos-latest]
+    steps:
+      - name: Check out diagnostic script
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Download the frozen v0.1.1 candidate artifact
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: macos-aarch64
+          path: ${{ runner.temp }}/thaa-candidate
+          run-id: 37404687237
+          github-token: ${{ github.token }}
+          repository: ${{ github.repository }}
+
+      - name: Verify downloaded workflow artifact and run triage
+        shell: bash
+        run: |
+          dmg="$RUNNER_TEMP/thaa-candidate/Thaa_0.1.1_aarch64.dmg"
+          test -f "$dmg"
+          cat "$RUNNER_TEMP/thaa-candidate/SHA256SUMS.txt"
+          scripts/triage-macos-xprotect.sh "$dmg" "$RUNNER_TEMP/xprotect-report"
+
+      - name: Upload bounded diagnostic evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: xprotect-triage-${{ matrix.runner }}
+          path: ${{ runner.temp }}/xprotect-report
+          if-no-files-found: warn
+          retention-days: 14
