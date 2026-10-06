@@ -859,7 +859,15 @@ creation and the exact app mounted from the DMG. Shared Quality, macOS Native
 Validation, and Windows Native Validation passed on merged `develop` in run
 `37401203196`; the merge commit tree exactly matches the PR head whose run
 `37399740861` passed the final-DMG signature gate and Windows NSIS packaging.
-No `v0.1.1` candidate/tag/release exists. Before publication, the user must
-download the exact workflow candidate, verify its checksum, install it, pass
-strict codesign verification on `/Applications/Thaa.app`, and confirm the
-invalid-signature “damaged” failure is not reproduced. W016 remains paused.
+The v0.1.1 candidate exists at source
+`b2784bf97b115e7e8ad10dff4f4ef5c29c3171fb` (workflow run `37404687237`), but
+has not been user-launched. The Internal Xprotect Error reproduced on the
+exact candidate and a valid minimal ad-hoc control on the tested GitHub-hosted
+macOS 15 and 26 images; local macOS 27 did not reproduce it. Hosted logs
+showed SystemPolicy assessment/database errors without a file or rule match.
+The incident record classifies it as an environment-specific diagnostic for
+those exact hosted images and clears the frozen candidate for user retesting,
+not publication. The user must still verify the downloaded checksum, install
+the app, pass strict codesign verification on `/Applications/Thaa.app`, and
+confirm the invalid-signature “damaged” failure is not reproduced. W016
+remains paused.

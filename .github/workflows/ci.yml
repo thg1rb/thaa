@@ -76,6 +76,9 @@ jobs:
       - name: Documentation links
         run: pnpm docs:check
 
+      - name: Test macOS system-policy finding classification
+        run: bash scripts/test-classify-macos-syspolicy-findings.sh
+
       - name: JavaScript dependency audit
         run: pnpm audit --audit-level high
 
