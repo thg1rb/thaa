@@ -8,14 +8,52 @@ thaa_check_syspolicy_findings() {
   local findings
   local finding
   local classification_status=0
+  local unstructured_output
 
   findings="$(awk '
-    /^[[:alnum:]][[:alnum:] .-]*$/ { heading = $0 }
-    /^[[:space:]]*Severity:/ {
-      if (heading != "") print heading
-      heading = ""
+    /^[[:space:]]*$/ { next }
+    /^App has failed one or more pre-distribution checks\.$/ { next }
+    /^-{10,}$/ { next }
+    /^[[:alnum:]][[:alnum:] .-]*$/ {
+      if (finding && !has_severity) print "__UNSTRUCTURED_SYSPOLICY_OUTPUT__"
+      print $0
+      finding = 1
+      has_severity = 0
+      previous_field = ""
+      next
+    }
+    /^    (File|Severity|Full Error|Type):/ {
+      if (!finding) {
+        print "__UNSTRUCTURED_SYSPOLICY_OUTPUT__"
+        next
+      }
+      if ($0 ~ /^    Severity:/) {
+        if (has_severity) print "__UNSTRUCTURED_SYSPOLICY_OUTPUT__"
+        has_severity = 1
+      }
+      previous_field = $0
+      next
+    }
+    /^[[:space:]]+/ && previous_field ~ /^[[:space:]]+Full Error:/ {
+      continuation = $0
+      match(continuation, /[^[:space:]]/)
+      indent = RSTART - 1
+      sub(/^[[:space:]]+/, "", continuation)
+      if (indent >= 8 && continuation !~ /^[[:alnum:] .-]+:/) next
+      print "__UNSTRUCTURED_SYSPOLICY_OUTPUT__"
+      next
+    }
+    { print "__UNSTRUCTURED_SYSPOLICY_OUTPUT__" }
+    END {
+      if (finding && !has_severity) print "__UNSTRUCTURED_SYSPOLICY_OUTPUT__"
     }
   ' "$report_file")"
+
+  unstructured_output="$(grep -F '__UNSTRUCTURED_SYSPOLICY_OUTPUT__' <<< "$findings" || true)"
+  if [[ -n "$unstructured_output" ]]; then
+    echo "::error::syspolicy_check produced unrecognized report content (exit $exit_status); review required."
+    return 1
+  fi
 
   if [[ -z "$findings" ]]; then
     if grep -q '[^[:space:]]' "$report_file"; then
@@ -45,6 +83,11 @@ thaa_check_syspolicy_findings() {
             classification_status=1
             ;;
         esac
+        ;;
+      '__UNSTRUCTURED_SYSPOLICY_OUTPUT__')
+        # Handled before classification; keep this defensive in case the
+        # structured report format changes during processing.
+        classification_status=1
         ;;
       *)
         echo "::error::Unclassified syspolicy_check finding: $finding"
