@@ -55,6 +55,7 @@ if grep -Fq 'Info.plist=not bound' <<< "$signature"; then
 fi
 
 if command -v syspolicy_check >/dev/null 2>&1; then
+  source "$(dirname "${BASH_SOURCE[0]}")/classify-macos-syspolicy-findings.sh"
   policy_output="$(mktemp)"
   if syspolicy_check distribution "$app_path" >"$policy_output" 2>&1; then
     policy_status=0
@@ -62,13 +63,12 @@ if command -v syspolicy_check >/dev/null 2>&1; then
     policy_status=$?
   fi
   cat "$policy_output"
-  if grep -Eiq 'Code has no resources but signature indicates they must be present|code signature does not fully cover the bundle.s Info.plist' "$policy_output"; then
+  if ! thaa_check_syspolicy_findings "$policy_output" "$policy_status"; then
     rm -f "$policy_output"
-    echo 'System policy diagnostics found an invalid bundle signature.' >&2
+    echo 'System policy diagnostics found an unclassified or invalid security finding.' >&2
     exit 1
   fi
   rm -f "$policy_output"
-  echo "syspolicy_check exit status: $policy_status (ad-hoc/notarization findings are diagnostic)."
 else
   echo 'syspolicy_check is unavailable; strict codesign verification remains required.'
 fi

@@ -2,9 +2,9 @@ name: CI
 
 on:
   pull_request:
-    branches: [develop]
+    branches: [develop, main]
   push:
-    branches: [develop]
+    branches: [develop, main]
   workflow_dispatch:
 
 permissions:
@@ -75,6 +75,9 @@ jobs:
 
       - name: Documentation links
         run: pnpm docs:check
+
+      - name: Test macOS system-policy finding classification
+        run: bash scripts/test-classify-macos-syspolicy-findings.sh
 
       - name: JavaScript dependency audit
         run: pnpm audit --audit-level high

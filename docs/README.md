@@ -49,11 +49,15 @@
 - [Actual application directory structure](architecture/DIRECTORY-STRUCTURE.md)
 - [Published v0.1.0 release notes](releases/v0.1.0-release-notes.md)
 - [v0.1.0 selected tester guide](releases/v0.1.0-tester-guide.md)
+- [Current v0.1.1 selected tester guide](releases/v0.1.1-tester-guide.md)
+- [v0.1.1 tester feedback template](releases/v0.1.1-tester-feedback-template.md)
 - [v0.1.0 tester feedback template](releases/v0.1.0-tester-feedback-template.md)
 - [v0.1.0 release credential checklist](releases/v0.1.0-release-credentials.md)
 - [Prepared selected-tester announcement (not sent)](releases/v0.1.0-tester-announcement.md)
+- [Prepared v0.1.1 tester announcement (not sent)](releases/v0.1.1-tester-announcement.md)
 - [v0.1.1 macOS candidate retest](releases/v0.1.1-macos-retest.md)
 - [v0.1.1 release-notes draft](releases/v0.1.1-release-notes.md)
+- [Authoritative branch and release workflow](releases/RELEASE-WORKFLOW.md)
 
 ## Agent guidance
 
@@ -64,4 +68,4 @@
 
 ## Current state
 
-The requirements, architecture, security, and testing baselines are established. W013 integrates native listener discovery, process inspection, identity-checked actions, refresh, Tauri IPC, a React runtime list, and tray access into the First Usable Build. W013.1 adds the accepted visual identity and process-icon enrichment. Windows generic Graceful Stop remains unsupported by design. W014 adds client-side search/filter for visible listeners by process name or exact numeric port. W015 project-root detection is user accepted and integrated into `develop`; Windows working-directory availability remains limited by the existing provider. R001 is in tester-driven validation and active macOS release-incident remediation; macOS v0.1.0 testing is paused pending the corrected candidate, while Windows testing may continue. See the [R001 work record](work/R001-closed-alpha-release-readiness.md) and [R001.1 incident record](work/R001.1-macos-bundle-signature-fix.md). W016 remains paused. See `work/` for current work-item and integration status.
+The requirements, architecture, security, and testing baselines are established. W013 integrates native listener discovery, process inspection, identity-checked actions, refresh, Tauri IPC, a React runtime list, and tray access into the First Usable Build. W013.1 adds the accepted visual identity and process-icon enrichment. Windows generic Graceful Stop remains unsupported by design. W014 adds client-side search/filter for visible listeners by process name or exact numeric port. W015 project-root detection is user accepted and integrated into `develop`; Windows working-directory availability remains limited by the existing provider. R001 is in tester-driven validation. Thaa v0.1.1 is published as an Early Preview; the macOS v0.1.0 bundle-signature incident has been resolved, and additional tester evidence remains active. See the [R001 work record](work/R001-closed-alpha-release-readiness.md) and [R001.1 incident record](work/R001.1-macos-bundle-signature-fix.md). W016 remains paused. See `work/` for current work-item and integration status.
