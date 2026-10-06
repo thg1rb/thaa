@@ -8,14 +8,33 @@ thaa_check_syspolicy_findings() {
   local findings
   local finding
   local classification_status=0
+  local unstructured_output
 
   findings="$(awk '
-    /^[[:alnum:]][[:alnum:] .-]*$/ { heading = $0 }
-    /^[[:space:]]*Severity:/ {
-      if (heading != "") print heading
-      heading = ""
+    /^[[:space:]]*$/ { next }
+    /^[[:alnum:]][[:alnum:] .-]*$/ {
+      print $0
+      finding = 1
+      previous_field = ""
+      next
     }
+    /^[[:space:]]+(Severity|Full Error|Type):/ {
+      if (!finding) {
+        print "__UNSTRUCTURED_SYSPOLICY_OUTPUT__"
+        next
+      }
+      previous_field = $0
+      next
+    }
+    /^[[:space:]]+/ && previous_field ~ /^[[:space:]]+Full Error:/ { next }
+    { print "__UNSTRUCTURED_SYSPOLICY_OUTPUT__" }
   ' "$report_file")"
+
+  unstructured_output="$(grep -F '__UNSTRUCTURED_SYSPOLICY_OUTPUT__' <<< "$findings" || true)"
+  if [[ -n "$unstructured_output" ]]; then
+    echo "::error::syspolicy_check produced unrecognized report content (exit $exit_status); review required."
+    return 1
+  fi
 
   if [[ -z "$findings" ]]; then
     if grep -q '[^[:space:]]' "$report_file"; then
@@ -45,6 +64,11 @@ thaa_check_syspolicy_findings() {
             classification_status=1
             ;;
         esac
+        ;;
+      '__UNSTRUCTURED_SYSPOLICY_OUTPUT__')
+        # Handled before classification; keep this defensive in case the
+        # structured report format changes during processing.
+        classification_status=1
         ;;
       *)
         echo "::error::Unclassified syspolicy_check finding: $finding"
