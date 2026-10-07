@@ -120,6 +120,7 @@ normal reviewed promotion path for a future version.
 - [ ] After explicit approval, create the immutable tag at the candidate SHA.
 - [ ] Publish by reusing the accepted candidate artifacts without rebuilding.
 - [ ] Verify published hashes, release classification, notes, and assets.
+- [ ] Verify README release metadata: current version, release/download URLs, badges, and tester-facing instructions.
 - [ ] Complete a read-only post-publication review and end the Release Freeze.
 
 If a candidate fails or a release-critical defect is found, do not patch `main`
