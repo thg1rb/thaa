@@ -86,7 +86,10 @@ macOS if available. Report interactive Windows validation separately.
   `2ec07c2646e683630b580a19b4573c3203c2304c`; reviewed source head was
   `a1d6c2a45e3795858e0193868efadec80db5204c`.
 - PR CI run `37604184793` passed Shared Quality, macOS Native Validation, and
-  Windows Native Validation. Post-merge CI is recorded after it completes.
+  Windows Native Validation.
+- Post-merge CI run `37605013097` passed Shared Quality, macOS Native
+  Validation, and Windows Native Validation on merge commit
+  `2ec07c2646e683630b580a19b4573c3203c2304c`.
 - Read-only review found and resolved mapped-address documentation/classifier
   edge cases. Final read-only review found no remaining material findings.
 - No release candidate, version change, tag, or published artifact was
