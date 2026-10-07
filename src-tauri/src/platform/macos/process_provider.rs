@@ -15,7 +15,8 @@ use crate::domain::process_provider::{
 
 use super::lsof::{run_bounded, LsofOutput, RunError, RunLimits};
 use super::process_identity::{
-    read_process_snapshot as read_snapshot, ProcessIdentityError, ProcessSnapshot,
+    read_process_resources, read_process_snapshot as read_snapshot, ProcessIdentityError,
+    ProcessSnapshot,
 };
 
 const LSOF_PATH: &str = "/usr/sbin/lsof";
@@ -29,6 +30,7 @@ impl ProcessProvider for MacOSProcessProvider {
     fn inspect(&self, process_id: ProcessId) -> Result<ProcessInfo, ProcessProviderError> {
         let before = read_process_snapshot(process_id)?;
         let lsof_output = invoke_lsof(process_id);
+        let resource_sample = read_process_resources(process_id);
         let after = read_process_snapshot(process_id)?;
 
         if before != after {
@@ -50,6 +52,7 @@ impl ProcessProvider for MacOSProcessProvider {
                 UnavailableReason::ProviderLimitation,
             ),
             working_directory: metadata.working_directory,
+            resource_sample,
         })
     }
 }

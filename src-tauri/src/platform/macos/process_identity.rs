@@ -1,14 +1,20 @@
 //! Shared macOS process-instance identity query for inspection and actions.
 
-use std::time::{Duration, SystemTime, UNIX_EPOCH};
+use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
-use crate::domain::process::ProcessId;
+use crate::domain::metadata::{FieldAvailability, UnavailableReason};
+use crate::domain::process::{ProcessId, ProcessResourceSample};
 
 const SYSCTL_PROCESS_ABSENT: i32 = 1;
 const SYSCTL_PERMISSION_DENIED: i32 = 2;
 
 unsafe extern "C" {
     fn thaa_macos_process_start_time(pid: i32, seconds: *mut i64, microseconds: *mut i32) -> i32;
+    fn thaa_macos_process_resources(
+        pid: i32,
+        cpu_nanoseconds: *mut u64,
+        resident_bytes: *mut u64,
+    ) -> i32;
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -63,6 +69,42 @@ pub(super) fn read_process_snapshot_native(
         .ok_or(ProcessIdentityError::OperatingSystemFailure)?;
 
     Ok(ProcessSnapshot { start_time })
+}
+
+pub(super) fn read_process_resources(process_id: ProcessId) -> ProcessResourceSample {
+    match native_pid(process_id) {
+        Ok(pid) => read_process_resources_native(pid),
+        Err(_) => unavailable_resources(UnavailableReason::Unsupported),
+    }
+}
+
+fn read_process_resources_native(pid: i32) -> ProcessResourceSample {
+    let mut cpu_nanoseconds = 0_u64;
+    let mut resident_bytes = 0_u64;
+    // SAFETY: `pid` has been checked positive, and both output pointers point
+    // to initialized, aligned locals writable for the duration of the call.
+    let status =
+        unsafe { thaa_macos_process_resources(pid, &mut cpu_nanoseconds, &mut resident_bytes) };
+    match status {
+        0 => ProcessResourceSample {
+            cumulative_cpu_time: FieldAvailability::Available(Duration::from_nanos(
+                cpu_nanoseconds,
+            )),
+            resident_memory_bytes: FieldAvailability::Available(resident_bytes),
+            sampled_at: Some(Instant::now()),
+        },
+        1 => unavailable_resources(UnavailableReason::Inaccessible),
+        2 => unavailable_resources(UnavailableReason::PermissionDenied),
+        _ => unavailable_resources(UnavailableReason::Inaccessible),
+    }
+}
+
+fn unavailable_resources(reason: UnavailableReason) -> ProcessResourceSample {
+    ProcessResourceSample {
+        cumulative_cpu_time: FieldAvailability::Unavailable(reason),
+        resident_memory_bytes: FieldAvailability::Unavailable(reason),
+        sampled_at: None,
+    }
 }
 
 fn normalize_start_time(seconds: i64, microseconds: i32) -> Option<SystemTime> {

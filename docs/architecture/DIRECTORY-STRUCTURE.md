@@ -46,6 +46,7 @@ src-tauri/
     application/           # shared use-case orchestration
       mod.rs
       process_inspection.rs # per-PID inspection using ProcessProvider
+      process_metrics.rs    # snapshot CPU sampling and uptime derivation
       project_root.rs       # bounded marker-based ancestor lookup from process cwd
       git_context.rs        # provider contract for optional repository/branch context
       process_icons.rs      # bounded, snapshot-scoped icon presentation contract
@@ -126,6 +127,10 @@ workspace.
 W016's platform Git adapter executes fixed, read-only Git CLI queries through
 the domain provider contract. The runtime scan deduplicates working-directory
 paths and keeps lookup failures optional.
+
+W017's shared `application/process_metrics.rs` derives normalized CPU and
+uptime snapshot values from optional native process resource samples. Platform
+adapters provide the raw counters; display formatting remains in the frontend.
 
 W013.1 adds `application/process_icons.rs` for the presentation-only icon port,
 PNG bounds, and snapshot asset values. Platform implementations live in

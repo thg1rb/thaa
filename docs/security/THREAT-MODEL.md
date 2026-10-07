@@ -201,6 +201,16 @@ Likelihood and impact are qualitative design-time estimates. Every mitigation an
 - **Residual risk:** The user-selected Git executable may be malicious or unavailable on PATH; kernel or remote-filesystem operations may still delay process creation or path access, even though each Git child is terminated after 750 ms. Branch and repository names can reveal local project information on screen.
 - **References / status:** FR-013; ADR-008; TC-GIT-001–TC-GIT-006. **W016 implemented and validated; merged to `develop` in PR #55.**
 
+### THR-017 — Stale or excessive process resource observations
+
+- **Asset / boundary:** Truthful Runtime Inspector data and process identity; native process APIs → optional resource sample → runtime snapshot/DTO/UI.
+- **Scenario:** A process exits or its PID is reused between observations, malformed native counters overflow conversion, or repeated resource reads add enough work to degrade refresh responsiveness. Stale CPU state could otherwise be attributed to a different process.
+- **Impact / likelihood:** Medium / Low.
+- **Mitigation:** Keep metric fields optional and separate from identity/action evidence; collect through existing least-privilege provider handles/APIs; validate conversions; derive CPU only from positive monotonic intervals and matching PID plus start time; cap normalized usage at the documented total-capacity scale; prune baselines to the accepted current snapshot; isolate per-process failures; do not log metric values or elevate.
+- **Verification:** Deterministic tests cover first/invalid samples, counter deltas, normalization, PID reuse, stale cleanup, unavailable values, zero/large bytes, and uptime validity; controlled native child tests and platform CI verify provider results and handle behavior.
+- **Residual risk:** OS-reported resource semantics differ slightly, and fast process changes can make observations unavailable or stale before display. Metrics are informational and never authorize actions.
+- **References / status:** FR-014 metrics subset; NFR-005/006; THR-003/004/009/010; W017; TC-METRIC-001–TC-METRIC-004. **W017 implementation and review evidence recorded in the work document.**
+
 ## Security review and finding disposition
 
 Mandatory review triggers are listed in [Engineering Security Baseline](SECURITY.md). Critical and High findings block merge. Medium findings block when required safety or acceptance remains unmet; other Medium/Low issues need explicit follow-up/owner and rationale. All findings use the repository severity terms; no CVSS score is required.

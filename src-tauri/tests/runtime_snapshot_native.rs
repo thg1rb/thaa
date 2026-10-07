@@ -2,6 +2,7 @@
 
 use std::net::{IpAddr, Ipv4Addr, SocketAddr, TcpListener};
 use std::sync::Arc;
+use thaa_lib::domain::metadata::FieldAvailability;
 
 use thaa_lib::application::runtime_inspection::RuntimeInspector;
 
@@ -57,6 +58,23 @@ fn runtime_snapshot_combines_native_listener_and_process_information() {
     assert!(
         matches!(&entry.process, Some(Ok(info)) if info.identity.pid.get() == std::process::id())
     );
+    let info = entry
+        .process
+        .as_ref()
+        .and_then(|result| result.as_ref().ok())
+        .unwrap();
+    assert!(matches!(
+        info.resource_sample.cumulative_cpu_time,
+        FieldAvailability::Available(_)
+    ));
+    assert!(matches!(
+        info.resource_sample.resident_memory_bytes,
+        FieldAvailability::Available(bytes) if bytes > 0
+    ));
+    let resource_metrics = entry.resource_metrics.expect("runtime resource metrics");
+    assert_eq!(resource_metrics.cpu_percent_hundredths, None);
+    assert!(resource_metrics.resident_memory_bytes.unwrap_or_default() > 0);
+    assert!(resource_metrics.uptime.is_some());
     assert!(entry.action_target_ref.is_some());
     assert_eq!(
         snapshot.capabilities.force_stop,

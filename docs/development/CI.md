@@ -16,9 +16,9 @@ below; it is not triggered by pull requests or ordinary `develop` pushes.
 
 The hosted macOS image is macOS 15 arm64; it is not equivalent to the local
 macOS 27 arm64 development host. Windows CI uses a GitHub-hosted Windows Server
-2025 x64 image, not a self-hosted physical machine. Windows provider tests do
-not exist until W009; the Windows job currently proves the existing shared
-code and application build run on Windows.
+2025 x64 image, not a self-hosted physical machine. Windows CI is the
+authoritative native environment for Windows-only provider tests and the
+application build; a cross-target compile from another OS is not a substitute.
 
 The jobs use `.node-version`, `packageManager` in `package.json`, and
 `rust-toolchain.toml` with the committed lockfiles. pnpm's store may be cached
@@ -52,6 +52,11 @@ use `pnpm tauri build --no-bundle`. The Windows PR job builds
 packaging/compilation evidence, not interactive Windows installation or
 SmartScreen visual validation. Windows develop/manual runs use
 `pnpm tauri build --no-bundle`.
+W017 adds controlled-process resource assertions to the existing macOS and
+Windows provider test suites and shared runtime/unit tests. Windows resource
+API behavior is validated on the Windows native runner; local cross-target
+checking may require the Windows resource compiler and is not treated as
+native validation.
 Native formatting, Clippy, Rust tests, and provider integration tests remain
 required on pull requests. Frontend lint, typecheck, unit tests, and
 documentation checks run once in Shared Quality; native jobs still install

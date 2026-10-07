@@ -68,6 +68,15 @@ const row = (overrides: Record<string, unknown> = {}) => ({
     },
   },
   projectRoot: null as string | null,
+  resourceMetrics: {
+    cpuPercent: 0,
+    memoryBytes: 0,
+    uptimeMs: 0,
+  } as {
+    cpuPercent: number | null;
+    memoryBytes: number | null;
+    uptimeMs: number | null;
+  } | null,
   gitContext: null as object | null,
   localUrl: "http://127.0.0.1:5173",
   actionTargetRef: "target-1-0",
@@ -153,6 +162,36 @@ describe("runtime inspector", () => {
     expect(
       screen.getByText("in /sample/workspace/app/src"),
     ).toBeInTheDocument();
+  });
+
+  it("shows process metrics and uses an explicit unavailable marker", async () => {
+    mockIPC((command) =>
+      command === "get_runtime_snapshot"
+        ? snapshot([
+            row({
+              resourceMetrics: {
+                cpuPercent: 3.4,
+                memoryBytes: 1024 * 1024,
+                uptimeMs: (3 * 60 + 12) * 60_000,
+              },
+            }),
+            row({
+              entryRef: "entry-missing-metrics",
+              port: 5174,
+              resourceMetrics: {
+                cpuPercent: null,
+                memoryBytes: null,
+                uptimeMs: null,
+              },
+            }),
+          ])
+        : undefined,
+    );
+    render(<App />);
+    expect(await screen.findByText("CPU · 3.4%")).toBeInTheDocument();
+    expect(screen.getByText("Memory · 1.0 MiB")).toBeInTheDocument();
+    expect(screen.getByText("Uptime · 3h 12m")).toBeInTheDocument();
+    expect(screen.getAllByText("CPU · —")).toHaveLength(1);
   });
 
   it("shows Git repository root and branch as secondary process context", async () => {

@@ -196,3 +196,12 @@ context does not fail the scan or remove a listener. This metadata is
 transported as an optional DTO and never participates in process identity or
 action authorization. The Windows provider currently has no working-directory
 value, so the feature degrades to no context there.
+
+W017 collects cumulative CPU time and resident bytes through each platform's
+process provider while the process identity is being inspected. The runtime
+scanner derives CPU percentage from successive per-process monotonic samples,
+and derives uptime from process start time and the snapshot observation time.
+Only accepted scan generations commit CPU baselines; disappeared processes
+are pruned. Nullable resource metrics then flow through the runtime DTO to
+secondary Runtime Inspector labels. This data does not enter process identity
+or action authorization, and an unavailable metric does not drop a listener.

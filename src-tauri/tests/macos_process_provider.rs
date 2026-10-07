@@ -89,6 +89,14 @@ fn inspects_controlled_non_gui_child_and_reports_disappearance_after_exit() {
         info.working_directory,
         FieldAvailability::Available(path) if path == directory.0
     ));
+    assert!(matches!(
+        &info.resource_sample.cumulative_cpu_time,
+        FieldAvailability::Available(_)
+    ));
+    assert!(matches!(
+        &info.resource_sample.resident_memory_bytes,
+        FieldAvailability::Available(bytes) if *bytes > 0
+    ));
 
     let inspection = inspect_processes(&provider, &[process_id]);
     assert_eq!(inspection.len(), 1);

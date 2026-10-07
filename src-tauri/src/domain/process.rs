@@ -2,7 +2,7 @@
 
 use std::ffi::OsString;
 use std::path::PathBuf;
-use std::time::SystemTime;
+use std::time::{Duration, Instant, SystemTime};
 
 use super::metadata::FieldAvailability;
 
@@ -10,7 +10,7 @@ use super::metadata::FieldAvailability;
 ///
 /// The wrapper applies no sentinel or range rule beyond the OS-normalized
 /// unsigned value. Absence is represented with `Option<ProcessId>`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct ProcessId(u32);
 
 impl ProcessId {
@@ -42,11 +42,47 @@ pub struct ProcessInfo {
     /// OS-normalized argument elements; never a shell-escaped command string.
     pub command_arguments: FieldAvailability<Vec<OsString>>,
     pub working_directory: FieldAvailability<PathBuf>,
+    /// Cumulative CPU time and resident memory observed for this process.
+    /// These values are snapshot metadata, never identity or action evidence.
+    pub resource_sample: ProcessResourceSample,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ProcessResourceSample {
+    /// Cumulative user + kernel CPU time since process start.
+    pub cumulative_cpu_time: FieldAvailability<Duration>,
+    /// Resident set / working set in bytes.
+    pub resident_memory_bytes: FieldAvailability<u64>,
+    /// Monotonic counter observation time, used only for CPU deltas.
+    pub sampled_at: Option<Instant>,
+}
+
+/// Resource values derived for one runtime snapshot.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub struct ProcessResourceMetrics {
+    /// Hundredths of one percent of total logical CPU capacity (0..=10_000).
+    pub cpu_percent_hundredths: Option<u16>,
+    pub resident_memory_bytes: Option<u64>,
+    pub uptime: Option<Duration>,
+}
+
+impl Default for ProcessResourceSample {
+    fn default() -> Self {
+        Self {
+            cumulative_cpu_time: FieldAvailability::Unavailable(
+                super::metadata::UnavailableReason::ProviderLimitation,
+            ),
+            resident_memory_bytes: FieldAvailability::Unavailable(
+                super::metadata::UnavailableReason::ProviderLimitation,
+            ),
+            sampled_at: None,
+        }
+    }
 }
 
 #[cfg(test)]
 mod tests {
-    use super::{ProcessId, ProcessIdentity, ProcessInfo};
+    use super::{ProcessId, ProcessIdentity, ProcessInfo, ProcessResourceSample};
     use crate::domain::metadata::{FieldAvailability, UnavailableReason};
     use std::ffi::OsString;
     use std::path::PathBuf;
@@ -74,6 +110,7 @@ mod tests {
                 OsString::from("a value with spaces"),
             ]),
             working_directory: FieldAvailability::Unavailable(UnavailableReason::PermissionDenied),
+            resource_sample: ProcessResourceSample::default(),
         };
 
         assert_eq!(

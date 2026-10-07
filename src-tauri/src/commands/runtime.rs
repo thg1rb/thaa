@@ -15,7 +15,7 @@ use crate::domain::capabilities::CapabilitySupport;
 use crate::domain::git_context::{GitBranch, GitContext};
 use crate::domain::metadata::{FieldAvailability, UnavailableReason};
 use crate::domain::network::BindingScope;
-use crate::domain::process::ProcessInfo;
+use crate::domain::process::{ProcessInfo, ProcessResourceMetrics};
 use crate::domain::process_action::{ProcessAction, ProcessActionError, ProcessActionOutcome};
 use crate::domain::process_provider::ProcessProviderErrorKind;
 
@@ -63,11 +63,34 @@ pub struct RuntimeEntryDto {
     pub binding: BindingDto,
     pub process_id: Option<u32>,
     pub process: ProcessDetailsDto,
+    pub resource_metrics: Option<ResourceMetricsDto>,
     pub project_root: Option<String>,
     pub git_context: Option<GitContextDto>,
     pub local_url: Option<String>,
     pub action_target_ref: Option<String>,
     pub process_icon_ref: Option<String>,
+}
+
+#[derive(Debug, Clone, Copy, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ResourceMetricsDto {
+    pub cpu_percent: Option<f64>,
+    pub memory_bytes: Option<u64>,
+    pub uptime_ms: Option<u64>,
+}
+
+impl From<ProcessResourceMetrics> for ResourceMetricsDto {
+    fn from(value: ProcessResourceMetrics) -> Self {
+        Self {
+            cpu_percent: value
+                .cpu_percent_hundredths
+                .map(|hundredths| f64::from(hundredths) / 100.0),
+            memory_bytes: value.resident_memory_bytes,
+            uptime_ms: value
+                .uptime
+                .and_then(|duration| u64::try_from(duration.as_millis()).ok()),
+        }
+    }
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -329,6 +352,7 @@ fn snapshot_dto(snapshot: &RuntimeSnapshot) -> RuntimeSnapshotDto {
                             reason: "Process details are unavailable.".into(),
                         },
                     },
+                    resource_metrics: entry.resource_metrics.map(ResourceMetricsDto::from),
                     project_root: entry
                         .project_root
                         .as_ref()
@@ -470,13 +494,16 @@ fn listener_url_error(error: ListenerUrlError) -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::{process_icon_assets_dto, snapshot_dto, valid_reference, ActionDto};
+    use super::{
+        process_icon_assets_dto, snapshot_dto, valid_reference, ActionDto, ResourceMetricsDto,
+    };
     use crate::application::process_icons::ProcessIconAsset;
     use crate::application::runtime_inspection::{RuntimeEntry, RuntimeSnapshot};
     use crate::domain::capabilities::{CapabilitySupport, PlatformCapabilities};
     use crate::domain::git_context::{GitBranch, GitContext};
     use crate::domain::network::{NetworkListener, NetworkProtocol};
     use crate::domain::port_provider::PortScanCompleteness;
+    use crate::domain::process::ProcessResourceMetrics;
     use base64::Engine;
     use std::net::{IpAddr, Ipv4Addr};
     use std::num::NonZeroU16;
@@ -521,6 +548,7 @@ mod tests {
                     owner_pid: None,
                 },
                 process: None,
+                resource_metrics: None,
                 project_root: Some(PathBuf::from("/sample/project")),
                 git_context: Some(GitContext {
                     repository_root: PathBuf::from("/sample/repository"),
@@ -552,6 +580,25 @@ mod tests {
             serde_json::Value::Null
         );
         assert_eq!(json["entries"][0]["localUrl"], "http://127.0.0.1:80");
+    }
+
+    #[test]
+    fn resource_metrics_dto_preserves_zero_and_optional_values() {
+        let value = ResourceMetricsDto::from(ProcessResourceMetrics {
+            cpu_percent_hundredths: Some(0),
+            resident_memory_bytes: Some(0),
+            uptime: Some(std::time::Duration::ZERO),
+        });
+        let json = serde_json::to_value(value).expect("serializes");
+        assert_eq!(json["cpuPercent"], 0.0);
+        assert_eq!(json["memoryBytes"], 0);
+        assert_eq!(json["uptimeMs"], 0);
+
+        let missing = ResourceMetricsDto::from(ProcessResourceMetrics::default());
+        let json = serde_json::to_value(missing).expect("serializes unavailable values as null");
+        assert!(json["cpuPercent"].is_null());
+        assert!(json["memoryBytes"].is_null());
+        assert!(json["uptimeMs"].is_null());
     }
 
     #[test]
