@@ -163,7 +163,7 @@ The coordinator publishes one committed snapshot and safe status to interested U
 
 ## Traceability
 
-These flows support FR-001–FR-006, FR-008–FR-012, NFR-003/005/006/008/009, and PR-004/005/006/009. Git context (FR-013) remains deferred.
+These flows support FR-001–FR-006 and FR-008–FR-013, NFR-003/005/006/008/009, and PR-004/005/006/009.
 
 W013.1 keeps optional process-icon work outside the critical runtime scan. The
 runtime snapshot assigns snapshot-scoped icon references to inspected processes
@@ -187,3 +187,12 @@ fail the scan or remove a listener. It is not part of process identity or
 action-target construction. Windows currently has no working-directory value
 from its provider, so root context is unavailable there without changing that
 provider.
+
+W016 queries the installed Git CLI from the same observed working directory
+through a shared `GitContextProvider` adapter. Fixed read-only commands return
+the working-tree root and named branch, or an explicit detached-HEAD state.
+Lookups are deduplicated by working-directory path per scan; absent Git
+context does not fail the scan or remove a listener. This metadata is
+transported as an optional DTO and never participates in process identity or
+action authorization. The Windows provider currently has no working-directory
+value, so the feature degrades to no context there.

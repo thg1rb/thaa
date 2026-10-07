@@ -12,6 +12,7 @@ use crate::application::runtime_inspection::{
     ListenerUrlError, RuntimeInspector, RuntimeScanError, RuntimeSnapshot,
 };
 use crate::domain::capabilities::CapabilitySupport;
+use crate::domain::git_context::{GitBranch, GitContext};
 use crate::domain::metadata::{FieldAvailability, UnavailableReason};
 use crate::domain::network::BindingScope;
 use crate::domain::process::ProcessInfo;
@@ -63,9 +64,36 @@ pub struct RuntimeEntryDto {
     pub process_id: Option<u32>,
     pub process: ProcessDetailsDto,
     pub project_root: Option<String>,
+    pub git_context: Option<GitContextDto>,
     pub local_url: Option<String>,
     pub action_target_ref: Option<String>,
     pub process_icon_ref: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GitContextDto {
+    pub repository_root: String,
+    pub branch: GitBranchDto,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase", tag = "state", content = "name")]
+pub enum GitBranchDto {
+    Named(String),
+    DetachedHead,
+}
+
+impl From<&GitContext> for GitContextDto {
+    fn from(value: &GitContext) -> Self {
+        Self {
+            repository_root: value.repository_root.to_string_lossy().into_owned(),
+            branch: match &value.branch {
+                GitBranch::Named(name) => GitBranchDto::Named(name.clone()),
+                GitBranch::DetachedHead => GitBranchDto::DetachedHead,
+            },
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy, Serialize)]
@@ -305,6 +333,7 @@ fn snapshot_dto(snapshot: &RuntimeSnapshot) -> RuntimeSnapshotDto {
                         .project_root
                         .as_ref()
                         .map(|path| path.to_string_lossy().into_owned()),
+                    git_context: entry.git_context.as_ref().map(GitContextDto::from),
                     local_url: crate::application::runtime_inspection::build_local_url(
                         &entry.listener,
                     ),
@@ -445,6 +474,7 @@ mod tests {
     use crate::application::process_icons::ProcessIconAsset;
     use crate::application::runtime_inspection::{RuntimeEntry, RuntimeSnapshot};
     use crate::domain::capabilities::{CapabilitySupport, PlatformCapabilities};
+    use crate::domain::git_context::{GitBranch, GitContext};
     use crate::domain::network::{NetworkListener, NetworkProtocol};
     use crate::domain::port_provider::PortScanCompleteness;
     use base64::Engine;
@@ -492,6 +522,10 @@ mod tests {
                 },
                 process: None,
                 project_root: Some(PathBuf::from("/sample/project")),
+                git_context: Some(GitContext {
+                    repository_root: PathBuf::from("/sample/repository"),
+                    branch: GitBranch::Named("feature/example".into()),
+                }),
                 action_target_ref: None,
                 process_icon_ref: None,
             }],
@@ -502,6 +536,15 @@ mod tests {
         assert_eq!(json["entries"][0]["binding"], "loopbackOnly");
         assert_eq!(json["entries"][0]["process"]["state"], "noOwner");
         assert_eq!(json["entries"][0]["projectRoot"], "/sample/project");
+        assert_eq!(
+            json["entries"][0]["gitContext"]["repositoryRoot"],
+            "/sample/repository"
+        );
+        assert_eq!(json["entries"][0]["gitContext"]["branch"]["state"], "named");
+        assert_eq!(
+            json["entries"][0]["gitContext"]["branch"]["name"],
+            "feature/example"
+        );
         assert_eq!(json["capabilities"]["gracefulStop"], false);
         assert_eq!(json["capabilities"]["forceStop"], true);
         assert_eq!(

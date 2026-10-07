@@ -4,7 +4,7 @@ use std::collections::HashMap;
 use std::fmt;
 use std::path::PathBuf;
 use std::sync::{Arc, Condvar, Mutex, MutexGuard};
-use std::time::SystemTime;
+use std::time::{Duration, Instant, SystemTime};
 
 use crate::application::process_icons::{
     is_bounded_png, ProcessIconAsset, ProcessIconProvider, SNAPSHOT_ICON_MAX_BYTES,
@@ -15,6 +15,7 @@ use crate::application::project_root::detect_project_root;
 use crate::domain::capabilities::{
     CapabilitySupport, PlatformCapabilities, PlatformCapabilitiesProvider,
 };
+use crate::domain::git_context::{GitContext, GitContextProvider};
 use crate::domain::metadata::FieldAvailability;
 use crate::domain::network::NetworkListener;
 use crate::domain::port_provider::{PortProvider, PortProviderErrorKind, PortScanCompleteness};
@@ -34,6 +35,9 @@ pub struct RuntimeEntry {
     /// Optional local context derived from the observed working directory.
     /// This is presentation metadata, never process identity evidence.
     pub project_root: Option<PathBuf>,
+    /// Optional Git repository metadata derived from the observed working
+    /// directory. It is presentation metadata, never process identity evidence.
+    pub git_context: Option<GitContext>,
     /// A snapshot-scoped lookup reference, not an authorization token.
     pub action_target_ref: Option<String>,
     /// Snapshot-scoped presentation reference; never used as process identity.
@@ -77,7 +81,10 @@ struct RuntimeScanner {
     ports: Arc<dyn PortProvider>,
     processes: Arc<dyn ProcessProvider>,
     capabilities: Arc<dyn PlatformCapabilitiesProvider>,
+    git_contexts: Arc<dyn GitContextProvider>,
 }
+
+const GIT_CONTEXT_SCAN_BUDGET: Duration = Duration::from_secs(2);
 
 impl RuntimeScanner {
     fn scan(&self, generation: u64) -> Result<ScannedSnapshot, RuntimeScanError> {
@@ -98,6 +105,9 @@ impl RuntimeScanner {
         let mut reference_by_pid = HashMap::new();
         let mut icon_reference_by_pid = HashMap::new();
         let mut project_root_by_pid = HashMap::new();
+        let mut git_context_by_pid = HashMap::new();
+        let mut git_context_by_directory = HashMap::new();
+        let git_context_deadline = Instant::now() + GIT_CONTEXT_SCAN_BUDGET;
         let mut icon_sources = Vec::new();
         for (index, outcome) in inspections.into_iter().enumerate() {
             let pid = outcome.requested_process_id.get();
@@ -105,6 +115,17 @@ impl RuntimeScanner {
                 if let FieldAvailability::Available(working_directory) = &info.working_directory {
                     if let Some(project_root) = detect_project_root(working_directory) {
                         project_root_by_pid.insert(pid, project_root);
+                    }
+                    let context = git_context_by_directory
+                        .entry(working_directory.clone())
+                        .or_insert_with(|| {
+                            let budget =
+                                git_context_deadline.saturating_duration_since(Instant::now());
+                            self.git_contexts.context_for(working_directory, budget)
+                        })
+                        .clone();
+                    if let Some(context) = context {
+                        git_context_by_pid.insert(pid, context);
                     }
                 }
                 if icon_sources.len() < SNAPSHOT_ICON_MAX_COUNT {
@@ -132,6 +153,7 @@ impl RuntimeScanner {
                     listener,
                     process: pid.and_then(|pid| inspection_by_pid.get(&pid).cloned()),
                     project_root: pid.and_then(|pid| project_root_by_pid.get(&pid).cloned()),
+                    git_context: pid.and_then(|pid| git_context_by_pid.get(&pid).cloned()),
                     action_target_ref: pid.and_then(|pid| reference_by_pid.get(&pid).cloned()),
                     process_icon_ref: pid.and_then(|pid| icon_reference_by_pid.get(&pid).cloned()),
                 }
@@ -202,11 +224,30 @@ impl RuntimeInspector {
         controller: Arc<dyn ProcessController>,
         capabilities: Arc<dyn PlatformCapabilitiesProvider>,
     ) -> Self {
+        Self::new_with_icons_and_git_context(
+            ports,
+            processes,
+            icons,
+            Arc::new(NoGitContextProvider),
+            controller,
+            capabilities,
+        )
+    }
+
+    pub fn new_with_icons_and_git_context(
+        ports: Arc<dyn PortProvider>,
+        processes: Arc<dyn ProcessProvider>,
+        icons: Arc<dyn ProcessIconProvider>,
+        git_contexts: Arc<dyn GitContextProvider>,
+        controller: Arc<dyn ProcessController>,
+        capabilities: Arc<dyn PlatformCapabilitiesProvider>,
+    ) -> Self {
         Self {
             scanner: RuntimeScanner {
                 ports,
                 processes,
                 capabilities,
+                git_contexts,
             },
             controller,
             icons,
@@ -418,6 +459,18 @@ impl RuntimeInspector {
     }
 }
 
+struct NoGitContextProvider;
+
+impl GitContextProvider for NoGitContextProvider {
+    fn context_for(
+        &self,
+        _working_directory: &std::path::Path,
+        _time_budget: Duration,
+    ) -> Option<GitContext> {
+        None
+    }
+}
+
 struct NoProcessIconProvider;
 
 impl ProcessIconProvider for NoProcessIconProvider {
@@ -469,11 +522,13 @@ fn next_entry_ref(generation: u64, index: usize) -> String {
 mod tests {
     use super::{
         build_local_url, next_entry_ref, ListenerUrlError, RuntimeInspector, RuntimeScanError,
+        GIT_CONTEXT_SCAN_BUDGET,
     };
     use crate::application::process_icons::ProcessIconProvider;
     use crate::domain::capabilities::{
         CapabilitySupport, PlatformCapabilities, PlatformCapabilitiesProvider,
     };
+    use crate::domain::git_context::{GitContext, GitContextProvider};
     use crate::domain::metadata::{FieldAvailability, UnavailableReason};
     use crate::domain::network::{NetworkListener, NetworkProtocol};
     use crate::domain::port_provider::{
@@ -545,6 +600,26 @@ mod tests {
     struct FakeIcons {
         calls: AtomicUsize,
         icon: Option<Vec<u8>>,
+    }
+
+    struct FakeGitContexts {
+        calls: Mutex<Vec<PathBuf>>,
+        context: Option<GitContext>,
+    }
+
+    impl GitContextProvider for FakeGitContexts {
+        fn context_for(
+            &self,
+            working_directory: &std::path::Path,
+            time_budget: Duration,
+        ) -> Option<GitContext> {
+            assert!(time_budget <= GIT_CONTEXT_SCAN_BUDGET);
+            self.calls
+                .lock()
+                .expect("Git context calls lock")
+                .push(working_directory.to_path_buf());
+            self.context.clone()
+        }
     }
     impl ProcessIconProvider for FakeIcons {
         fn icon_png(&self, _process: &ProcessInfo) -> Option<Vec<u8>> {
@@ -742,6 +817,83 @@ mod tests {
 
         std::fs::remove_dir_all(working_directory.parent().expect("fixture parent"))
             .expect("remove unmarked fixture");
+    }
+
+    #[test]
+    fn git_context_is_deduplicated_by_working_directory_and_is_presentation_only() {
+        let working_directory =
+            std::env::temp_dir().join(format!("thaa-runtime-git-context-{}", std::process::id()));
+        std::fs::create_dir_all(&working_directory).expect("create fixture directory");
+        let ports = Arc::new(FakePorts {
+            result: Mutex::new(complete(vec![
+                listener(Some(IpAddr::V4(Ipv4Addr::LOCALHOST)), 3000, Some(7)),
+                listener(Some(IpAddr::V4(Ipv4Addr::LOCALHOST)), 3001, Some(8)),
+            ])),
+            calls: AtomicUsize::new(0),
+        });
+        let processes = Arc::new(FakeProcesses {
+            responses: Mutex::new(
+                [
+                    (
+                        7,
+                        Ok(process_with_working_directory(
+                            7,
+                            FieldAvailability::Available(working_directory.clone()),
+                        )),
+                    ),
+                    (
+                        8,
+                        Ok(process_with_working_directory(
+                            8,
+                            FieldAvailability::Available(working_directory.clone()),
+                        )),
+                    ),
+                ]
+                .into_iter()
+                .collect(),
+            ),
+            calls: Mutex::new(Vec::new()),
+        });
+        let expected = GitContext {
+            repository_root: working_directory.clone(),
+            branch: crate::domain::git_context::GitBranch::Named("feature/context".into()),
+        };
+        let git_contexts = Arc::new(FakeGitContexts {
+            calls: Mutex::new(Vec::new()),
+            context: Some(expected.clone()),
+        });
+        let inspector = RuntimeInspector::new_with_icons_and_git_context(
+            ports,
+            processes,
+            Arc::new(FakeIcons {
+                calls: AtomicUsize::new(0),
+                icon: None,
+            }),
+            git_contexts.clone(),
+            Arc::new(FakeController::default()),
+            Arc::new(FakeCapabilities),
+        );
+
+        let snapshot = inspector.snapshot_or_initialize().expect("scan succeeds");
+
+        assert_eq!(snapshot.entries.len(), 2);
+        assert!(snapshot
+            .entries
+            .iter()
+            .all(|entry| entry.git_context.as_ref() == Some(&expected)));
+        assert_eq!(
+            git_contexts
+                .calls
+                .lock()
+                .expect("Git context calls lock")
+                .as_slice(),
+            std::slice::from_ref(&working_directory)
+        );
+        assert!(snapshot
+            .entries
+            .iter()
+            .all(|entry| entry.action_target_ref.is_some()));
+        std::fs::remove_dir_all(working_directory).expect("remove fixture directory");
     }
 
     #[test]

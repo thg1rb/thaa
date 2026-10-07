@@ -25,6 +25,8 @@ pub(crate) fn same_filesystem(start: &Path, candidate: &Path) -> io::Result<bool
     }
 }
 
+pub mod git_context;
+
 #[cfg(windows)]
 fn windows_volume_path(path: &Path) -> io::Result<String> {
     use std::os::windows::ffi::OsStrExt;

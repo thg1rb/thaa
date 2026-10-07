@@ -35,6 +35,14 @@ export function RuntimeCard({
   const executable = info ? availableText(info.executablePath) : null;
   const workingDirectory = info ? availableText(info.workingDirectory) : null;
   const projectRoot = entry.projectRoot ? safeDisplay(entry.projectRoot) : null;
+  const gitRepository = entry.gitContext
+    ? safeDisplay(entry.gitContext.repositoryRoot)
+    : null;
+  const gitBranch = entry.gitContext
+    ? entry.gitContext.branch.state === "named"
+      ? safeDisplay(entry.gitContext.branch.name)
+      : "Detached HEAD"
+    : null;
   const pid = entry.processId;
 
   return (
@@ -109,6 +117,11 @@ export function RuntimeCard({
           )}
           {projectRoot && (
             <span title={projectRoot}>Project root · {projectRoot}</span>
+          )}
+          {gitRepository && gitBranch && (
+            <span title={gitRepository + " · " + gitBranch}>
+              Git · {gitRepository} · {gitBranch}
+            </span>
           )}
           {info && info.name.state !== "available" && (
             <span className="muted-metadata">Process name unavailable</span>
