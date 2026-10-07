@@ -94,13 +94,16 @@ readable or actionable; per-process outcomes remain authoritative. The
 `classify_binding` is a pure function over `Option<IpAddr>` and describes the
 observed listener's bind scope, not remote reachability:
 
-- `LoopbackOnly` for IPv4/IPv6 loopback addresses, including IPv4-mapped IPv6
-  mapped IPv4 loopback classified as loopback; other mapped addresses remain
-  specific IPv6 addresses
-- `WildcardIpv4` for the IPv4 unspecified address `0.0.0.0` and its mapped form
+- `LoopbackOnly` for IPv4/IPv6 loopback addresses, including IPv4-mapped
+  IPv6 loopback
+- `WildcardIpv4` for only the IPv4 unspecified address `0.0.0.0`
 - `WildcardIpv6` for the IPv6 unspecified address `::`
-- `SpecificAddress` for another known non-loopback, non-unspecified address
+- `SpecificAddress` for another known non-loopback unicast address, including
+  mapped IPv6 addresses that are not loopback
 - `Unknown` when the address is unavailable
+
+Multicast addresses and the IPv4 limited-broadcast address are `Unknown`; they
+are not presented as ordinary specific unicast binds.
 
 The listener retains its original address for display. A specific address is
 not further classified as private, link-local, or globally routable. IPv6
