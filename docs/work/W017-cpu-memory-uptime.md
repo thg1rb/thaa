@@ -2,7 +2,9 @@
 
 ## Status
 
-Status: Ready for review on `feature/w017-process-metrics`; native Windows CI and read-only review are pending.
+Status: COMPLETE. Implementation merged to `develop` by PR #57. The final
+reviewed source was `5d2de903864f1f19b4c676f696d59514fa88a6b3`; merge commit
+and resulting `develop` were `9f5705d239ddf21d527e1d0a1fe924f27e644e5c`.
 
 Requirement: FR-014 metrics subset (CPU, memory, uptime/start time). Parent
 process/tree and project-oriented actions remain deferred.
@@ -84,6 +86,21 @@ unavailable values.
 | AC-07 | Runtime Inspector displays the metrics as secondary accessible text and handles unavailable values without layout or state errors.                               | Frontend tests, responsive inspection, and read-only review   |
 | AC-08 | macOS and Windows provider failures remain field-local, use no privilege escalation, and do not leak native handles or sensitive values.                         | Native tests, security review, and cross-platform CI          |
 
+### Acceptance evidence
+
+| ID    | Result | Evidence                                                                                                                                                                                                  |
+| ----- | ------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| AC-01 | PASS   | Controlled-process provider tests passed locally on macOS and in macOS/Windows Native Validation on PR run `37576736850`; post-merge Native Validation passed on run `37577439695`.                       |
+| AC-02 | PASS   | Deterministic sampler tests cover delta calculation, normalization, capping, first sample, invalid intervals, and unavailable inputs.                                                                     |
+| AC-03 | PASS   | Tests cover PID reuse, stale sample removal, and superseded scans not committing a CPU sampling baseline. The latter test was added after review identified a missing assertion.                          |
+| AC-04 | PASS   | DTO tests cover nullable/zero values; frontend formatting tests cover binary byte units and large values.                                                                                                 |
+| AC-05 | PASS   | Domain tests cover missing/future start times; UI formatting tests cover zero through multi-day durations.                                                                                                |
+| AC-06 | PASS   | Runtime composition, DTO, UI, and action-target regression tests passed; metrics remain separate from process identity and action authorization.                                                          |
+| AC-07 | PASS   | Component tests cover secondary metric text and unavailable values; metadata styling wraps/truncates long content. Interactive visual testing at multiple window sizes was not performed.                 |
+| AC-08 | PASS   | Provider tests and both platform CI jobs passed. The implementation adds no elevated rights; Windows process handles remain RAII-managed. Dedicated review found no remaining material security findings. |
+
+“PASS” for AC-07 refers to automated UI and layout-rule coverage; it does not claim manual interactive visual validation.
+
 ## Non-goals
 
 Process tree/parent metadata, project actions, per-thread or GPU metrics,
@@ -93,17 +110,50 @@ W017.
 
 ## Validation and evidence
 
-Validation evidence will be recorded against the final reviewed PR head. The
-macOS host can run native macOS tests; Windows behavior must be validated by
-the Windows Native Validation CI job. Performance evidence will record
-provider call shape and representative scan duration/resource observations
-where available. No numeric performance threshold is introduced because
-NFR-006 defines none.
+Validation ran against final reviewed PR head
+`5d2de903864f1f19b4c676f696d59514fa88a6b3`. PR CI run `37576736850` passed
+Shared Quality, macOS Native Validation, and Windows Native Validation. After
+merge, all three checks passed again on run `37577439695`.
+
+Local validation passed: `cargo test --manifest-path src-tauri/Cargo.toml
+--all-targets` (95 Rust unit tests plus applicable native/provider/action,
+contract, and runtime integration suites); strict Clippy; Rust formatting;
+`pnpm format:check`; `pnpm lint`; `pnpm typecheck`; `pnpm test` (54 tests);
+`pnpm build`; `pnpm docs:format:check`; `pnpm docs:check` (80 Markdown files);
+macOS `pnpm tauri build --debug --no-bundle`; dependency audit; and
+`git diff --check`.
+
+Windows cross-target compilation was not available locally because the host
+lacks `llvm-rc`; Windows Native Validation CI passed on the final PR head and
+again after merge. `actionlint` was not run because it is not installed and no
+workflow file changed. `cargo audit` completed for macOS arm64 and Windows
+x64, reporting only the two previously documented allowed advisories:
+RUSTSEC-2024-0370 (`proc-macro-error`, unmaintained) and RUSTSEC-2024-0429
+(`glib` `VariantStrIter` unsoundness). No dependency was added.
+
+The macOS host built the native app in debug/no-bundle mode. No manual
+interactive runtime or visual test was performed on either platform; Windows
+runtime/provider validation was performed by Windows Native Validation CI.
+No standalone before/after scan benchmark was run, and no numeric performance
+claim is made because NFR-006 defines no threshold.
 
 The implementation adds no subprocesses or refresh loop. Metric work is
 bounded by the number of distinct listener-owner processes already inspected:
 one additional libproc query on macOS and CPU/memory native queries on the
 existing Windows process handle. The CPU baseline retains at most one entry
 per process in the latest accepted snapshot. No standalone before/after scan
-benchmark was run locally; native CI and the existing runtime refresh tests
-are required before integration, and no performance claim is made.
+benchmark was run, and no performance claim is made.
+
+## Review and integration
+
+PR #57 (`feat: add W017 CPU, memory, and uptime metrics`) targeted `develop`
+and merged with the repository's merge-commit strategy. The dedicated
+read-only review initially reported one medium finding: the superseded-scan
+test did not assert that sampling state remained unchanged. The implementation
+added that assertion in `superseded_scan_does_not_commit_cpu_sampling_baseline`;
+the reviewer re-reviewed the final head and reported no remaining material
+findings. The post-merge CI run passed on the resulting `develop` commit.
+
+The release branch and release history were not changed. `main` remains
+`3c1e9a53caf8ba048eaeeff3d77b26167b3140ff`; no version, tag, or release was
+created or changed. W018 has not started.
