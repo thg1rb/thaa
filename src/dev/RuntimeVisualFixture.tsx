@@ -44,6 +44,11 @@ const fixtureSnapshot: RuntimeSnapshot = {
         },
       },
       projectRoot: "/Users/example/projects/thaa-fixture",
+      resourceMetrics: {
+        cpuPercent: 3.4,
+        memoryBytes: 248 * 1024 * 1024,
+        uptimeMs: (3 * 60 + 12) * 60_000,
+      },
       gitContext: {
         repositoryRoot: "/Users/example/projects/thaa",
         branch: { state: "named", name: "feature/w016-git-context" },
@@ -60,6 +65,7 @@ const fixtureSnapshot: RuntimeSnapshot = {
       binding: "potentiallyReachable",
       processId: null,
       process: { state: "noOwner" },
+      resourceMetrics: null,
       projectRoot: null,
       gitContext: null,
       localUrl: null,

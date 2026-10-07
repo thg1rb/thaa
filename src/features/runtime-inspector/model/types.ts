@@ -23,6 +23,11 @@ export type RuntimeEntry = {
   binding: "loopbackOnly" | "potentiallyReachable" | "unknown";
   processId: number | null;
   process: ProcessDetails;
+  resourceMetrics: {
+    cpuPercent: number | null;
+    memoryBytes: number | null;
+    uptimeMs: number | null;
+  } | null;
   projectRoot: string | null;
   gitContext: GitContext | null;
   localUrl: string | null;

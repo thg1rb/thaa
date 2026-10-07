@@ -11,6 +11,7 @@ use crate::application::process_icons::{
     SNAPSHOT_ICON_MAX_COUNT,
 };
 use crate::application::process_inspection::inspect_processes;
+use crate::application::process_metrics::CpuSampler;
 use crate::application::project_root::detect_project_root;
 use crate::domain::capabilities::{
     CapabilitySupport, PlatformCapabilities, PlatformCapabilitiesProvider,
@@ -19,7 +20,7 @@ use crate::domain::git_context::{GitContext, GitContextProvider};
 use crate::domain::metadata::FieldAvailability;
 use crate::domain::network::NetworkListener;
 use crate::domain::port_provider::{PortProvider, PortProviderErrorKind, PortScanCompleteness};
-use crate::domain::process::{ProcessId, ProcessInfo};
+use crate::domain::process::{ProcessId, ProcessInfo, ProcessResourceMetrics};
 use crate::domain::process_action::{
     ProcessAction, ProcessActionError, ProcessActionOutcome, ProcessActionTarget,
 };
@@ -32,6 +33,8 @@ pub struct RuntimeEntry {
     pub entry_ref: String,
     pub listener: NetworkListener,
     pub process: Option<Result<ProcessInfo, ProcessProviderError>>,
+    /// Best-effort snapshot metrics; never process identity or action evidence.
+    pub resource_metrics: Option<ProcessResourceMetrics>,
     /// Optional local context derived from the observed working directory.
     /// This is presentation metadata, never process identity evidence.
     pub project_root: Option<PathBuf>,
@@ -75,6 +78,7 @@ struct ScannedSnapshot {
     snapshot: Arc<RuntimeSnapshot>,
     action_targets: HashMap<String, ProcessActionTarget>,
     icon_sources: Vec<(String, ProcessInfo)>,
+    cpu_sampler: CpuSampler,
 }
 
 struct RuntimeScanner {
@@ -82,6 +86,7 @@ struct RuntimeScanner {
     processes: Arc<dyn ProcessProvider>,
     capabilities: Arc<dyn PlatformCapabilitiesProvider>,
     git_contexts: Arc<dyn GitContextProvider>,
+    cpu_sampler: Mutex<CpuSampler>,
 }
 
 const GIT_CONTEXT_SCAN_BUDGET: Duration = Duration::from_secs(2);
@@ -99,7 +104,16 @@ impl RuntimeScanner {
             .filter_map(|listener| listener.owner_pid)
             .collect();
         let inspections = inspect_processes(self.processes.as_ref(), &process_ids);
-
+        let observed_processes: Vec<_> = inspections
+            .iter()
+            .filter_map(|outcome| {
+                outcome
+                    .result
+                    .as_ref()
+                    .ok()
+                    .map(|info| (outcome.requested_process_id, info.clone()))
+            })
+            .collect();
         let mut inspection_by_pid = HashMap::with_capacity(inspections.len());
         let mut action_targets = HashMap::new();
         let mut reference_by_pid = HashMap::new();
@@ -142,6 +156,18 @@ impl RuntimeScanner {
             inspection_by_pid.insert(pid, outcome.result);
         }
 
+        let observed_at = SystemTime::now();
+        let mut cpu_sampler = self
+            .cpu_sampler
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+            .clone();
+        let resource_metrics_by_pid = cpu_sampler.sample(
+            &observed_processes,
+            std::thread::available_parallelism().ok().map(usize::from),
+            observed_at,
+        );
+
         let entries = port_scan
             .listeners
             .into_iter()
@@ -152,6 +178,8 @@ impl RuntimeScanner {
                     entry_ref: next_entry_ref(generation, index),
                     listener,
                     process: pid.and_then(|pid| inspection_by_pid.get(&pid).cloned()),
+                    resource_metrics: pid
+                        .and_then(|pid| resource_metrics_by_pid.get(&pid).copied()),
                     project_root: pid.and_then(|pid| project_root_by_pid.get(&pid).cloned()),
                     git_context: pid.and_then(|pid| git_context_by_pid.get(&pid).cloned()),
                     action_target_ref: pid.and_then(|pid| reference_by_pid.get(&pid).cloned()),
@@ -163,13 +191,14 @@ impl RuntimeScanner {
         Ok(ScannedSnapshot {
             snapshot: Arc::new(RuntimeSnapshot {
                 generation,
-                observed_at: SystemTime::now(),
+                observed_at,
                 completeness: port_scan.completeness,
                 capabilities: self.capabilities.capabilities(),
                 entries,
             }),
             action_targets,
             icon_sources,
+            cpu_sampler,
         })
     }
 }
@@ -248,6 +277,7 @@ impl RuntimeInspector {
                 processes,
                 capabilities,
                 git_contexts,
+                cpu_sampler: Mutex::new(CpuSampler::default()),
             },
             controller,
             icons,
@@ -418,6 +448,12 @@ impl RuntimeInspector {
 
             let result = match scanned {
                 Ok(scanned) => {
+                    *self
+                        .scanner
+                        .cpu_sampler
+                        .lock()
+                        .unwrap_or_else(std::sync::PoisonError::into_inner) =
+                        scanned.cpu_sampler.clone();
                     state.action_targets = scanned.action_targets;
                     state.icon_sources = scanned.icon_sources;
                     state.resolved_icons = None;
@@ -551,7 +587,7 @@ mod tests {
     use std::sync::atomic::{AtomicUsize, Ordering};
     use std::sync::{Arc, Barrier, Mutex};
     use std::thread;
-    use std::time::{Duration, UNIX_EPOCH};
+    use std::time::{Duration, Instant, UNIX_EPOCH};
 
     struct FakePorts {
         result: Mutex<Result<PortScanResult, PortProviderErrorKind>>,
@@ -677,6 +713,7 @@ mod tests {
                 UnavailableReason::ProviderLimitation,
             ),
             working_directory,
+            resource_sample: Default::default(),
         }
     }
 
@@ -1253,6 +1290,105 @@ mod tests {
                 .expect("committed snapshot")
                 .generation,
             3
+        );
+    }
+
+    #[test]
+    fn superseded_scan_does_not_commit_cpu_sampling_baseline() {
+        struct FirstCapabilityGate {
+            calls: AtomicUsize,
+            entered: Barrier,
+            release: Barrier,
+        }
+        impl PlatformCapabilitiesProvider for FirstCapabilityGate {
+            fn capabilities(&self) -> PlatformCapabilities {
+                if self.calls.fetch_add(1, Ordering::SeqCst) == 0 {
+                    self.entered.wait();
+                    self.release.wait();
+                }
+                FakeCapabilities.capabilities()
+            }
+        }
+
+        struct SequencedResources {
+            calls: AtomicUsize,
+            sampled_at: Instant,
+        }
+        impl ProcessProvider for SequencedResources {
+            fn inspect(&self, pid: ProcessId) -> Result<ProcessInfo, ProcessProviderError> {
+                let sample = self.calls.fetch_add(1, Ordering::SeqCst);
+                let mut info = process(pid.get());
+                info.identity.start_time = FieldAvailability::Available(UNIX_EPOCH);
+                info.resource_sample = crate::domain::process::ProcessResourceSample {
+                    cumulative_cpu_time: FieldAvailability::Available(Duration::from_secs(
+                        sample as u64,
+                    )),
+                    resident_memory_bytes: FieldAvailability::Available(1024),
+                    sampled_at: Some(self.sampled_at + Duration::from_secs(sample as u64)),
+                };
+                Ok(info)
+            }
+        }
+
+        let ports = Arc::new(FakePorts {
+            result: Mutex::new(complete(vec![listener(
+                Some(IpAddr::V4(Ipv4Addr::LOCALHOST)),
+                3000,
+                Some(7),
+            )])),
+            calls: AtomicUsize::new(0),
+        });
+        let capabilities = Arc::new(FirstCapabilityGate {
+            calls: AtomicUsize::new(0),
+            entered: Barrier::new(2),
+            release: Barrier::new(2),
+        });
+        let inspector = Arc::new(RuntimeInspector::new_with_icons(
+            ports,
+            Arc::new(SequencedResources {
+                calls: AtomicUsize::new(0),
+                sampled_at: Instant::now(),
+            }),
+            Arc::new(FakeIcons {
+                calls: AtomicUsize::new(0),
+                icon: None,
+            }),
+            Arc::new(FakeController::default()),
+            capabilities.clone(),
+        ));
+
+        let initial = {
+            let inspector = Arc::clone(&inspector);
+            thread::spawn(move || inspector.snapshot_or_initialize())
+        };
+        capabilities.entered.wait();
+
+        let refresh = {
+            let inspector = Arc::clone(&inspector);
+            thread::spawn(move || inspector.refresh())
+        };
+        while inspector.lock_state().latest_requested < 2 {
+            thread::yield_now();
+        }
+        capabilities.release.wait();
+
+        let initial = initial
+            .join()
+            .expect("initial request thread")
+            .expect("superseded request returns accepted snapshot");
+        let refreshed = refresh
+            .join()
+            .expect("refresh thread")
+            .expect("accepted refresh succeeds");
+        assert_eq!(initial.generation, refreshed.generation);
+        assert_eq!(refreshed.generation, 2);
+        assert_eq!(
+            refreshed.entries[0]
+                .resource_metrics
+                .expect("resource sample is present")
+                .cpu_percent_hundredths,
+            None,
+            "the accepted scan must be a first sample if the superseded baseline was discarded"
         );
     }
 

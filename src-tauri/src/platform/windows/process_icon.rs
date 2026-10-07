@@ -294,6 +294,7 @@ mod tests {
             working_directory: FieldAvailability::Unavailable(
                 crate::domain::metadata::UnavailableReason::ProviderLimitation,
             ),
+            resource_sample: Default::default(),
         }
     }
 

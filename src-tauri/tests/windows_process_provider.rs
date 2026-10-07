@@ -178,6 +178,14 @@ fn inspects_controlled_child_and_reports_disappearance_after_exit() {
         info.working_directory,
         FieldAvailability::Unavailable(UnavailableReason::ProviderLimitation)
     );
+    assert!(matches!(
+        &info.resource_sample.cumulative_cpu_time,
+        FieldAvailability::Available(_)
+    ));
+    assert!(matches!(
+        &info.resource_sample.resident_memory_bytes,
+        FieldAvailability::Available(bytes) if *bytes > 0
+    ));
 
     let repeated = provider
         .inspect(process_id)

@@ -11,6 +11,7 @@ use windows_sys::Win32::Foundation::{
     CloseHandle, GetLastError, ERROR_ACCESS_DENIED, ERROR_INSUFFICIENT_BUFFER, ERROR_NOT_SUPPORTED,
     FILETIME, WAIT_OBJECT_0, WAIT_TIMEOUT,
 };
+use windows_sys::Win32::System::ProcessStatus::{K32GetProcessMemoryInfo, PROCESS_MEMORY_COUNTERS};
 use windows_sys::Win32::System::Threading::{
     GetProcessTimes, OpenProcess, QueryFullProcessImageNameW, WaitForSingleObject,
 };
@@ -165,6 +166,72 @@ pub(super) fn query_start_time(
     Ok(FieldAvailability::Available(system_time))
 }
 
+pub(super) fn query_cumulative_cpu_time(
+    handle: &OwnedProcessHandle,
+) -> FieldAvailability<Duration> {
+    let mut creation_time = MaybeUninit::<FILETIME>::uninit();
+    let mut exit_time = MaybeUninit::<FILETIME>::uninit();
+    let mut kernel_time = MaybeUninit::<FILETIME>::uninit();
+    let mut user_time = MaybeUninit::<FILETIME>::uninit();
+
+    // SAFETY: each output points to valid writable FILETIME storage and the
+    // process HANDLE has PROCESS_QUERY_LIMITED_INFORMATION.
+    let succeeded = unsafe {
+        GetProcessTimes(
+            handle.as_raw(),
+            creation_time.as_mut_ptr(),
+            exit_time.as_mut_ptr(),
+            kernel_time.as_mut_ptr(),
+            user_time.as_mut_ptr(),
+        )
+    };
+    if succeeded == 0 {
+        return FieldAvailability::Unavailable(unavailable_reason(unsafe { GetLastError() }));
+    }
+
+    // SAFETY: successful GetProcessTimes initializes all output values.
+    let kernel_time = unsafe { kernel_time.assume_init() };
+    // SAFETY: successful GetProcessTimes initializes all output values.
+    let user_time = unsafe { user_time.assume_init() };
+    cpu_duration(kernel_time, user_time)
+        .map(FieldAvailability::Available)
+        .unwrap_or(FieldAvailability::Unavailable(
+            UnavailableReason::ProviderLimitation,
+        ))
+}
+
+pub(super) fn query_resident_memory_bytes(handle: &OwnedProcessHandle) -> FieldAvailability<u64> {
+    let mut counters = PROCESS_MEMORY_COUNTERS::default();
+    let Ok(size) = u32::try_from(std::mem::size_of::<PROCESS_MEMORY_COUNTERS>()) else {
+        return FieldAvailability::Unavailable(UnavailableReason::ProviderLimitation);
+    };
+    counters.cb = size;
+
+    // SAFETY: `counters` is initialized and `cb` gives its allocated size.
+    // The process handle has the limited query right this API accepts.
+    let succeeded = unsafe { K32GetProcessMemoryInfo(handle.as_raw(), &mut counters, size) };
+    if succeeded == 0 {
+        return FieldAvailability::Unavailable(unavailable_reason(unsafe { GetLastError() }));
+    }
+
+    u64::try_from(counters.WorkingSetSize)
+        .map(FieldAvailability::Available)
+        .unwrap_or(FieldAvailability::Unavailable(
+            UnavailableReason::ProviderLimitation,
+        ))
+}
+
+fn filetime_ticks(value: FILETIME) -> u64 {
+    (u64::from(value.dwHighDateTime) << 32) | u64::from(value.dwLowDateTime)
+}
+
+fn cpu_duration(kernel_time: FILETIME, user_time: FILETIME) -> Option<Duration> {
+    filetime_ticks(kernel_time)
+        .checked_add(filetime_ticks(user_time))
+        .and_then(|ticks| ticks.checked_mul(100))
+        .map(Duration::from_nanos)
+}
+
 pub(super) fn unavailable_reason(error: u32) -> UnavailableReason {
     match error {
         ERROR_ACCESS_DENIED => UnavailableReason::PermissionDenied,
@@ -198,8 +265,31 @@ fn filetime_to_system_time(ticks: u64) -> Option<SystemTime> {
 
 #[cfg(test)]
 mod tests {
-    use super::{filetime_to_system_time, next_image_path_capacity, MAX_IMAGE_PATH_UNITS};
+    use super::{
+        cpu_duration, filetime_to_system_time, next_image_path_capacity, MAX_IMAGE_PATH_UNITS,
+    };
     use std::time::UNIX_EPOCH;
+    use windows_sys::Win32::Foundation::FILETIME;
+
+    fn filetime(ticks: u64) -> FILETIME {
+        FILETIME {
+            dwLowDateTime: ticks as u32,
+            dwHighDateTime: (ticks >> 32) as u32,
+        }
+    }
+
+    #[test]
+    fn process_cpu_time_sums_kernel_and_user_ticks_with_checked_conversion() {
+        assert_eq!(
+            cpu_duration(filetime(10), filetime(5)),
+            Some(std::time::Duration::from_nanos(1_500))
+        );
+        assert_eq!(cpu_duration(filetime(u64::MAX), filetime(1)), None);
+        assert_eq!(
+            cpu_duration(filetime(u64::MAX / 100 + 1), filetime(0)),
+            None
+        );
+    }
 
     #[test]
     fn filetime_conversion_preserves_epoch_and_subsecond_precision() {

@@ -1,4 +1,5 @@
 #include <errno.h>
+#include <libproc.h>
 #include <signal.h>
 #include <stddef.h>
 #include <stdint.h>
@@ -49,6 +50,33 @@ int thaa_macos_process_start_time(int32_t pid, int64_t *seconds, int32_t *micros
 
     *seconds = (int64_t)process.kp_proc.p_starttime.tv_sec;
     *microseconds = (int32_t)process.kp_proc.p_starttime.tv_usec;
+    return 0;
+}
+
+/* Internal Rust/C boundary: return stable status codes, not errno values. */
+int thaa_macos_process_resources(int32_t pid, uint64_t *cpu_nanoseconds, uint64_t *resident_bytes) {
+    struct rusage_info_v4 usage = {0};
+
+    if (pid <= 0 || cpu_nanoseconds == NULL || resident_bytes == NULL) {
+        return 3;
+    }
+
+    if (proc_pid_rusage(pid, RUSAGE_INFO_V4, (rusage_info_t *)&usage) != 0) {
+        if (errno == ESRCH) {
+            return 1;
+        }
+        if (errno == EACCES || errno == EPERM) {
+            return 2;
+        }
+        return 3;
+    }
+
+    if (UINT64_MAX - usage.ri_user_time < usage.ri_system_time) {
+        return 3;
+    }
+
+    *cpu_nanoseconds = usage.ri_user_time + usage.ri_system_time;
+    *resident_bytes = usage.ri_resident_size;
     return 0;
 }
 

@@ -2,6 +2,7 @@
 
 use std::ffi::OsString;
 use std::path::PathBuf;
+use std::time::Instant;
 
 use windows_sys::Win32::Foundation::{ERROR_ACCESS_DENIED, ERROR_INVALID_PARAMETER};
 use windows_sys::Win32::System::Threading::{
@@ -9,13 +10,14 @@ use windows_sys::Win32::System::Threading::{
 };
 
 use crate::domain::metadata::{FieldAvailability, UnavailableReason};
-use crate::domain::process::{ProcessId, ProcessIdentity, ProcessInfo};
+use crate::domain::process::{ProcessId, ProcessIdentity, ProcessInfo, ProcessResourceSample};
 use crate::domain::process_provider::{
     ProcessProvider, ProcessProviderError, ProcessProviderErrorKind,
 };
 
 use super::process_native::{
-    is_running, open_process, query_executable_path, query_start_time, NativeDataError,
+    is_running, open_process, query_cumulative_cpu_time, query_executable_path,
+    query_resident_memory_bytes, query_start_time, NativeDataError,
 };
 
 /// Windows implementation of the shared read-only process inspection contract.
@@ -39,6 +41,11 @@ impl ProcessProvider for WindowsProcessProvider {
 
         let start_time = query_start_time(&handle).map_err(map_native_data_error)?;
         let executable_path = query_executable_path(&handle).map_err(map_native_data_error)?;
+        let resource_sample = ProcessResourceSample {
+            cumulative_cpu_time: query_cumulative_cpu_time(&handle),
+            resident_memory_bytes: query_resident_memory_bytes(&handle),
+            sampled_at: Some(Instant::now()),
+        };
         let name = process_name(&executable_path);
 
         // The handle remains anchored to the same process object even if its
@@ -64,6 +71,7 @@ impl ProcessProvider for WindowsProcessProvider {
             working_directory: FieldAvailability::Unavailable(
                 UnavailableReason::ProviderLimitation,
             ),
+            resource_sample,
         })
     }
 }

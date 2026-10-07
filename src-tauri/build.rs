@@ -11,6 +11,7 @@ fn main() {
             .compile("thaa_macos_process_icon");
         println!("cargo:rustc-link-lib=framework=AppKit");
         println!("cargo:rustc-link-lib=framework=Foundation");
+        println!("cargo:rustc-link-lib=proc");
         println!("cargo:rerun-if-changed=src/platform/macos/process_identity.c");
         println!("cargo:rerun-if-changed=src/platform/macos/process_icon.m");
     }

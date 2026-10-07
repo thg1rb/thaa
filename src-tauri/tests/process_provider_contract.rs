@@ -55,6 +55,7 @@ fn full_info(process_id: ProcessId) -> ProcessInfo {
             OsString::from("--unicode=雪"),
         ]),
         working_directory: FieldAvailability::Available(PathBuf::from("Sample Projects/demo")),
+        resource_sample: Default::default(),
     }
 }
 

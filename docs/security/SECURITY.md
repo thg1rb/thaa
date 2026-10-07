@@ -99,3 +99,12 @@ references, and bundle/executable icon metadata do not enter process identity,
 action targets, or controller authorization. Native Windows handles and GDI
 resources are released locally on every path. Icon failures remain fallback
 presentation and are not logged with process metadata.
+
+W017 resource collection is read-only and uses the process inspection rights
+already needed by each provider. CPU, resident-memory, and uptime values are
+optional snapshot metadata only; they do not enter identity/action targets.
+Windows queries reuse and close the provider's RAII handle. macOS confines
+libproc FFI to the existing C bridge. The shared CPU baseline is bounded to
+the current accepted process snapshot and keyed by PID plus start time, so a
+reused PID cannot inherit old sampling data. Do not log metric values or add
+elevation to make protected-process metrics available.

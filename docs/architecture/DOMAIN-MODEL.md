@@ -42,6 +42,15 @@ separate optional `GitContext` with repository root and a named/detached branch
 from the same working-directory metadata. Git context does not change
 `ProcessInfo`, process identity, or action authorization.
 
+W017 adds `ProcessResourceSample` as optional, provider-collected observation
+data on `ProcessInfo`: cumulative CPU time, resident-memory bytes, and a
+monotonic sample instant. These fields are not identity evidence. The
+application derives `ProcessResourceMetrics` for a runtime snapshot: CPU
+percentage of total logical CPU capacity (0–100, unavailable until a valid
+second sample), resident bytes, and uptime from observed process start time.
+Resource values remain outside `ProcessActionTarget` and cannot authorize or
+change Stop or Force Stop behavior.
+
 ## Per-field availability
 
 `FieldAvailability<T>` is the field-level value-or-unavailable representation:

@@ -121,6 +121,20 @@ inspection. Project-root metadata is therefore unavailable on Windows while
 the provider reports `ProviderLimitation`; listener discovery and actions are
 unaffected.
 
+### W017 resource observations
+
+W017 adds optional resource reads to the existing per-process provider query.
+The macOS adapter uses `proc_pid_rusage(RUSAGE_INFO_V4)` through its localized
+libproc bridge for cumulative user+system CPU time and resident bytes. The
+Windows adapter uses its existing limited-information RAII process handle for
+`GetProcessTimes` and `K32GetProcessMemoryInfo`; the memory value is the
+working set. Native failures leave only the affected metric unavailable and
+do not request elevation or fail unrelated listener rows. CPU percentages
+are derived in the shared application layer from consecutive monotonic
+samples and normalized to total logical CPU capacity. The macOS resident-size
+and Windows working-set counters are related residency measures, not
+identical operating-system accounting definitions.
+
 The Windows-only Microsoft `windows-sys` 0.61.2 binding adds only the
 `Win32_System_Threading` and `Win32_Storage_FileSystem` features. The latter
 supports the platform adapter's mounted-volume boundary check for W015. The

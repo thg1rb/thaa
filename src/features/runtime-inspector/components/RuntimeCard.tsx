@@ -7,6 +7,11 @@ import {
 import { BindingBadge } from "./BindingBadge";
 import { ProcessIcon } from "./ProcessIcon";
 import { RuntimeActions } from "./RuntimeActions";
+import {
+  formatCpuPercent,
+  formatMemoryBytes,
+  formatUptime,
+} from "../utils/resourceMetrics";
 
 export function RuntimeCard({
   entry,
@@ -43,6 +48,7 @@ export function RuntimeCard({
       ? safeDisplay(entry.gitContext.branch.name)
       : "Detached HEAD"
     : null;
+  const resourceMetrics = entry.resourceMetrics;
   const pid = entry.processId;
 
   return (
@@ -111,6 +117,19 @@ export function RuntimeCard({
           </div>
         </div>
         <div className="metadata-row">
+          {resourceMetrics && (
+            <>
+              <span title="CPU normalized to total logical CPU capacity">
+                CPU · {formatCpuPercent(resourceMetrics.cpuPercent)}
+              </span>
+              <span title="Resident memory / working set">
+                Memory · {formatMemoryBytes(resourceMetrics.memoryBytes)}
+              </span>
+              <span title="Time since the process start time">
+                Uptime · {formatUptime(resourceMetrics.uptimeMs)}
+              </span>
+            </>
+          )}
           {executable && <span title={executable}>{executable}</span>}
           {workingDirectory && (
             <span title={workingDirectory}>in {workingDirectory}</span>
@@ -133,11 +152,15 @@ export function RuntimeCard({
                 : "Owner not identified"}
             </span>
           )}
-          {info && !executable && !workingDirectory && !projectRoot && (
-            <span className="muted-metadata">
-              Additional process details unavailable
-            </span>
-          )}
+          {info &&
+            !executable &&
+            !workingDirectory &&
+            !projectRoot &&
+            !resourceMetrics && (
+              <span className="muted-metadata">
+                Additional process details unavailable
+              </span>
+            )}
         </div>
         <div className="card-bottom">
           <BindingBadge binding={entry.binding} />
