@@ -51,6 +51,14 @@ second sample), resident bytes, and uptime from observed process start time.
 Resource values remain outside `ProcessActionTarget` and cannot authorize or
 change Stop or Force Stop behavior.
 
+W020 adds `RuntimeKind` as optional process-presentation metadata on a runtime
+snapshot entry. The application derives it from the already-observed process
+name using exact, case-insensitive runtime-host rules. The controlled set is
+Node.js, Python, Java/JVM, Ruby, and PHP; missing or non-Unicode names remain
+unclassified. Runtime classification does not update `ProcessInfo`, process
+identity, resource sampling, project/Git context, or `ProcessActionTarget`.
+It is convenience metadata, not evidence of source language or process trust.
+
 ## Per-field availability
 
 `FieldAvailability<T>` is the field-level value-or-unavailable representation:

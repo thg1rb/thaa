@@ -9,6 +9,7 @@ function entry(
   port: number,
   ref = `${pid}-${port}`,
   startTime = pid * 1000,
+  runtime: RuntimeEntry["runtime"] = null,
 ): RuntimeEntry {
   return {
     entryRef: ref,
@@ -30,6 +31,7 @@ function entry(
       },
     },
     resourceMetrics: null,
+    runtime,
     projectRoot: null,
     gitContext: null,
     localUrl: null,
@@ -53,12 +55,30 @@ describe("buildProcessForest", () => {
       "",
     );
     expect(root?.processId).toBe(10);
+    expect(root?.runtime).toBeNull();
     expect(root?.entries.map((item) => item.port)).toEqual([3000, 8080]);
     expect(root?.entries.map((item) => item.binding)).toEqual([
       "loopbackOnly",
       "wildcardIpv4",
     ]);
     expect(root?.children[0]?.processId).toBe(11);
+  });
+
+  it("keeps runtime metadata on the correct process node", () => {
+    const forest = buildProcessForest(
+      [
+        entry(10, null, "node", 3000, "parent-a", 10, "nodeJs"),
+        entry(10, null, "node", 3001, "parent-b", 10, "nodeJs"),
+        entry(11, 10, "python", 4000, "child", 20, "python"),
+      ],
+      "",
+    );
+    expect(forest[0]?.runtime).toBe("nodeJs");
+    expect(forest[0]?.children[0]?.runtime).toBe("python");
+    expect(forest[0]?.entries.map((item) => item.runtime)).toEqual([
+      "nodeJs",
+      "nodeJs",
+    ]);
   });
 
   it("shows a matching descendant with only its ancestor path as context", () => {

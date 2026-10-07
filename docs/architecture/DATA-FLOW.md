@@ -26,6 +26,14 @@ sequenceDiagram
 
 The application may enrich resolved listener owners through `ProcessProvider`, retaining unavailable metadata rather than failing the whole snapshot. Search/filter is a frontend view operation over returned listener/process presentation data and does not change process state.
 
+W020 classifies the already-observed process name once per inspected process
+while composing the snapshot. The optional closed `RuntimeKind` is copied to
+that process's listener entries and serialized as presentation metadata; the
+frontend displays it once per process-tree node. Classification is pure and
+synchronous, so it adds no provider call or independent scan lifecycle and is
+discarded with any superseded snapshot. It does not affect identity, actions,
+Search, or metadata collection.
+
 W010 defines the platform-neutral `ProcessProvider::inspect(ProcessId)` contract. A successful query returns W006 `ProcessInfo`, including explicit per-field availability; a missing process or detected disappearance during inspection is a stable query-level error. The provider returns one process only, does not enumerate processes, and does not perform identity authorization or actions. The application combines port ownership PIDs with process metadata later; neither port provider performs process enrichment. Platform-wide capabilities remain separate from per-process metadata.
 
 W011 adds the application-layer `inspect_processes` flow for arbitrary

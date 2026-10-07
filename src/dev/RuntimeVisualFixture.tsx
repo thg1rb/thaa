@@ -50,6 +50,7 @@ const fixtureSnapshot: RuntimeSnapshot = {
         memoryBytes: 248 * 1024 * 1024,
         uptimeMs: (3 * 60 + 12) * 60_000,
       },
+      runtime: "nodeJs",
       gitContext: {
         repositoryRoot: "/Users/example/projects/thaa",
         branch: { state: "named", name: "feature/w016-git-context" },
@@ -68,6 +69,7 @@ const fixtureSnapshot: RuntimeSnapshot = {
       parentProcessId: null,
       process: { state: "noOwner" },
       resourceMetrics: null,
+      runtime: null,
       projectRoot: null,
       gitContext: null,
       localUrl: null,
@@ -173,6 +175,7 @@ export function RuntimeVisualFixture({
             <RuntimeCard
               key={entry.entryRef}
               entry={entry}
+              runtime={entry.runtime}
               capabilities={fixtureSnapshot.capabilities}
               iconSource={entry.processIconRef ? iconSvg : undefined}
               iconLoading={

@@ -3,6 +3,7 @@ import { useMemo, useState } from "react";
 import type { CSSProperties } from "react";
 import { RuntimeCard } from "./RuntimeCard";
 import { buildProcessForest, type ProcessNode } from "../utils/processForest";
+import { runtimeLabel } from "../utils/runtimeKind";
 
 export function RuntimeList({
   snapshot,
@@ -105,6 +106,11 @@ export function RuntimeList({
               >
                 <span aria-hidden="true">{isCollapsed ? "▸" : "▾"}</span>
                 <strong>{node.name}</strong>
+                {node.runtime && (
+                  <span className="runtime-kind">
+                    {runtimeLabel(node.runtime)}
+                  </span>
+                )}
                 <span>
                   {node.children.length} child
                   {node.children.length === 1 ? "" : "ren"}
@@ -124,6 +130,12 @@ export function RuntimeList({
                 <RuntimeCard
                   key={entry.entryRef}
                   entry={entry}
+                  runtime={
+                    node.children.length === 0 &&
+                    entry.entryRef === node.entries[0]?.entryRef
+                      ? node.runtime
+                      : null
+                  }
                   capabilities={snapshot.capabilities}
                   iconSource={
                     entry.processIconRef

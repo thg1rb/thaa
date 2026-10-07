@@ -26,6 +26,7 @@ use crate::domain::process_action::{
 };
 use crate::domain::process_controller::ProcessController;
 use crate::domain::process_provider::{ProcessProvider, ProcessProviderError};
+use crate::domain::runtime::{classify_runtime_name, RuntimeKind};
 
 /// One normalized listener and its optional process inspection result.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -35,6 +36,8 @@ pub struct RuntimeEntry {
     pub process: Option<Result<ProcessInfo, ProcessProviderError>>,
     /// Best-effort snapshot metrics; never process identity or action evidence.
     pub resource_metrics: Option<ProcessResourceMetrics>,
+    /// Runtime family inferred from the observed process name; presentation only.
+    pub runtime: Option<RuntimeKind>,
     /// Optional local context derived from the observed working directory.
     /// This is presentation metadata, never process identity evidence.
     pub project_root: Option<PathBuf>,
@@ -120,12 +123,18 @@ impl RuntimeScanner {
         let mut icon_reference_by_pid = HashMap::new();
         let mut project_root_by_pid = HashMap::new();
         let mut git_context_by_pid = HashMap::new();
+        let mut runtime_by_pid = HashMap::with_capacity(inspections.len());
         let mut git_context_by_directory = HashMap::new();
         let git_context_deadline = Instant::now() + GIT_CONTEXT_SCAN_BUDGET;
         let mut icon_sources = Vec::new();
         for (index, outcome) in inspections.into_iter().enumerate() {
             let pid = outcome.requested_process_id.get();
             if let Ok(info) = &outcome.result {
+                let runtime = match &info.identity.name {
+                    FieldAvailability::Available(name) => classify_runtime_name(name),
+                    FieldAvailability::Unavailable(_) => None,
+                };
+                runtime_by_pid.insert(pid, runtime);
                 if let FieldAvailability::Available(working_directory) = &info.working_directory {
                     if let Some(project_root) = detect_project_root(working_directory) {
                         project_root_by_pid.insert(pid, project_root);
@@ -180,6 +189,7 @@ impl RuntimeScanner {
                     process: pid.and_then(|pid| inspection_by_pid.get(&pid).cloned()),
                     resource_metrics: pid
                         .and_then(|pid| resource_metrics_by_pid.get(&pid).copied()),
+                    runtime: pid.and_then(|pid| runtime_by_pid.get(&pid).copied().flatten()),
                     project_root: pid.and_then(|pid| project_root_by_pid.get(&pid).cloned()),
                     git_context: pid.and_then(|pid| git_context_by_pid.get(&pid).cloned()),
                     action_target_ref: pid.and_then(|pid| reference_by_pid.get(&pid).cloned()),
@@ -769,6 +779,31 @@ mod tests {
             snapshot.capabilities.force_stop,
             CapabilitySupport::Supported
         );
+    }
+
+    #[test]
+    fn runtime_classification_is_shared_by_listener_rows_and_keeps_actions() {
+        let mut observed = process(7);
+        observed.identity.name = FieldAvailability::Available(OsString::from("node"));
+        let (inspector, _, processes) = inspector(
+            complete(vec![
+                listener(Some(IpAddr::V4(Ipv4Addr::LOCALHOST)), 3000, Some(7)),
+                listener(Some(IpAddr::V4(Ipv4Addr::LOCALHOST)), 3001, Some(7)),
+            ]),
+            [(7, Ok(observed))],
+        );
+
+        let snapshot = inspector.snapshot_or_initialize().expect("scan succeeds");
+        assert_eq!(snapshot.entries.len(), 2);
+        assert!(snapshot
+            .entries
+            .iter()
+            .all(|entry| entry.runtime == Some(crate::domain::runtime::RuntimeKind::NodeJs)));
+        assert_eq!(
+            snapshot.entries[0].action_target_ref,
+            snapshot.entries[1].action_target_ref
+        );
+        assert_eq!(*processes.calls.lock().expect("calls lock"), vec![7]);
     }
 
     #[test]

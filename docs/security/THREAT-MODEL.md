@@ -234,3 +234,23 @@ Threats principally relate to FR-002/003/006–FR-009/011, NFR-001–NFR-006/NFR
   self-links, cycles, PID ambiguity, snapshot refresh, and action-target
   preservation. Platform queries fail locally to unavailable metadata.
 - **Status:** W018 implementation in progress.
+
+## THR-019 — False runtime attribution
+
+- **Threat:** A truncated or deliberately misleading process name could cause
+  an incorrect runtime label, which a user might mistake for verified
+  executable identity or a security assessment.
+- **Mitigation:** W020 uses only exact allowlisted runtime-host names from the
+  observed process metadata, leaves unsupported/unavailable values unknown,
+  and labels runtime as optional convenience metadata. It does not execute
+  binaries, inspect project files, or use the classification for actions,
+  trust, or threat decisions. UI wording and documentation avoid presenting
+  the label as proof.
+- **Verification:** Positive and negative classifier fixtures, unavailable
+  metadata coverage, DTO/UI tests, and read-only review of the evidence and
+  wording.
+- **Residual risk:** macOS process names may be truncated, and an executable
+  can intentionally use a supported name. False negatives and misleading
+  labels remain possible.
+- **References / status:** FR-015, PR-004/007, THR-001/003/004, W020.
+  **W020 implementation in progress.**

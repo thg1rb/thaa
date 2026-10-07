@@ -18,6 +18,7 @@ use crate::domain::network::BindingScope;
 use crate::domain::process::{ProcessInfo, ProcessResourceMetrics};
 use crate::domain::process_action::{ProcessAction, ProcessActionError, ProcessActionOutcome};
 use crate::domain::process_provider::ProcessProviderErrorKind;
+use crate::domain::runtime::RuntimeKind;
 
 #[derive(Clone)]
 pub struct RuntimeState(pub Arc<RuntimeInspector>);
@@ -66,6 +67,7 @@ pub struct RuntimeEntryDto {
     pub parent_process_id: Option<u32>,
     pub process: ProcessDetailsDto,
     pub resource_metrics: Option<ResourceMetricsDto>,
+    pub runtime: Option<RuntimeKindDto>,
     pub project_root: Option<String>,
     pub git_context: Option<GitContextDto>,
     pub local_url: Option<String>,
@@ -91,6 +93,28 @@ impl From<ProcessResourceMetrics> for ResourceMetricsDto {
             uptime_ms: value
                 .uptime
                 .and_then(|duration| u64::try_from(duration.as_millis()).ok()),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub enum RuntimeKindDto {
+    NodeJs,
+    Python,
+    Java,
+    Ruby,
+    Php,
+}
+
+impl From<RuntimeKind> for RuntimeKindDto {
+    fn from(value: RuntimeKind) -> Self {
+        match value {
+            RuntimeKind::NodeJs => Self::NodeJs,
+            RuntimeKind::Python => Self::Python,
+            RuntimeKind::Java => Self::Java,
+            RuntimeKind::Ruby => Self::Ruby,
+            RuntimeKind::Php => Self::Php,
         }
     }
 }
@@ -370,6 +394,7 @@ fn snapshot_dto(snapshot: &RuntimeSnapshot) -> RuntimeSnapshotDto {
                         },
                     },
                     resource_metrics: entry.resource_metrics.map(ResourceMetricsDto::from),
+                    runtime: entry.runtime.map(RuntimeKindDto::from),
                     project_root: entry
                         .project_root
                         .as_ref()
@@ -513,7 +538,7 @@ fn listener_url_error(error: ListenerUrlError) -> String {
 mod tests {
     use super::{
         process_icon_assets_dto, snapshot_dto, valid_reference, ActionDto, BindingDto,
-        ResourceMetricsDto,
+        ResourceMetricsDto, RuntimeKindDto,
     };
     use crate::application::process_icons::ProcessIconAsset;
     use crate::application::runtime_inspection::{RuntimeEntry, RuntimeSnapshot};
@@ -522,6 +547,7 @@ mod tests {
     use crate::domain::network::{BindingScope, NetworkListener, NetworkProtocol};
     use crate::domain::port_provider::PortScanCompleteness;
     use crate::domain::process::ProcessResourceMetrics;
+    use crate::domain::runtime::RuntimeKind;
     use base64::Engine;
     use std::net::{IpAddr, Ipv4Addr};
     use std::num::NonZeroU16;
@@ -564,6 +590,24 @@ mod tests {
     }
 
     #[test]
+    fn runtime_kind_dto_uses_stable_camel_case_names() {
+        let cases = [
+            (RuntimeKind::NodeJs, "nodeJs"),
+            (RuntimeKind::Python, "python"),
+            (RuntimeKind::Java, "java"),
+            (RuntimeKind::Ruby, "ruby"),
+            (RuntimeKind::Php, "php"),
+        ];
+
+        for (runtime, expected) in cases {
+            assert_eq!(
+                serde_json::to_value(RuntimeKindDto::from(runtime)).expect("serializes"),
+                expected
+            );
+        }
+    }
+
+    #[test]
     fn snapshot_dto_uses_explicit_camel_case_shape_and_capabilities() {
         let snapshot = RuntimeSnapshot {
             generation: 3,
@@ -585,6 +629,7 @@ mod tests {
                 },
                 process: None,
                 resource_metrics: None,
+                runtime: None,
                 project_root: Some(PathBuf::from("/sample/project")),
                 git_context: Some(GitContext {
                     repository_root: PathBuf::from("/sample/repository"),
@@ -599,6 +644,7 @@ mod tests {
         assert_eq!(json["entries"][0]["entryRef"], "entry-3-0");
         assert_eq!(json["entries"][0]["binding"], "loopbackOnly");
         assert_eq!(json["entries"][0]["process"]["state"], "noOwner");
+        assert!(json["entries"][0]["runtime"].is_null());
         assert_eq!(json["entries"][0]["projectRoot"], "/sample/project");
         assert_eq!(
             json["entries"][0]["gitContext"]["repositoryRoot"],
