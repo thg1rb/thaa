@@ -77,7 +77,8 @@ macOS if available. Report interactive Windows validation separately.
   existing `IpAddr` model.
 - Rust tests/Clippy, frontend formatting/lint/typecheck/tests/build, docs
   formatting/links, audits, `git diff --check`, and the macOS native no-bundle
-  build pass. Required PR CI and review remain pending.
+  build passed locally. Required PR CI and read-only review passed as recorded
+  below.
 - Interactive macOS UI validation was not run: the desktop session contained
   a separately launched Thaa instance showing active user processes, so it was
   not replaced or used as evidence for this source tree. Interactive Windows
