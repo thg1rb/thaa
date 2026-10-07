@@ -587,7 +587,7 @@ mod tests {
     use std::sync::atomic::{AtomicUsize, Ordering};
     use std::sync::{Arc, Barrier, Mutex};
     use std::thread;
-    use std::time::{Duration, UNIX_EPOCH};
+    use std::time::{Duration, Instant, UNIX_EPOCH};
 
     struct FakePorts {
         result: Mutex<Result<PortScanResult, PortProviderErrorKind>>,
@@ -1290,6 +1290,105 @@ mod tests {
                 .expect("committed snapshot")
                 .generation,
             3
+        );
+    }
+
+    #[test]
+    fn superseded_scan_does_not_commit_cpu_sampling_baseline() {
+        struct FirstCapabilityGate {
+            calls: AtomicUsize,
+            entered: Barrier,
+            release: Barrier,
+        }
+        impl PlatformCapabilitiesProvider for FirstCapabilityGate {
+            fn capabilities(&self) -> PlatformCapabilities {
+                if self.calls.fetch_add(1, Ordering::SeqCst) == 0 {
+                    self.entered.wait();
+                    self.release.wait();
+                }
+                FakeCapabilities.capabilities()
+            }
+        }
+
+        struct SequencedResources {
+            calls: AtomicUsize,
+            sampled_at: Instant,
+        }
+        impl ProcessProvider for SequencedResources {
+            fn inspect(&self, pid: ProcessId) -> Result<ProcessInfo, ProcessProviderError> {
+                let sample = self.calls.fetch_add(1, Ordering::SeqCst);
+                let mut info = process(pid.get());
+                info.identity.start_time = FieldAvailability::Available(UNIX_EPOCH);
+                info.resource_sample = crate::domain::process::ProcessResourceSample {
+                    cumulative_cpu_time: FieldAvailability::Available(Duration::from_secs(
+                        sample as u64,
+                    )),
+                    resident_memory_bytes: FieldAvailability::Available(1024),
+                    sampled_at: Some(self.sampled_at + Duration::from_secs(sample as u64)),
+                };
+                Ok(info)
+            }
+        }
+
+        let ports = Arc::new(FakePorts {
+            result: Mutex::new(complete(vec![listener(
+                Some(IpAddr::V4(Ipv4Addr::LOCALHOST)),
+                3000,
+                Some(7),
+            )])),
+            calls: AtomicUsize::new(0),
+        });
+        let capabilities = Arc::new(FirstCapabilityGate {
+            calls: AtomicUsize::new(0),
+            entered: Barrier::new(2),
+            release: Barrier::new(2),
+        });
+        let inspector = Arc::new(RuntimeInspector::new_with_icons(
+            ports,
+            Arc::new(SequencedResources {
+                calls: AtomicUsize::new(0),
+                sampled_at: Instant::now(),
+            }),
+            Arc::new(FakeIcons {
+                calls: AtomicUsize::new(0),
+                icon: None,
+            }),
+            Arc::new(FakeController::default()),
+            capabilities.clone(),
+        ));
+
+        let initial = {
+            let inspector = Arc::clone(&inspector);
+            thread::spawn(move || inspector.snapshot_or_initialize())
+        };
+        capabilities.entered.wait();
+
+        let refresh = {
+            let inspector = Arc::clone(&inspector);
+            thread::spawn(move || inspector.refresh())
+        };
+        while inspector.lock_state().latest_requested < 2 {
+            thread::yield_now();
+        }
+        capabilities.release.wait();
+
+        let initial = initial
+            .join()
+            .expect("initial request thread")
+            .expect("superseded request returns accepted snapshot");
+        let refreshed = refresh
+            .join()
+            .expect("refresh thread")
+            .expect("accepted refresh succeeds");
+        assert_eq!(initial.generation, refreshed.generation);
+        assert_eq!(refreshed.generation, 2);
+        assert_eq!(
+            refreshed.entries[0]
+                .resource_metrics
+                .expect("resource sample is present")
+                .cpu_percent_hundredths,
+            None,
+            "the accepted scan must be a first sample if the superseded baseline was discarded"
         );
     }
 
