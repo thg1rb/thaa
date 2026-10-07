@@ -29,6 +29,7 @@ const fixtureSnapshot: RuntimeSnapshot = {
       port: 4173,
       binding: "loopbackOnly",
       processId: 43100,
+      parentProcessId: null,
       process: {
         state: "available",
         details: {
@@ -64,6 +65,7 @@ const fixtureSnapshot: RuntimeSnapshot = {
       port: 8080,
       binding: "potentiallyReachable",
       processId: null,
+      parentProcessId: null,
       process: { state: "noOwner" },
       resourceMetrics: null,
       projectRoot: null,

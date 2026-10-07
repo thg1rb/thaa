@@ -232,6 +232,65 @@ h1 {
   gap: 11px;
 }
 
+.process-tree-node {
+  display: grid;
+  min-width: 0;
+  gap: 8px;
+  margin-left: min(calc(var(--tree-depth) * 18px), 108px);
+  padding-left: 10px;
+  border-left: 1px solid var(--border-emphasis);
+}
+
+.process-tree-toggle,
+.process-tree-context-label {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: 12px;
+}
+
+.process-tree-toggle {
+  justify-self: start;
+  padding: 2px 4px;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.process-tree-toggle:hover,
+.process-tree-toggle:focus-visible {
+  color: var(--text);
+}
+
+.process-tree-toggle:disabled {
+  cursor: default;
+}
+
+.process-tree-toggle:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.process-tree-toggle strong {
+  overflow: hidden;
+  color: var(--text);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.process-tree-context {
+  color: var(--text-muted);
+  font-size: 11px;
+}
+
+.process-tree-context-label {
+  padding: 2px 4px;
+}
+
 .runtime-card-skeleton {
   pointer-events: none;
 }

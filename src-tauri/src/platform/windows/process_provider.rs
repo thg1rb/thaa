@@ -2,9 +2,13 @@
 
 use std::ffi::OsString;
 use std::path::PathBuf;
-use std::time::Instant;
+use std::time::{Instant, SystemTime};
 
+use windows_sys::Win32::Foundation::{CloseHandle, INVALID_HANDLE_VALUE};
 use windows_sys::Win32::Foundation::{ERROR_ACCESS_DENIED, ERROR_INVALID_PARAMETER};
+use windows_sys::Win32::System::Diagnostics::ToolHelp::{
+    CreateToolhelp32Snapshot, Process32FirstW, Process32NextW, PROCESSENTRY32W, TH32CS_SNAPPROCESS,
+};
 use windows_sys::Win32::System::Threading::{
     PROCESS_QUERY_LIMITED_INFORMATION, PROCESS_SYNCHRONIZE,
 };
@@ -60,6 +64,7 @@ impl ProcessProvider for WindowsProcessProvider {
                 executable_path,
                 start_time,
             },
+            parent_process_id: None,
             // Windows exposes a command-line string, not the target program's
             // authoritative argv boundaries. Do not reconstruct structured
             // arguments from that string.
@@ -73,6 +78,119 @@ impl ProcessProvider for WindowsProcessProvider {
             ),
             resource_sample,
         })
+    }
+
+    fn inspect_many(
+        &self,
+        process_ids: &[ProcessId],
+    ) -> Vec<Result<ProcessInfo, ProcessProviderError>> {
+        let requested: std::collections::HashSet<u32> =
+            process_ids.iter().map(|id| id.get()).collect();
+        let mut results: Vec<_> = process_ids
+            .iter()
+            .map(|process_id| self.inspect(*process_id))
+            .collect();
+
+        // Keep handles to the inspected process objects alive across the
+        // system snapshot. This prevents a PID reused during the snapshot
+        // from inheriting the old process's parent relationship.
+        let mut identity_handles = std::collections::HashMap::new();
+        for (process_id, result) in process_ids.iter().zip(&results) {
+            let Ok(info) = result else { continue };
+            let Ok(handle) = open_process(
+                process_id.get(),
+                PROCESS_QUERY_LIMITED_INFORMATION | PROCESS_SYNCHRONIZE,
+            ) else {
+                continue;
+            };
+            if !matches!(is_running(&handle), Ok(true)) {
+                continue;
+            }
+            let observed_start = match query_start_time(&handle) {
+                Ok(FieldAvailability::Available(start_time)) => start_time,
+                _ => continue,
+            };
+            if same_process_start_time(&info.identity.start_time, observed_start) {
+                identity_handles.insert(process_id.get(), handle);
+            }
+        }
+
+        let parents = read_parent_pids(&requested);
+        for (process_id, result) in process_ids.iter().zip(&mut results) {
+            let Some(handle) = identity_handles.get(&process_id.get()) else {
+                continue;
+            };
+            if !matches!(is_running(handle), Ok(true)) {
+                continue;
+            }
+            let Some(parent_pid) = parents
+                .get(&process_id.get())
+                .copied()
+                .filter(|parent| *parent != process_id.get())
+            else {
+                continue;
+            };
+            if let Ok(info) = result {
+                info.parent_process_id = Some(ProcessId::new(parent_pid));
+            }
+        }
+        results
+    }
+}
+
+fn same_process_start_time(expected: &FieldAvailability<SystemTime>, observed: SystemTime) -> bool {
+    matches!(expected, FieldAvailability::Available(expected) if *expected == observed)
+}
+
+/// Reads parent IDs once per accepted batch. Native snapshot failure leaves
+/// this informational metadata unavailable without failing process inspection.
+fn read_parent_pids(
+    requested: &std::collections::HashSet<u32>,
+) -> std::collections::HashMap<u32, u32> {
+    if requested.is_empty() {
+        return std::collections::HashMap::new();
+    }
+    // SAFETY: Tool Help receives a documented process-snapshot flag and no
+    // process handle. The returned handle is owned and closed by SnapshotHandle.
+    let raw = unsafe { CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0) };
+    if raw == INVALID_HANDLE_VALUE {
+        return std::collections::HashMap::new();
+    }
+    let _snapshot = SnapshotHandle(raw);
+    let mut entry = PROCESSENTRY32W::default();
+    let Ok(entry_size) = u32::try_from(std::mem::size_of::<PROCESSENTRY32W>()) else {
+        return std::collections::HashMap::new();
+    };
+    entry.dwSize = entry_size;
+    // SAFETY: entry is initialized to the documented structure size and lives
+    // through each synchronous Tool Help call; snapshot remains open.
+    if unsafe { Process32FirstW(raw, &mut entry) } == 0 {
+        return std::collections::HashMap::new();
+    }
+    let mut result = std::collections::HashMap::with_capacity(requested.len());
+    loop {
+        if requested.contains(&entry.th32ProcessID) {
+            result.insert(entry.th32ProcessID, entry.th32ParentProcessID);
+            if result.len() == requested.len() {
+                break;
+            }
+        }
+        // SAFETY: same initialized entry and live snapshot as Process32FirstW.
+        if unsafe { Process32NextW(raw, &mut entry) } == 0 {
+            break;
+        }
+    }
+    result
+}
+
+struct SnapshotHandle(windows_sys::Win32::Foundation::HANDLE);
+
+impl Drop for SnapshotHandle {
+    fn drop(&mut self) {
+        // SAFETY: this wrapper uniquely owns a valid Tool Help snapshot handle.
+        unsafe {
+            CloseHandle(self.0);
+        }
     }
 }
 
@@ -124,12 +242,13 @@ fn provider_error(kind: ProcessProviderErrorKind) -> ProcessProviderError {
 
 #[cfg(test)]
 mod tests {
-    use super::{map_open_error, process_name};
+    use super::{map_open_error, process_name, same_process_start_time};
     use crate::domain::metadata::{FieldAvailability, UnavailableReason};
     use crate::domain::process::ProcessId;
     use crate::domain::process_provider::ProcessProviderErrorKind;
     use std::ffi::OsString;
     use std::path::PathBuf;
+    use std::time::{Duration, SystemTime};
     use windows_sys::Win32::Foundation::{ERROR_ACCESS_DENIED, ERROR_INVALID_PARAMETER};
 
     #[test]
@@ -177,5 +296,23 @@ mod tests {
             .inspect(ProcessId::new(0))
             .expect_err("System Idle Process is not queryable through OpenProcess");
         assert_eq!(error.kind(), ProcessProviderErrorKind::Unsupported);
+    }
+
+    #[test]
+    fn parent_metadata_is_bound_to_the_inspected_process_start_time() {
+        let original = SystemTime::UNIX_EPOCH + Duration::from_secs(10);
+        let reused_pid_start = SystemTime::UNIX_EPOCH + Duration::from_secs(11);
+        assert!(same_process_start_time(
+            &FieldAvailability::Available(original),
+            original
+        ));
+        assert!(!same_process_start_time(
+            &FieldAvailability::Available(original),
+            reused_pid_start
+        ));
+        assert!(!same_process_start_time(
+            &FieldAvailability::Unavailable(UnavailableReason::PermissionDenied),
+            original
+        ));
     }
 }

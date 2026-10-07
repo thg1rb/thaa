@@ -143,7 +143,7 @@ export function RuntimeInspectorPage() {
           ) : (
             <RuntimeList
               snapshot={snapshot}
-              entries={visibleEntries}
+              query={query}
               pendingTargets={pendingTargets}
               iconSources={iconSources}
               iconsLoading={state.iconsLoading}

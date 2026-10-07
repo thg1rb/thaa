@@ -48,6 +48,7 @@ fn full_info(process_id: ProcessId) -> ProcessInfo {
             )),
             start_time: FieldAvailability::Available(SystemTime::UNIX_EPOCH),
         },
+        parent_process_id: None,
         command_arguments: FieldAvailability::Available(vec![
             OsString::from("runner app"),
             OsString::from("--label=a value; $(not executed)"),

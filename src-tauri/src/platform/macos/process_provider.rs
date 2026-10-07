@@ -33,7 +33,7 @@ impl ProcessProvider for MacOSProcessProvider {
         let resource_sample = read_process_resources(process_id);
         let after = read_process_snapshot(process_id)?;
 
-        if before != after {
+        if before.start_time != after.start_time {
             return Err(provider_error(ProcessProviderErrorKind::ProcessDisappeared));
         }
 
@@ -48,6 +48,7 @@ impl ProcessProvider for MacOSProcessProvider {
                 ),
                 start_time: FieldAvailability::Available(before.start_time),
             },
+            parent_process_id: before.parent_pid.map(ProcessId::new),
             command_arguments: FieldAvailability::Unavailable(
                 UnavailableReason::ProviderLimitation,
             ),

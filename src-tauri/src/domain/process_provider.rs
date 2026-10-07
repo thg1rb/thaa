@@ -82,4 +82,14 @@ impl Error for ProcessProviderError {}
 pub trait ProcessProvider: Send + Sync {
     /// Inspects the process currently associated with `process_id`.
     fn inspect(&self, process_id: ProcessId) -> Result<ProcessInfo, ProcessProviderError>;
+
+    /// Inspects a batch of distinct process IDs. Providers may override this
+    /// to share one native snapshot across the batch; the default preserves
+    /// existing per-process behavior.
+    fn inspect_many(
+        &self,
+        process_ids: &[ProcessId],
+    ) -> Vec<Result<ProcessInfo, ProcessProviderError>> {
+        process_ids.iter().map(|id| self.inspect(*id)).collect()
+    }
 }

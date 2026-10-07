@@ -67,6 +67,14 @@ The compact tray menu is a projection of that same snapshot; tray activation
 requests refresh rather than starting a second scan path. Automatic scanning
 while hidden is not implemented.
 
+W018 adds optional parent-PID metadata and derives a snapshot-local forest from
+the unique listener-owner processes. It does not enumerate non-listening
+relatives. The transport remains flat; the frontend groups listener rows under
+process nodes. Missing/ambiguous parents, self-links, and cycles degrade to
+roots. Search keeps the existing process-name substring and exact-port
+matching rules and may retain ancestors as context. Tree metadata does not
+affect W017 sampling, action references, or accepted-generation handling.
+
 W012.0 defines identity-bound process action values and the
 `ProcessController` and `PlatformCapabilitiesProvider` ports. Action targets
 require a positive PID and observed start time; platform adapters must

@@ -50,6 +50,7 @@ const row = (overrides: Record<string, unknown> = {}) => ({
   port: 5173,
   binding: "loopbackOnly" as const,
   processId: 123,
+  parentProcessId: null,
   process: {
     state: "available" as const,
     details: {
@@ -85,13 +86,16 @@ const row = (overrides: Record<string, unknown> = {}) => ({
 });
 const namedRow = (name: string, port: number, entryRef: string) => {
   const template = row();
+  const processId = 100_000 + port;
   return row({
     entryRef,
     port,
+    processId,
     process: {
       ...template.process,
       details: {
         ...template.process.details,
+        processId,
         name: available(name),
       },
     },
@@ -702,6 +706,50 @@ describe("runtime inspector", () => {
     await screen.findByText("Stop request sent");
     expect(actionArgs).toEqual({
       actionTargetRef: "target-chrome",
+      action: "gracefulStop",
+    });
+  });
+
+  it("renders hierarchy as a disclosure without changing child action targeting", async () => {
+    let actionArgs: unknown;
+    const parent = namedRow("Parent", 3000, "parent");
+    const child = {
+      ...namedRow("Child", 4000, "child"),
+      parentProcessId: parent.processId,
+    };
+    mockIPC((command, args) => {
+      if (
+        command === "get_runtime_snapshot" ||
+        command === "refresh_runtime_snapshot"
+      )
+        return snapshot([parent, child]);
+      if (command === "request_process_action") {
+        actionArgs = args;
+        return { state: "requested" };
+      }
+      return undefined;
+    });
+    render(<App />);
+    expect(
+      await screen.findByRole("heading", { name: "Child" }),
+    ).toBeInTheDocument();
+    const collapse = screen.getByRole("button", { name: /Collapse Parent/ });
+    expect(collapse).toHaveAttribute("aria-expanded", "true");
+    fireEvent.click(collapse);
+    expect(
+      screen.queryByRole("heading", { name: "Child" }),
+    ).not.toBeInTheDocument();
+    expect(collapse).toHaveAttribute("aria-expanded", "false");
+    fireEvent.click(collapse);
+    const childCard = screen
+      .getByRole("heading", { name: "Child" })
+      .closest("article");
+    const stop = childCard?.querySelector("button.button-stop");
+    expect(stop).not.toBeNull();
+    fireEvent.click(stop!);
+    await screen.findByText("Stop request sent");
+    expect(actionArgs).toEqual({
+      actionTargetRef: "target-child",
       action: "gracefulStop",
     });
   });

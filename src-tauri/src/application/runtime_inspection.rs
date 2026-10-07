@@ -709,6 +709,7 @@ mod tests {
                 ),
                 start_time: FieldAvailability::Available(UNIX_EPOCH + Duration::from_secs(20)),
             },
+            parent_process_id: None,
             command_arguments: FieldAvailability::Unavailable(
                 UnavailableReason::ProviderLimitation,
             ),

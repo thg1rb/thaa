@@ -82,8 +82,9 @@ At the transport boundary, expose only a stable category and safe user message. 
 
 `PlatformCapabilities` describes platform-wide support for command argument
 reads, working-directory reads, graceful stop, and force stop using
-`CapabilitySupport::{Supported, Unsupported}`. Parent-process access is P1
-and is not included. These flags do not assert that a particular process is
+`CapabilitySupport::{Supported, Unsupported}`. Parent-process access is
+optional W018 process metadata rather than a platform-wide action capability.
+These flags do not assert that a particular process is
 readable or actionable; per-process outcomes remain authoritative. The
 `PlatformCapabilitiesProvider` port in `domain::capabilities` exposes this value independently of
 `ProcessProvider`.
@@ -160,3 +161,12 @@ W006 implements domain foundations for FR-002/003/006 and supports future
 FR-008/009/011 work through identity evidence, capability, and availability
 types. It does not discover listeners/processes, perform actions, or mark any
 functional requirement implemented. It does not move FR-012/013 into P0.
+
+## Parent process context (W018)
+
+`ProcessInfo.parent_process_id` is optional OS-reported snapshot metadata. It is
+not durable identity and must never authorize process actions. Runtime Inspector
+builds a forest only from unique listener-owner processes in the accepted
+snapshot. Parent links are joined only when the referenced process is uniquely
+represented; missing/ambiguous parents, self-links, and cycles do not invalidate
+process or listener data.

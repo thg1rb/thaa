@@ -9,7 +9,12 @@ const SYSCTL_PROCESS_ABSENT: i32 = 1;
 const SYSCTL_PERMISSION_DENIED: i32 = 2;
 
 unsafe extern "C" {
-    fn thaa_macos_process_start_time(pid: i32, seconds: *mut i64, microseconds: *mut i32) -> i32;
+    fn thaa_macos_process_snapshot(
+        pid: i32,
+        seconds: *mut i64,
+        microseconds: *mut i32,
+        parent_pid: *mut i32,
+    ) -> i32;
     fn thaa_macos_process_resources(
         pid: i32,
         cpu_nanoseconds: *mut u64,
@@ -20,6 +25,7 @@ unsafe extern "C" {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(super) struct ProcessSnapshot {
     pub(super) start_time: SystemTime,
+    pub(super) parent_pid: Option<u32>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -53,11 +59,14 @@ pub(super) fn read_process_snapshot_native(
 
     let mut seconds = 0_i64;
     let mut microseconds = 0_i32;
+    let mut parent_pid = 0_i32;
 
     // SAFETY: `pid` is a checked positive i32; both output pointers refer to
     // initialized, correctly aligned locals valid for this synchronous call.
     // The C shim writes only these outputs and validates the SDK-owned table.
-    let status = unsafe { thaa_macos_process_start_time(pid, &mut seconds, &mut microseconds) };
+    let status = unsafe {
+        thaa_macos_process_snapshot(pid, &mut seconds, &mut microseconds, &mut parent_pid)
+    };
     match status {
         0 => {}
         SYSCTL_PROCESS_ABSENT => return Err(ProcessIdentityError::ProcessDisappeared),
@@ -68,7 +77,10 @@ pub(super) fn read_process_snapshot_native(
     let start_time = normalize_start_time(seconds, microseconds)
         .ok_or(ProcessIdentityError::OperatingSystemFailure)?;
 
-    Ok(ProcessSnapshot { start_time })
+    Ok(ProcessSnapshot {
+        start_time,
+        parent_pid: u32::try_from(parent_pid).ok(),
+    })
 }
 
 pub(super) fn read_process_resources(process_id: ProcessId) -> ProcessResourceSample {
@@ -144,5 +156,13 @@ mod tests {
         assert!(normalize_start_time(-1, 0).is_none());
         assert!(normalize_start_time(1, -1).is_none());
         assert!(normalize_start_time(1, 1_000_000).is_none());
+    }
+
+    #[test]
+    fn native_snapshot_reports_parent_for_current_test_process() {
+        let process_id = ProcessId::new(std::process::id());
+        let snapshot = super::read_process_snapshot(process_id)
+            .expect("the current test process should be inspectable");
+        assert!(snapshot.parent_pid.is_some());
     }
 }

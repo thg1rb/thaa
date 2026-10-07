@@ -11,12 +11,12 @@
 _Static_assert(sizeof(pid_t) == sizeof(int32_t), "pid_t must match the checked Rust PID width");
 
 /* Internal Rust/C boundary: return 1 for absent, 2 for denied, 3 otherwise. */
-int thaa_macos_process_start_time(int32_t pid, int64_t *seconds, int32_t *microseconds) {
+int thaa_macos_process_snapshot(int32_t pid, int64_t *seconds, int32_t *microseconds, int32_t *parent_pid) {
     int mib[4] = {CTL_KERN, KERN_PROC, KERN_PROC_PID, pid};
     struct kinfo_proc process = {0};
     size_t length = sizeof(process);
 
-    if (pid <= 0 || seconds == NULL || microseconds == NULL) {
+    if (pid <= 0 || seconds == NULL || microseconds == NULL || parent_pid == NULL) {
         return 3;
     }
 
@@ -50,6 +50,10 @@ int thaa_macos_process_start_time(int32_t pid, int64_t *seconds, int32_t *micros
 
     *seconds = (int64_t)process.kp_proc.p_starttime.tv_sec;
     *microseconds = (int32_t)process.kp_proc.p_starttime.tv_usec;
+    if (process.kp_eproc.e_ppid < 0) {
+        return 3;
+    }
+    *parent_pid = (int32_t)process.kp_eproc.e_ppid;
     return 0;
 }
 
