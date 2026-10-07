@@ -1,6 +1,7 @@
 # W020 — Runtime Detection
 
-Status: IN PROGRESS
+Status: COMPLETE. Implementation merged to `develop` by PR #63. The feature
+merge is `2c4c26de3d20d6648ed1108d51cb1e4847b15949`.
 Requirement: runtime-family subset of FR-015
 Priority: P2
 Dependencies: W013 runtime snapshot, W018 Process Tree, W019 Network Exposure
@@ -52,15 +53,15 @@ listener, metrics, actions, or other metadata.
 
 ## Acceptance criteria
 
-| ID    | Criterion                                                                                                                 | Evidence                                         | Status  |
-| ----- | ------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------ | ------- |
-| AC-01 | Supported runtime names and aliases classify deterministically.                                                           | Domain classifier cases                          | PENDING |
-| AC-02 | Near-matches, wrappers, missing names, and non-Unicode names remain unclassified.                                         | Negative and unavailable-name tests              | PENDING |
-| AC-03 | Runtime is optional snapshot presentation metadata, serialized with a stable closed set of values.                        | Snapshot and DTO tests                           | PENDING |
-| AC-04 | Runtime is shown once per process and remains distinct for parent/child processes and multiple listeners.                 | Process-forest and UI tests                      | PENDING |
-| AC-05 | Search, actions, process identity, metrics, project/Git context, tree, and exposure behavior remain unchanged.            | Existing and focused regression suites           | PENDING |
-| AC-06 | No process-provider calls, filesystem/project scan, shell, inspected-binary execution, elevation, or dependency is added. | Diff review and provider/action regression tests | PENDING |
-| AC-07 | Documentation describes the evidence boundary, limitations, and deferred FR-015 scope.                                    | Documentation checks and review                  | PENDING |
+| ID    | Criterion                                                                                                                 | Evidence                                                                                  | Status |
+| ----- | ------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- | ------ |
+| AC-01 | Supported runtime names and aliases classify deterministically.                                                           | Rust domain tests for supported names, aliases, case, `.exe`, and numeric Python suffixes | PASS   |
+| AC-02 | Near-matches, wrappers, missing names, and non-Unicode names remain unclassified.                                         | Rust negative fixtures, absent-name handling, and non-Unicode test                        | PASS   |
+| AC-03 | Runtime is optional snapshot presentation metadata, serialized with a stable closed set of values.                        | Runtime snapshot composition and DTO serialization tests                                  | PASS   |
+| AC-04 | Runtime is shown once per process and remains distinct for parent/child processes and multiple listeners.                 | Process-forest and RuntimeList tests, including runtime in the tree control name          | PASS   |
+| AC-05 | Search, actions, process identity, metrics, project/Git context, tree, and exposure behavior remain unchanged.            | Runtime composition, frontend regressions, and full Rust/frontend test suites             | PASS   |
+| AC-06 | No process-provider calls, filesystem/project scan, shell, inspected-binary execution, elevation, or dependency is added. | Reviewed complete PR diff; no provider/dependency changes; action regression tests        | PASS   |
+| AC-07 | Documentation describes the evidence boundary, limitations, and deferred FR-015 scope.                                    | Documentation format/link checks and read-only review                                     | PASS   |
 
 ## Validation and known limitations
 
@@ -91,6 +92,17 @@ for security decisions.
   warnings (`RUSTSEC-2024-0370`, `RUSTSEC-2024-0429`).
 - Interactive runtime/UI validation is NOT RUN. The existing desktop Thaa
   instance was left untouched, and the local browser automation surface was
-  unavailable. Windows native validation remains pending CI.
-- Read-only review, required PR CI, merge, and post-merge verification remain
-  pending.
+  unavailable. Windows interactive validation is NOT RUN; Windows Native
+  Validation passed in CI.
+- PR #63 was reviewed read-only at final head
+  `3198ba518722da8f380462bf04e969125ec72ae8`. One LOW accessibility finding
+  was fixed by including the runtime label in the process-tree toggle's
+  accessible name and adding a regression assertion. Re-review found no
+  remaining material findings.
+- Final PR CI run `37614071411` passed Shared Quality, macOS Native Validation,
+  and Windows Native Validation on head `3198ba518722da8f380462bf04e969125ec72ae8`.
+- PR #63 merged to `develop` with merge commit
+  `2c4c26de3d20d6648ed1108d51cb1e4847b15949`. Post-merge CI run `37614744895`
+  passed Shared Quality and both Native Validation jobs. Local `develop`
+  matched `origin/develop` afterward. No release, tag, version, or `main`
+  change was made.
