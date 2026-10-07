@@ -15,7 +15,9 @@ pub enum NetworkProtocol {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum BindingScope {
     LoopbackOnly,
-    PotentiallyReachable,
+    WildcardIpv4,
+    WildcardIpv6,
+    SpecificAddress,
     Unknown,
 }
 
@@ -26,8 +28,29 @@ pub enum BindingScope {
 pub fn classify_binding(address: Option<IpAddr>) -> BindingScope {
     match address {
         None => BindingScope::Unknown,
-        Some(address) if address.is_loopback() => BindingScope::LoopbackOnly,
-        Some(_) => BindingScope::PotentiallyReachable,
+        Some(IpAddr::V4(address)) if address.is_loopback() => BindingScope::LoopbackOnly,
+        Some(IpAddr::V6(address)) if address.is_loopback() => BindingScope::LoopbackOnly,
+        Some(IpAddr::V4(address)) if address.is_unspecified() => BindingScope::WildcardIpv4,
+        Some(IpAddr::V6(address)) if address.is_unspecified() => BindingScope::WildcardIpv6,
+        Some(IpAddr::V4(address)) if address.is_broadcast() || address.is_multicast() => {
+            BindingScope::Unknown
+        }
+        Some(IpAddr::V6(address)) if address.is_multicast() => BindingScope::Unknown,
+        Some(IpAddr::V6(address))
+            if address
+                .to_ipv4_mapped()
+                .is_some_and(|mapped| mapped.is_loopback()) =>
+        {
+            BindingScope::LoopbackOnly
+        }
+        Some(IpAddr::V6(address))
+            if address
+                .to_ipv4_mapped()
+                .is_some_and(|mapped| mapped.is_broadcast() || mapped.is_multicast()) =>
+        {
+            BindingScope::Unknown
+        }
+        Some(_) => BindingScope::SpecificAddress,
     }
 }
 
@@ -67,11 +90,11 @@ mod tests {
             ),
             (
                 Some(IpAddr::V4(Ipv4Addr::UNSPECIFIED)),
-                BindingScope::PotentiallyReachable,
+                BindingScope::WildcardIpv4,
             ),
             (
                 Some(IpAddr::V4(Ipv4Addr::new(192, 0, 2, 10))),
-                BindingScope::PotentiallyReachable,
+                BindingScope::SpecificAddress,
             ),
             (
                 Some(IpAddr::V6(Ipv6Addr::LOCALHOST)),
@@ -79,13 +102,70 @@ mod tests {
             ),
             (
                 Some(IpAddr::V6(Ipv6Addr::UNSPECIFIED)),
-                BindingScope::PotentiallyReachable,
+                BindingScope::WildcardIpv6,
             ),
             (
                 Some(IpAddr::V6(
                     "2001:db8::10".parse().expect("valid IPv6 fixture"),
                 )),
-                BindingScope::PotentiallyReachable,
+                BindingScope::SpecificAddress,
+            ),
+            (
+                Some(IpAddr::V4(Ipv4Addr::new(127, 42, 0, 1))),
+                BindingScope::LoopbackOnly,
+            ),
+            (
+                Some(IpAddr::V6(
+                    "::ffff:127.0.0.1"
+                        .parse()
+                        .expect("valid mapped IPv4 fixture"),
+                )),
+                BindingScope::LoopbackOnly,
+            ),
+            (
+                Some(IpAddr::V6(
+                    "::ffff:0.0.0.0"
+                        .parse()
+                        .expect("valid mapped wildcard fixture"),
+                )),
+                BindingScope::SpecificAddress,
+            ),
+            (
+                Some(IpAddr::V6(
+                    "::ffff:224.0.0.1"
+                        .parse()
+                        .expect("valid mapped multicast fixture"),
+                )),
+                BindingScope::Unknown,
+            ),
+            (
+                Some(IpAddr::V6(
+                    "::ffff:255.255.255.255"
+                        .parse()
+                        .expect("valid mapped broadcast fixture"),
+                )),
+                BindingScope::Unknown,
+            ),
+            (
+                Some(IpAddr::V4(Ipv4Addr::new(192, 168, 1, 20))),
+                BindingScope::SpecificAddress,
+            ),
+            (
+                Some(IpAddr::V4(Ipv4Addr::new(224, 0, 0, 1))),
+                BindingScope::Unknown,
+            ),
+            (Some(IpAddr::V4(Ipv4Addr::BROADCAST)), BindingScope::Unknown),
+            (
+                Some(IpAddr::V6(
+                    "fe80::1".parse().expect("valid link-local fixture"),
+                )),
+                BindingScope::SpecificAddress,
+            ),
+            (
+                Some(IpAddr::V6(
+                    "ff02::1".parse().expect("valid multicast fixture"),
+                )),
+                BindingScope::Unknown,
             ),
             (None, BindingScope::Unknown),
         ];
@@ -93,6 +173,25 @@ mod tests {
         for (address, expected) in cases {
             assert_eq!(classify_binding(address), expected);
         }
+    }
+
+    #[test]
+    fn listener_exposure_remains_endpoint_specific() {
+        let loopback = NetworkListener {
+            protocol: NetworkProtocol::Tcp,
+            local_address: Some(IpAddr::V4(Ipv4Addr::LOCALHOST)),
+            local_port: NonZeroU16::new(3000).expect("nonzero fixture port"),
+            owner_pid: Some(ProcessId::new(42)),
+        };
+        let wildcard = NetworkListener {
+            local_address: Some(IpAddr::V4(Ipv4Addr::UNSPECIFIED)),
+            local_port: NonZeroU16::new(8080).expect("nonzero fixture port"),
+            ..loopback.clone()
+        };
+
+        assert_eq!(loopback.binding_scope(), BindingScope::LoopbackOnly);
+        assert_eq!(wildcard.binding_scope(), BindingScope::WildcardIpv4);
+        assert_eq!(loopback.owner_pid, wildcard.owner_pid);
     }
 
     #[test]

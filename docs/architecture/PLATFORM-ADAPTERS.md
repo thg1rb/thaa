@@ -98,7 +98,10 @@ is returned deterministically.
 W009's controlled native tests run in the existing GitHub-hosted
 `windows-2025` job and cover IPv4/IPv6 loopback and wildcard listeners, PID
 ownership, and post-close disappearance. This provider remains replaceable
-without changing the shared `PortProvider` or domain types.
+without changing the shared `PortProvider` or domain types. These platform
+adapters supply normalized socket addresses; W019's bind-scope classification
+is shared and does not require another scan. W019 does not infer IPv4
+dual-stack behavior from an IPv6 wildcard address.
 
 ### Windows process implementation evidence (W011.2)
 

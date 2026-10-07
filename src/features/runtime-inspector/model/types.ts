@@ -20,7 +20,12 @@ export type RuntimeEntry = {
   protocol: "tcp";
   localAddress: string | null;
   port: number;
-  binding: "loopbackOnly" | "potentiallyReachable" | "unknown";
+  binding:
+    | "loopbackOnly"
+    | "wildcardIpv4"
+    | "wildcardIpv6"
+    | "specificAddress"
+    | "unknown";
   processId: number | null;
   parentProcessId: number | null;
   process: ProcessDetails;

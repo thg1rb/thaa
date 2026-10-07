@@ -163,7 +163,10 @@ export function RuntimeCard({
             )}
         </div>
         <div className="card-bottom">
-          <BindingBadge binding={entry.binding} />
+          <BindingBadge
+            binding={entry.binding}
+            localAddress={entry.localAddress}
+          />
           <RuntimeActions
             targetRef={entry.actionTargetRef}
             capabilities={capabilities}

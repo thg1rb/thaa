@@ -63,7 +63,7 @@ const fixtureSnapshot: RuntimeSnapshot = {
       protocol: "tcp",
       localAddress: "0.0.0.0",
       port: 8080,
-      binding: "potentiallyReachable",
+      binding: "wildcardIpv4",
       processId: null,
       parentProcessId: null,
       process: { state: "noOwner" },
