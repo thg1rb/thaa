@@ -40,17 +40,24 @@ function entry(
 
 describe("buildProcessForest", () => {
   it("groups multiple listener rows under one process and builds a forest", () => {
+    const mixedExposureWildcard = entry(10, null, "server", 8080);
+    mixedExposureWildcard.binding = "wildcardIpv4";
+    mixedExposureWildcard.localAddress = "0.0.0.0";
     const [root] = buildProcessForest(
       [
         entry(10, null, "server", 3000),
-        entry(10, null, "server", 3001),
+        mixedExposureWildcard,
         entry(11, 10, "worker", 4000),
         entry(20, null, "other", 5000),
       ],
       "",
     );
     expect(root?.processId).toBe(10);
-    expect(root?.entries.map((item) => item.port)).toEqual([3000, 3001]);
+    expect(root?.entries.map((item) => item.port)).toEqual([3000, 8080]);
+    expect(root?.entries.map((item) => item.binding)).toEqual([
+      "loopbackOnly",
+      "wildcardIpv4",
+    ]);
     expect(root?.children[0]?.processId).toBe(11);
   });
 

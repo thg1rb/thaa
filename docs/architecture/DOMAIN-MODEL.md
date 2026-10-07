@@ -91,16 +91,27 @@ readable or actionable; per-process outcomes remain authoritative. The
 
 ## Binding scope
 
-`classify_binding` is a pure function over `Option<IpAddr>`:
+`classify_binding` is a pure function over `Option<IpAddr>` and describes the
+observed listener's bind scope, not remote reachability:
 
-- `LoopbackOnly` for IPv4/IPv6 loopback addresses
-- `PotentiallyReachable` for unspecified or other non-loopback addresses
+- `LoopbackOnly` for IPv4/IPv6 loopback addresses, including IPv4-mapped IPv6
+  mapped IPv4 loopback classified as loopback; other mapped addresses remain
+  specific IPv6 addresses
+- `WildcardIpv4` for the IPv4 unspecified address `0.0.0.0` and its mapped form
+- `WildcardIpv6` for the IPv6 unspecified address `::`
+- `SpecificAddress` for another known non-loopback, non-unspecified address
 - `Unknown` when the address is unavailable
 
-`PotentiallyReachable` means only that the binding extends beyond loopback. It
-does not establish interface reachability, LAN access, or Internet exposure.
-The classifier does no interface enumeration and supports FR-003/PR-009
-without implementing collection or the fuller P2 network-awareness feature.
+The listener retains its original address for display. A specific address is
+not further classified as private, link-local, or globally routable. IPv6
+wildcard does not imply IPv4 acceptance; Thaa does not inspect socket options
+that determine dual-stack behavior. Wildcard and specific bindings do not
+prove LAN or Internet reachability, firewall permission, NAT forwarding, or
+container/VM forwarding. The classifier does no interface enumeration, DNS,
+network probing, firewall inspection, or external lookup. Scoped IPv6
+addresses with nonzero scope identifiers remain unknown because W006's
+`IpAddr` does not preserve the scope identifier. W019 implements the binding
+explanation portion of FR-016 while retaining PR-009's factual boundary.
 
 ## Identity-bound process actions
 

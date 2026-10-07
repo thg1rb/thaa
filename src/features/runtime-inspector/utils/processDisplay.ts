@@ -28,6 +28,29 @@ export function displayName(entry: RuntimeEntry) {
 
 export function bindingLabel(binding: RuntimeEntry["binding"]) {
   if (binding === "loopbackOnly") return "Loopback only";
-  if (binding === "potentiallyReachable") return "Beyond loopback";
+  if (binding === "wildcardIpv4") return "All IPv4 interfaces";
+  if (binding === "wildcardIpv6") return "All IPv6 interfaces";
+  if (binding === "specificAddress") return "Specific address";
   return "Address unknown";
+}
+
+export function bindingDescription(
+  binding: RuntimeEntry["binding"],
+  localAddress: string | null,
+) {
+  if (binding === "loopbackOnly") {
+    return "Bound to a loopback address for host-local connections.";
+  }
+  if (binding === "wildcardIpv4") {
+    return "Bound to the IPv4 wildcard address. Eligible local IPv4 interfaces may accept connections; this does not prove LAN or Internet reachability.";
+  }
+  if (binding === "wildcardIpv6") {
+    return "Bound to the IPv6 wildcard address. Eligible local IPv6 interfaces may accept connections; IPv4 dual-stack behavior and remote reachability are not inferred.";
+  }
+  if (binding === "specificAddress") {
+    return localAddress
+      ? `Bound to the specific local address ${safeDisplay(localAddress)}. This does not establish whether another device can reach it.`
+      : "Bound to a specific address, but its display value is unavailable. Remote reachability is not established.";
+  }
+  return "The local bind address is unavailable, so its scope cannot be determined.";
 }

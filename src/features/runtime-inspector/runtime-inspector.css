@@ -634,7 +634,8 @@ h1 {
   background: var(--success);
 }
 
-.binding-potentiallyReachable {
+.binding-wildcardIpv4,
+.binding-wildcardIpv6 {
   background: var(--warning);
 }
 
@@ -658,10 +659,21 @@ h1 {
   color: #94e0b3;
 }
 
-.binding-badge.binding-potentiallyReachable {
+.binding-badge.binding-wildcardIpv4,
+.binding-badge.binding-wildcardIpv6 {
   border-color: #63502e;
   background: rgb(61 49 30 / 52%);
   color: #f1c879;
+}
+
+.binding-specificAddress {
+  background: #97a6ac;
+}
+
+.binding-badge.binding-specificAddress {
+  border-color: #3c4a50;
+  background: #172229;
+  color: #b0bdc1;
 }
 
 .binding-badge.binding-unknown {

@@ -125,8 +125,22 @@ impl From<&GitContext> for GitContextDto {
 #[serde(rename_all = "camelCase")]
 pub enum BindingDto {
     LoopbackOnly,
-    PotentiallyReachable,
+    WildcardIpv4,
+    WildcardIpv6,
+    SpecificAddress,
     Unknown,
+}
+
+impl From<BindingScope> for BindingDto {
+    fn from(value: BindingScope) -> Self {
+        match value {
+            BindingScope::LoopbackOnly => Self::LoopbackOnly,
+            BindingScope::WildcardIpv4 => Self::WildcardIpv4,
+            BindingScope::WildcardIpv6 => Self::WildcardIpv6,
+            BindingScope::SpecificAddress => Self::SpecificAddress,
+            BindingScope::Unknown => Self::Unknown,
+        }
+    }
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -324,11 +338,7 @@ fn snapshot_dto(snapshot: &RuntimeSnapshot) -> RuntimeSnapshotDto {
             .entries
             .iter()
             .map(|entry| {
-                let binding = match entry.listener.binding_scope() {
-                    BindingScope::LoopbackOnly => BindingDto::LoopbackOnly,
-                    BindingScope::PotentiallyReachable => BindingDto::PotentiallyReachable,
-                    BindingScope::Unknown => BindingDto::Unknown,
-                };
+                let binding = BindingDto::from(entry.listener.binding_scope());
                 let process_id = entry.listener.owner_pid.map(|pid| pid.get());
                 RuntimeEntryDto {
                     entry_ref: entry.entry_ref.clone(),
@@ -502,13 +512,14 @@ fn listener_url_error(error: ListenerUrlError) -> String {
 #[cfg(test)]
 mod tests {
     use super::{
-        process_icon_assets_dto, snapshot_dto, valid_reference, ActionDto, ResourceMetricsDto,
+        process_icon_assets_dto, snapshot_dto, valid_reference, ActionDto, BindingDto,
+        ResourceMetricsDto,
     };
     use crate::application::process_icons::ProcessIconAsset;
     use crate::application::runtime_inspection::{RuntimeEntry, RuntimeSnapshot};
     use crate::domain::capabilities::{CapabilitySupport, PlatformCapabilities};
     use crate::domain::git_context::{GitBranch, GitContext};
-    use crate::domain::network::{NetworkListener, NetworkProtocol};
+    use crate::domain::network::{BindingScope, NetworkListener, NetworkProtocol};
     use crate::domain::port_provider::PortScanCompleteness;
     use crate::domain::process::ProcessResourceMetrics;
     use base64::Engine;
@@ -532,6 +543,24 @@ mod tests {
             Ok(ActionDto::ForceStop)
         ));
         assert!(serde_json::from_str::<ActionDto>("\"terminateAnything\"").is_err());
+    }
+
+    #[test]
+    fn binding_dto_serializes_explicit_listener_scope_names() {
+        let cases = [
+            (BindingScope::LoopbackOnly, "loopbackOnly"),
+            (BindingScope::WildcardIpv4, "wildcardIpv4"),
+            (BindingScope::WildcardIpv6, "wildcardIpv6"),
+            (BindingScope::SpecificAddress, "specificAddress"),
+            (BindingScope::Unknown, "unknown"),
+        ];
+
+        for (scope, expected) in cases {
+            assert_eq!(
+                serde_json::to_value(BindingDto::from(scope)).expect("serializes"),
+                expected
+            );
+        }
     }
 
     #[test]
