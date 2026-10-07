@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted for W016 implementation; final validation is pending.
+Accepted and implemented in W016; merged in PR #55 to `develop`.
 
 ## Context
 

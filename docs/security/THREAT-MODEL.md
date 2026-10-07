@@ -199,7 +199,7 @@ Likelihood and impact are qualitative design-time estimates. Every mitigation an
 - **Mitigation:** Start only from the observed process working directory. Use fixed Git built-in read-only commands with structured arguments and no shell; clear inherited `GIT_*` overrides; never invoke project hooks/scripts or inspect status/history; bound and validate output; discard stderr; show values as sanitized text; do not log or upload repository paths. Treat missing Git, non-worktrees, stale/inaccessible paths, and command failures as absent optional context. Keep it out of process identity and action authorization.
 - **Verification:** Temporary fixtures cover root/branch, nested repositories, worktrees, detached HEAD, non-repositories, missing Git, spaces/Unicode/newlines/metacharacters, no shell execution, per-scan deduplication, DTO/UI sanitization, and preserved listener/actions.
 - **Residual risk:** The user-selected Git executable may be malicious or unavailable on PATH; kernel or remote-filesystem operations may still delay process creation or path access, even though each Git child is terminated after 750 ms. Branch and repository names can reveal local project information on screen.
-- **References / status:** FR-013; ADR-008; TC-GIT-001–TC-GIT-006. **W016 implementation and validation in progress.**
+- **References / status:** FR-013; ADR-008; TC-GIT-001–TC-GIT-006. **W016 implemented and validated; merged to `develop` in PR #55.**
 
 ## Security review and finding disposition
 
