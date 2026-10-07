@@ -1,6 +1,6 @@
 # W018 — Process Tree
 
-Status: IN PROGRESS
+Status: READY FOR REVIEW
 Requirement: remaining parent process/tree portion of FR-014
 Priority: P1
 
@@ -66,6 +66,17 @@ Windows native CI; and `git diff --check`. Manually inspect a safe macOS
 parent/child listener family if available. Interactive Windows validation is
 reported separately from CI.
 
+## Manual validation
+
+- macOS local debug app: a disposable parent process and child process each
+  opened a loopback listener. Runtime Inspector showed the child under its
+  parent; collapsing the parent hid the child; searching for the child's exact
+  port retained the parent as context; Refresh preserved the query; after the
+  child exited, Refresh removed its listener and hierarchy result. PASS.
+- Interactive Windows validation: NOT RUN; Windows Native Validation covers
+  provider compilation/tests and packaging in CI.
+- No release candidate or published release artifact was generated or changed.
+
 ## Progress
 
 - Discovery and scope freeze complete.
@@ -77,6 +88,8 @@ reported separately from CI.
 - Automated forest, search, action-target, and macOS current-process parent
   coverage added.
 - Local formatting, lint, typecheck, frontend tests/build, Rust tests/Clippy,
-  and documentation checks pass. Windows Native Validation, PR review, and
-  required CI remain pending; local Windows cross-target validation could not
-  run because this host lacks `llvm-rc`.
+  and documentation checks pass. Shared Quality, macOS Native Validation, and
+  Windows Native Validation pass on PR CI. Local Windows cross-target
+  validation could not run because this host lacks `llvm-rc`.
+- The disposable macOS parent/child listener UI scenario passes. Read-only
+  review found no material findings.
