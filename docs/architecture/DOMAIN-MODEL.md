@@ -98,13 +98,14 @@ observed listener's bind scope, not remote reachability:
   IPv6 loopback
 - `WildcardIpv4` for only the IPv4 unspecified address `0.0.0.0`
 - `WildcardIpv6` for the IPv6 unspecified address `::`
-- `SpecificAddress` for another known non-loopback unicast address, including
-  mapped IPv6 addresses that are not loopback
+- `SpecificAddress` for another known address not covered by those categories,
+  including mapped IPv6 addresses that are not loopback
 - `Unknown` when the address is unavailable
 
 Multicast addresses and IPv4 limited-broadcast addresses, including their
 IPv4-mapped IPv6 forms, are `Unknown`; they are not presented as ordinary
-specific unicast binds.
+specific binds. `SpecificAddress` describes only that the address is known and
+does not imply unicast behavior or reachability.
 
 The listener retains its original address for display. A specific address is
 not further classified as private, link-local, or globally routable. IPv6
