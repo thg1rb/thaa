@@ -79,6 +79,9 @@ describe("RuntimeList process-tree state", () => {
     );
 
     expect(screen.getAllByText("Node.js")).toHaveLength(1);
+    expect(
+      screen.getByRole("button", { name: /runtime Node\.js/i }),
+    ).toBeInTheDocument();
     expect(screen.getByText("Runtime · Python")).toBeInTheDocument();
   });
 

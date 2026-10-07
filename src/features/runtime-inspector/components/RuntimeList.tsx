@@ -92,7 +92,7 @@ export function RuntimeList({
                 className="process-tree-toggle"
                 aria-expanded={!isCollapsed}
                 disabled={query.trim().length > 0}
-                aria-label={`${isCollapsed ? "Expand" : "Collapse"} ${node.name}, ${node.children.length} child processes`}
+                aria-label={`${isCollapsed ? "Expand" : "Collapse"} ${node.name}, ${node.children.length} child processes${node.runtime ? `, runtime ${runtimeLabel(node.runtime)}` : ""}`}
                 onClick={() =>
                   setCollapseState((current) => {
                     const next = new Set(
