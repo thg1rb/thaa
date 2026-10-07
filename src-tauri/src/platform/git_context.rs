@@ -208,6 +208,13 @@ mod tests {
         GitCliContextProvider::default()
     }
 
+    fn assert_same_path(actual: &Path, expected: &Path) {
+        assert_eq!(
+            fs::canonicalize(actual).expect("canonicalize actual path"),
+            fs::canonicalize(expected).expect("canonicalize expected path")
+        );
+    }
+
     struct SentinelCleanup(PathBuf);
 
     impl Drop for SentinelCleanup {
@@ -231,10 +238,7 @@ mod tests {
             .context_for(&working_directory)
             .expect("repository context");
 
-        assert_eq!(
-            context.repository_root,
-            fs::canonicalize(repository).unwrap()
-        );
+        assert_same_path(&context.repository_root, &repository);
         assert_eq!(context.branch, GitBranch::Named("feature/context".into()));
     }
 
@@ -276,7 +280,7 @@ mod tests {
         let context = provider()
             .context_for(&inner)
             .expect("inner repository context");
-        assert_eq!(context.repository_root, fs::canonicalize(inner).unwrap());
+        assert_same_path(&context.repository_root, &inner);
     }
 
     #[test]
@@ -297,10 +301,7 @@ mod tests {
             .context_for(&repository)
             .expect("repository context");
 
-        assert_eq!(
-            context.repository_root,
-            fs::canonicalize(repository).unwrap()
-        );
+        assert_same_path(&context.repository_root, &repository);
         assert!(!sentinel.exists());
     }
 
@@ -311,10 +312,7 @@ mod tests {
         let context = provider()
             .context_for(&repository)
             .expect("repository context");
-        assert_eq!(
-            context.repository_root,
-            fs::canonicalize(repository).unwrap()
-        );
+        assert_same_path(&context.repository_root, &repository);
     }
 
     #[test]
@@ -352,7 +350,7 @@ mod tests {
             .context_for(&worktree)
             .expect("worktree repository context");
 
-        assert_eq!(context.repository_root, fs::canonicalize(worktree).unwrap());
+        assert_same_path(&context.repository_root, &worktree);
         assert_eq!(context.branch, GitBranch::Named("feature/worktree".into()));
     }
 
