@@ -70,6 +70,9 @@ impl GitCliContextProvider {
         arguments: &[&str],
         timeout: Duration,
     ) -> Option<String> {
+        if timeout.is_zero() {
+            return None;
+        }
         let mut command = Command::new(&self.executable);
         command
             .arg("-C")
