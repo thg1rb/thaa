@@ -326,6 +326,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(not(windows))]
     fn preserves_newlines_in_repository_paths() {
         let fixture = Fixture::new("line\nbreak");
         let repository = fixture.repo("repo\nroot");
