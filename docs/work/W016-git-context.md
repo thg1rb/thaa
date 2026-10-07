@@ -46,8 +46,12 @@ An empty current branch is represented as detached HEAD. Bare repositories
 without a working tree do not produce context.
 
 Lookups are deduplicated by exact working-directory path within one runtime
-scan. There is no persistent cache, so a later refresh can reflect a branch
-change. Git lookup failure is local to that process's optional metadata.
+scan. The scan reserves a two-second total budget for optional Git context;
+each provider call receives the remaining budget and the Git child is bounded
+to the smaller of the remaining time and 750 ms. If the budget expires,
+remaining contexts are absent for that snapshot. There is no persistent
+cache, so a later refresh can reflect a branch change. Git lookup failure is
+local to that process's optional metadata.
 
 ## Security and privacy assessment
 
@@ -67,10 +71,10 @@ process-action validation remain unchanged.
 
 Potential risks include kernel or remote-filesystem operations that delay
 process creation or path access and an untrusted Git executable earlier on the
-user's `PATH`. Each Git child is terminated after a 750 ms timeout; the scan
-does not wait for the subprocess indefinitely. Git is an optional local
-dependency and missing/failed queries degrade to no context. No new dependency
-or privileged behavior is introduced.
+user's `PATH`. Each Git child is terminated after at most 750 ms and the
+optional Git work for one scan is bounded to two seconds. Git is an optional
+local dependency and missing/failed queries degrade to no context. No new
+dependency or privileged behavior is introduced.
 
 ## Acceptance criteria
 
@@ -84,6 +88,7 @@ or privileged behavior is introduced.
 | AC-06 | Deduplicate lookup by identical working directory within a scan; do not add persistent state or a broad scan.                                                                    | Runtime provider-call test and code review |
 | AC-07 | Git metadata remains optional presentation data and is excluded from process identity/action authorization.                                                                      | Domain/runtime tests and review            |
 | AC-08 | Frontend displays repository root and branch as secondary metadata, safely handles detached HEAD and untrusted text, and preserves core runtime actions.                         | Frontend tests and review                  |
+| AC-09 | Bound optional Git discovery to a two-second budget per runtime scan; expire remaining lookups as absent context.                                                                | Budget contract and provider tests         |
 
 ## Non-goals
 
@@ -93,7 +98,8 @@ Windows working-directory acquisition, and W017 or later work.
 
 ## Validation
 
-- Rust: 85 unit tests and all integration test binaries passed; coverage
+- Rust: 86 unit tests and all integration test binaries pass, including the
+  review follow-up for a per-scan Git budget. Coverage
   includes branch/root lookup, detached HEAD, nested repositories, linked
   worktrees, non-repository/missing paths, unavailable Git, spaces, Unicode,
   newlines, shell metacharacters, and deduplicated scan behavior.
@@ -102,23 +108,25 @@ Windows working-directory acquisition, and W017 or later work.
 - Formatting, docs formatting/link checks, frontend dependency audit, RustSec
   audits, and macOS debug native build passed. The two previously accepted
   RustSec advisories remain documented.
-- Strict Clippy and final post-review CI are pending. macOS and Windows Native
-  Validation remain required PR CI. Windows Git context is expected to remain
+- Strict Clippy and local Rust tests pass for the final review follow-up;
+  final PR CI and re-review are pending. macOS and Windows Native Validation
+  remain required PR CI. Windows Git context is expected to remain
   unavailable because its working-directory provider does not supply the
   required input; Windows runtime behavior is not claimed as locally tested.
 
 ## Acceptance evidence
 
-| ID    | Result | Evidence                                                                                                                                      |
-| ----- | ------ | --------------------------------------------------------------------------------------------------------------------------------------------- |
-| AC-01 | PASS   | Rust provider fixture and runtime/DTO/UI coverage; local Rust and frontend suites pass.                                                       |
-| AC-02 | PASS   | Nearest nested repository and linked worktree fixtures pass.                                                                                  |
-| AC-03 | PASS   | Detached-HEAD provider fixture and UI test pass.                                                                                              |
-| AC-04 | PASS   | Non-repository, missing path/Git, and runtime-row/action preservation tests pass. Windows input remains unavailable by documented capability. |
-| AC-05 | PASS   | Spaces, Unicode, newline, and shell-metacharacter fixtures pass; direct structured process args, no shell.                                    |
-| AC-06 | PASS   | Per-scan exact-path deduplication test passes; no persistent cache or broad scan added.                                                       |
-| AC-07 | PASS   | Git context is optional presentation data; identity/action tests pass and context is not used for authorization.                              |
-| AC-08 | PASS   | Named/detached rendering and hostile-text sanitization tests pass; typecheck, lint, and build pass.                                           |
+| ID    | Result | Evidence                                                                                                                                                                    |
+| ----- | ------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| AC-01 | PASS   | Rust provider fixture and runtime/DTO/UI coverage; local Rust and frontend suites pass.                                                                                     |
+| AC-02 | PASS   | Nearest nested repository and linked worktree fixtures pass.                                                                                                                |
+| AC-03 | PASS   | Detached-HEAD provider fixture and UI test pass.                                                                                                                            |
+| AC-04 | PASS   | Non-repository, missing path/Git, and runtime-row/action preservation tests pass. Windows input remains unavailable by documented capability.                               |
+| AC-05 | PASS   | Spaces, Unicode, newline, and shell-metacharacter fixtures pass; direct structured process args, no shell.                                                                  |
+| AC-06 | PASS   | Per-scan exact-path deduplication test passes; no persistent cache or broad scan added.                                                                                     |
+| AC-07 | PASS   | Git context is optional presentation data; identity/action tests pass and context is not used for authorization.                                                            |
+| AC-08 | PASS   | Named/detached rendering and hostile-text sanitization tests pass; typecheck, lint, and build pass.                                                                         |
+| AC-09 | PASS   | Scanner passes its decreasing remaining duration to provider calls; provider skips zero budget and bounds each child to the remaining time or 750 ms, whichever is shorter. |
 
 ## Progress and evidence
 

@@ -1,6 +1,7 @@
 //! Platform-neutral Git repository context used only for presentation.
 
 use std::path::{Path, PathBuf};
+use std::time::Duration;
 
 /// A repository root and the symbolic branch associated with a working directory.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -21,5 +22,6 @@ pub enum GitBranch {
 /// No context is a normal result for non-repositories, unavailable Git, and
 /// inaccessible or stale paths. Implementations must not execute project code.
 pub trait GitContextProvider: Send + Sync {
-    fn context_for(&self, working_directory: &Path) -> Option<GitContext>;
+    /// Resolve within the caller's remaining optional-context time budget.
+    fn context_for(&self, working_directory: &Path, time_budget: Duration) -> Option<GitContext>;
 }

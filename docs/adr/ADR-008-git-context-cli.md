@@ -14,7 +14,7 @@ project code, or make process actions depend on repository data.
 ## Decision
 
 Use the installed Git CLI behind a shared `GitContextProvider` contract. Run
-fixed built-in read-only commands (`rev-parse --show-toplevel` and
+fixed built-in read-only queries (`rev-parse --show-toplevel` and
 `branch --show-current`) through direct process execution with structured
 arguments. Do not invoke a shell or add a Git library dependency. Clear
 inherited `GIT_*` environment variables so the process working directory is
@@ -23,7 +23,9 @@ unavailable directories, and query failures as absent optional context.
 Represent detached HEAD explicitly.
 
 The application scan deduplicates lookups by exact working-directory path for
-one snapshot. No persistent cache is introduced.
+one snapshot and reserves at most two seconds for all optional Git context in
+that scan. The provider receives the remaining budget and bounds its child to
+the smaller of that amount and 750 ms. No persistent cache is introduced.
 
 ## Alternatives
 

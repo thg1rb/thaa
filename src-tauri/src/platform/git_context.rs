@@ -24,18 +24,33 @@ impl Default for GitCliContextProvider {
 }
 
 impl GitContextProvider for GitCliContextProvider {
-    fn context_for(&self, working_directory: &Path) -> Option<GitContext> {
-        let root = self.run(working_directory, &["rev-parse", "--show-toplevel"])?;
-        let branch = self.run(working_directory, &["branch", "--show-current"])?;
+    fn context_for(&self, working_directory: &Path, time_budget: Duration) -> Option<GitContext> {
+        if time_budget.is_zero() {
+            return None;
+        }
+        let deadline = Instant::now() + time_budget;
+        let root = self.run(
+            working_directory,
+            &["rev-parse", "--show-toplevel"],
+            deadline
+                .saturating_duration_since(Instant::now())
+                .min(Self::COMMAND_TIMEOUT),
+        )?;
+        let branch = self.run(
+            working_directory,
+            &["branch", "--show-current"],
+            deadline
+                .saturating_duration_since(Instant::now())
+                .min(Self::COMMAND_TIMEOUT),
+        )?;
         let repository_root = std::path::PathBuf::from(root);
         if !repository_root.is_absolute() {
             return None;
         }
 
-        let branch = if branch.is_empty() {
-            GitBranch::DetachedHead
-        } else {
-            GitBranch::Named(branch)
+        let branch = match branch.as_str() {
+            "" => GitBranch::DetachedHead,
+            name => GitBranch::Named(name.to_string()),
         };
 
         Some(GitContext {
@@ -49,7 +64,12 @@ impl GitCliContextProvider {
     const COMMAND_TIMEOUT: Duration = Duration::from_millis(750);
     const MAX_OUTPUT_BYTES: u64 = 64 * 1024;
 
-    fn run(&self, working_directory: &Path, arguments: &[&str]) -> Option<String> {
+    fn run(
+        &self,
+        working_directory: &Path,
+        arguments: &[&str],
+        timeout: Duration,
+    ) -> Option<String> {
         let mut command = Command::new(&self.executable);
         command
             .arg("-C")
@@ -86,7 +106,7 @@ impl GitCliContextProvider {
                 .map(|_| bytes)
         }));
         let mut collected_output = None;
-        let deadline = Instant::now() + Self::COMMAND_TIMEOUT;
+        let deadline = Instant::now() + timeout;
         loop {
             match child.try_wait() {
                 Ok(Some(status)) => {
@@ -155,6 +175,7 @@ mod tests {
     use std::path::{Path, PathBuf};
     use std::process::Command;
     use std::sync::atomic::{AtomicUsize, Ordering};
+    use std::time::Duration;
 
     static NEXT_FIXTURE: AtomicUsize = AtomicUsize::new(0);
 
@@ -208,6 +229,10 @@ mod tests {
         GitCliContextProvider::default()
     }
 
+    fn context_for(path: &Path) -> Option<crate::domain::git_context::GitContext> {
+        provider().context_for(path, Duration::from_secs(1))
+    }
+
     fn assert_same_path(actual: &Path, expected: &Path) {
         assert_eq!(
             fs::canonicalize(actual).expect("canonicalize actual path"),
@@ -234,9 +259,7 @@ mod tests {
         let working_directory = repository.join("packages/app/src");
         fs::create_dir_all(&working_directory).expect("create nested working directory");
 
-        let context = provider()
-            .context_for(&working_directory)
-            .expect("repository context");
+        let context = context_for(&working_directory).expect("repository context");
 
         assert_same_path(&context.repository_root, &repository);
         assert_eq!(context.branch, GitBranch::Named("feature/context".into()));
@@ -263,9 +286,7 @@ mod tests {
         );
         git(&repository, &["checkout", "--quiet", "--detach", "HEAD"]);
 
-        let context = provider()
-            .context_for(&repository)
-            .expect("repository context");
+        let context = context_for(&repository).expect("repository context");
         assert_eq!(context.branch, GitBranch::DetachedHead);
     }
 
@@ -277,9 +298,7 @@ mod tests {
         fs::create_dir_all(&inner).expect("create inner repository");
         git(&inner, &["init", "--quiet"]);
 
-        let context = provider()
-            .context_for(&inner)
-            .expect("inner repository context");
+        let context = context_for(&inner).expect("inner repository context");
         assert_same_path(&context.repository_root, &inner);
     }
 
@@ -297,9 +316,7 @@ mod tests {
                 .expect("sentinel filename")
                 .to_string_lossy()
         ));
-        let context = provider()
-            .context_for(&repository)
-            .expect("repository context");
+        let context = context_for(&repository).expect("repository context");
 
         assert_same_path(&context.repository_root, &repository);
         assert!(!sentinel.exists());
@@ -309,9 +326,7 @@ mod tests {
     fn preserves_newlines_in_repository_paths() {
         let fixture = Fixture::new("line\nbreak");
         let repository = fixture.repo("repo\nroot");
-        let context = provider()
-            .context_for(&repository)
-            .expect("repository context");
+        let context = context_for(&repository).expect("repository context");
         assert_same_path(&context.repository_root, &repository);
     }
 
@@ -346,9 +361,7 @@ mod tests {
         assert!(status.success());
         assert!(worktree.join(".git").is_file());
 
-        let context = provider()
-            .context_for(&worktree)
-            .expect("worktree repository context");
+        let context = context_for(&worktree).expect("worktree repository context");
 
         assert_same_path(&context.repository_root, &worktree);
         assert_eq!(context.branch, GitBranch::Named("feature/worktree".into()));
@@ -357,8 +370,15 @@ mod tests {
     #[test]
     fn non_repository_and_missing_working_directory_have_no_context() {
         let fixture = Fixture::new("missing");
-        assert_eq!(provider().context_for(&fixture.0), None);
-        assert_eq!(provider().context_for(&fixture.0.join("missing")), None);
+        assert_eq!(context_for(&fixture.0), None);
+        assert_eq!(context_for(&fixture.0.join("missing")), None);
+    }
+
+    #[test]
+    fn exhausted_time_budget_skips_git_subprocesses() {
+        let fixture = Fixture::new("zero-budget");
+        let repository = fixture.repo("repo");
+        assert_eq!(provider().context_for(&repository, Duration::ZERO), None);
     }
 
     #[test]
@@ -368,6 +388,9 @@ mod tests {
         let adapter = GitCliContextProvider {
             executable: OsString::from("/path/that/does/not/exist/thaa-git"),
         };
-        assert_eq!(adapter.context_for(&repository), None);
+        assert_eq!(
+            adapter.context_for(&repository, Duration::from_secs(1)),
+            None
+        );
     }
 }

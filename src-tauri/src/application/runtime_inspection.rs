@@ -4,7 +4,7 @@ use std::collections::HashMap;
 use std::fmt;
 use std::path::PathBuf;
 use std::sync::{Arc, Condvar, Mutex, MutexGuard};
-use std::time::SystemTime;
+use std::time::{Duration, Instant, SystemTime};
 
 use crate::application::process_icons::{
     is_bounded_png, ProcessIconAsset, ProcessIconProvider, SNAPSHOT_ICON_MAX_BYTES,
@@ -84,6 +84,8 @@ struct RuntimeScanner {
     git_contexts: Arc<dyn GitContextProvider>,
 }
 
+const GIT_CONTEXT_SCAN_BUDGET: Duration = Duration::from_secs(2);
+
 impl RuntimeScanner {
     fn scan(&self, generation: u64) -> Result<ScannedSnapshot, RuntimeScanError> {
         // A logical refresh performs exactly one port-provider query.
@@ -105,6 +107,7 @@ impl RuntimeScanner {
         let mut project_root_by_pid = HashMap::new();
         let mut git_context_by_pid = HashMap::new();
         let mut git_context_by_directory = HashMap::new();
+        let git_context_deadline = Instant::now() + GIT_CONTEXT_SCAN_BUDGET;
         let mut icon_sources = Vec::new();
         for (index, outcome) in inspections.into_iter().enumerate() {
             let pid = outcome.requested_process_id.get();
@@ -115,7 +118,11 @@ impl RuntimeScanner {
                     }
                     let context = git_context_by_directory
                         .entry(working_directory.clone())
-                        .or_insert_with(|| self.git_contexts.context_for(working_directory))
+                        .or_insert_with(|| {
+                            let budget =
+                                git_context_deadline.saturating_duration_since(Instant::now());
+                            self.git_contexts.context_for(working_directory, budget)
+                        })
                         .clone();
                     if let Some(context) = context {
                         git_context_by_pid.insert(pid, context);
@@ -455,7 +462,11 @@ impl RuntimeInspector {
 struct NoGitContextProvider;
 
 impl GitContextProvider for NoGitContextProvider {
-    fn context_for(&self, _working_directory: &std::path::Path) -> Option<GitContext> {
+    fn context_for(
+        &self,
+        _working_directory: &std::path::Path,
+        _time_budget: Duration,
+    ) -> Option<GitContext> {
         None
     }
 }
@@ -511,6 +522,7 @@ fn next_entry_ref(generation: u64, index: usize) -> String {
 mod tests {
     use super::{
         build_local_url, next_entry_ref, ListenerUrlError, RuntimeInspector, RuntimeScanError,
+        GIT_CONTEXT_SCAN_BUDGET,
     };
     use crate::application::process_icons::ProcessIconProvider;
     use crate::domain::capabilities::{
@@ -596,7 +608,12 @@ mod tests {
     }
 
     impl GitContextProvider for FakeGitContexts {
-        fn context_for(&self, working_directory: &std::path::Path) -> Option<GitContext> {
+        fn context_for(
+            &self,
+            working_directory: &std::path::Path,
+            time_budget: Duration,
+        ) -> Option<GitContext> {
+            assert!(time_budget <= GIT_CONTEXT_SCAN_BUDGET);
             self.calls
                 .lock()
                 .expect("Git context calls lock")
