@@ -28,8 +28,9 @@ shown literally and is not further labeled private, LAN, or public.
   displayed endpoint value.
 - Known non-loopback, non-unspecified addresses are `SpecificAddress`. The
   exact address is visible; address class does not establish reachability.
-- Multicast and IPv4 limited-broadcast addresses are `Unknown`; they are not
-  presented as ordinary interface-specific unicast binds.
+- Multicast and IPv4 limited-broadcast addresses, including IPv4-mapped IPv6
+  forms, are `Unknown`; they are not presented as ordinary interface-specific
+  unicast binds.
 - Scoped IPv6 addresses with a nonzero scope ID remain unknown because the
   current domain `IpAddr` cannot retain that identifier.
 - Exposure text is factual and neutral. Wildcard/specific binding does not

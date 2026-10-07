@@ -43,6 +43,13 @@ pub fn classify_binding(address: Option<IpAddr>) -> BindingScope {
         {
             BindingScope::LoopbackOnly
         }
+        Some(IpAddr::V6(address))
+            if address
+                .to_ipv4_mapped()
+                .is_some_and(|mapped| mapped.is_broadcast() || mapped.is_multicast()) =>
+        {
+            BindingScope::Unknown
+        }
         Some(_) => BindingScope::SpecificAddress,
     }
 }
@@ -122,6 +129,22 @@ mod tests {
                         .expect("valid mapped wildcard fixture"),
                 )),
                 BindingScope::SpecificAddress,
+            ),
+            (
+                Some(IpAddr::V6(
+                    "::ffff:224.0.0.1"
+                        .parse()
+                        .expect("valid mapped multicast fixture"),
+                )),
+                BindingScope::Unknown,
+            ),
+            (
+                Some(IpAddr::V6(
+                    "::ffff:255.255.255.255"
+                        .parse()
+                        .expect("valid mapped broadcast fixture"),
+                )),
+                BindingScope::Unknown,
             ),
             (
                 Some(IpAddr::V4(Ipv4Addr::new(192, 168, 1, 20))),

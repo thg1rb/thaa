@@ -102,8 +102,9 @@ observed listener's bind scope, not remote reachability:
   mapped IPv6 addresses that are not loopback
 - `Unknown` when the address is unavailable
 
-Multicast addresses and the IPv4 limited-broadcast address are `Unknown`; they
-are not presented as ordinary specific unicast binds.
+Multicast addresses and IPv4 limited-broadcast addresses, including their
+IPv4-mapped IPv6 forms, are `Unknown`; they are not presented as ordinary
+specific unicast binds.
 
 The listener retains its original address for display. A specific address is
 not further classified as private, link-local, or globally routable. IPv6
