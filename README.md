@@ -18,10 +18,11 @@ shows which processes own local TCP listeners, the process and project context
 available on your system, and gives you quick ways to search, copy, open, or
 safely request supported process actions.
 
-> **Early Preview:** Thaa `v0.1.0` is published for selected testers. The
-> current macOS package has a known invalid bundle-signature defect and should
-> not be installed or tested. A corrected macOS patch release is in
-> preparation. Windows testing may continue under the documented limitations.
+> **Early Preview:** Thaa `v0.1.1` is the current release for selected testers.
+> It fixes the invalid macOS app-bundle signature in `v0.1.0`. The macOS app
+> remains ad-hoc signed, without Developer ID signing or notarization, and may
+> show a first-launch security warning. The Windows installer is unsigned and
+> may also trigger operating-system warnings or blocks.
 
 ---
 
@@ -67,7 +68,7 @@ ambient listener count are omitted.
 
 ## Quick Start
 
-1. Check [GitHub Releases](https://github.com/thg1rb/thaa/releases). Windows testers may use v0.1.0; macOS testers should wait for the corrected patch release.
+1. Download Thaa `v0.1.1` from the [official GitHub Pre-release](https://github.com/thg1rb/thaa/releases/tag/v0.1.1). It includes packages for macOS Apple Silicon and Windows x64.
 2. Install and launch Thaa.
 3. Search for a process name or port, such as `chrome` or `3000`.
 4. Inspect the listener and its available process/project details.
@@ -75,21 +76,27 @@ ambient listener count are omitted.
 
 ## Installation
 
-Thaa `v0.1.0` is an **Early Preview for selected testers**, not a stable or
-warning-free general release. The Windows installer is available from the
-official GitHub Release. **Pause macOS installation and testing:** its current
-DMG contains an invalid application bundle signature and macOS may report that
-Thaa is damaged. Do not bypass this signature failure. The corrected macOS
-package will be released under a new patch version.
+Thaa `v0.1.1` is an **Early Preview for selected testers**, not a stable,
+production-ready, or warning-free general release. Download only from the
+[official v0.1.1 GitHub Pre-release](https://github.com/thg1rb/thaa/releases/tag/v0.1.1)
+and verify the package with its published `SHA256SUMS.txt` where practical.
 
-### macOS — v0.1.0 testing paused
+### macOS — Apple Silicon, macOS 15+
 
-The v0.1.0 Apple Silicon package targets macOS 15 or later, but its app-bundle
-signature is invalid. Do not install it, attempt first launch, remove
-quarantine, or override macOS's block. Wait for the corrected patch release.
-This defect is separate from the expected unsigned and not-notarized
-distribution state. The [v0.1.0 release page](https://github.com/thg1rb/thaa/releases/tag/v0.1.0)
-contains the current known-issue notice.
+Download [`Thaa_0.1.1_aarch64.dmg`](https://github.com/thg1rb/thaa/releases/download/v0.1.1/Thaa_0.1.1_aarch64.dmg)
+and [`SHA256SUMS.txt`](https://github.com/thg1rb/thaa/releases/download/v0.1.1/SHA256SUMS.txt)
+from the official release. The DMG is validly ad-hoc signed, but it is not
+Developer ID signed or notarized. macOS may show a verification warning at
+first launch. If macOS offers its supported per-app approval flow, use
+**System Settings → Privacy & Security → Open Anyway**. Wording and available
+controls vary by macOS version.
+If you see “Thaa is damaged and can’t be opened” or a specific malware/XProtect
+block, stop and report it. Do not disable Gatekeeper or other security
+features globally, remove quarantine broadly, or change SIP.
+
+The `v0.1.0` macOS DMG has a historical invalid-signature defect and should
+not be used; this was fixed in `v0.1.1`. The [v0.1.0 release page](https://github.com/thg1rb/thaa/releases/tag/v0.1.0)
+retains the incident notice.
 
 Never disable Gatekeeper or other macOS security features globally. For
 Apple's current per-app guidance, see [Open apps safely on your
@@ -98,8 +105,8 @@ through [Issues](https://github.com/thg1rb/thaa/issues).
 
 ### Windows
 
-The release target is Windows 11 x64. The installer is an unsigned NSIS
-package named `Thaa_0.1.0_x64-setup.exe`; no MSI is planned.
+The `v0.1.1` release target is Windows 11 x64. The installer is an unsigned
+NSIS package named `Thaa_0.1.1_x64-setup.exe`; no MSI is provided.
 SmartScreen may warn, and [Smart App
 Control](https://learn.microsoft.com/en-us/windows/apps/package-and-deploy/smartscreen-reputation)
 or an organization policy may block installation completely. If Windows
@@ -107,9 +114,9 @@ offers **More info → Run anyway**, continue only after confirming the installe
 came from the official Thaa release and checking its SHA-256 entry. Do not
 disable Windows security protections.
 
-1. Download `Thaa_0.1.0_x64-setup.exe` and `SHA256SUMS.txt` from [Releases](https://github.com/thg1rb/thaa/releases).
+1. Download [`Thaa_0.1.1_x64-setup.exe`](https://github.com/thg1rb/thaa/releases/download/v0.1.1/Thaa_0.1.1_x64-setup.exe) and [`SHA256SUMS.txt`](https://github.com/thg1rb/thaa/releases/download/v0.1.1/SHA256SUMS.txt) from the official v0.1.1 release.
    In PowerShell, from the download folder, run
-   `Get-FileHash .\Thaa_0.1.0_x64-setup.exe -Algorithm SHA256` and compare
+   `Get-FileHash .\Thaa_0.1.1_x64-setup.exe -Algorithm SHA256` and compare
    the hash with the Windows installer entry in `SHA256SUMS.txt`.
 2. Run the installer and follow its prompts.
 3. Launch Thaa from the Start menu. To uninstall, use **Settings → Apps → Installed apps**.
@@ -154,12 +161,10 @@ later scan.
 - Windows does not provide a safe generic graceful-stop operation for
   arbitrary discovered processes. Force Stop remains separate and explicit.
 - Linux is not a supported release target.
-- The first release and its installation packages are not yet available.
-- The planned macOS Early Preview build is not Developer ID signed or Apple
+- The current v0.1.1 macOS Early Preview is not Developer ID signed or Apple
   notarized; macOS may warn or block its first launch.
-- The planned Windows Early Preview installer is unsigned; SmartScreen,
-  Smart App Control, or managed-device policy may warn or block it. The release
-  notes will state this clearly before any download is offered.
+- The current v0.1.1 Windows NSIS installer is unsigned; SmartScreen, Smart
+  App Control, or managed-device policy may warn or block installation.
 
 ## Security
 
