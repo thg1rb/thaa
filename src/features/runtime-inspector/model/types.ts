@@ -24,9 +24,15 @@ export type RuntimeEntry = {
   processId: number | null;
   process: ProcessDetails;
   projectRoot: string | null;
+  gitContext: GitContext | null;
   localUrl: string | null;
   actionTargetRef: string | null;
   processIconRef: string | null;
+};
+
+export type GitContext = {
+  repositoryRoot: string;
+  branch: { state: "named"; name: string } | { state: "detachedHead" };
 };
 
 export type ProcessIconAsset = { reference: string; pngBase64: string };

@@ -37,8 +37,10 @@ working-directory metadata. Arguments are stored as `Vec<OsString>`, not
 reconstructed into a shell string. A provider that cannot reliably normalize
 arguments reports them unavailable. W015 derives an optional project-root
 path from available working-directory metadata in the application runtime
-snapshot; it does not change `ProcessInfo` or process identity. Git context
-remains deferred.
+snapshot; it does not change `ProcessInfo` or process identity. W016 adds a
+separate optional `GitContext` with repository root and a named/detached branch
+from the same working-directory metadata. Git context does not change
+`ProcessInfo`, process identity, or action authorization.
 
 ## Per-field availability
 

@@ -44,6 +44,10 @@ const fixtureSnapshot: RuntimeSnapshot = {
         },
       },
       projectRoot: "/Users/example/projects/thaa-fixture",
+      gitContext: {
+        repositoryRoot: "/Users/example/projects/thaa",
+        branch: { state: "named", name: "feature/w016-git-context" },
+      },
       localUrl: "http://127.0.0.1:4173",
       actionTargetRef: "fixture-target-app",
       processIconRef: "fixture-icon-app",
@@ -57,6 +61,7 @@ const fixtureSnapshot: RuntimeSnapshot = {
       processId: null,
       process: { state: "noOwner" },
       projectRoot: null,
+      gitContext: null,
       localUrl: null,
       actionTargetRef: null,
       processIconRef: null,

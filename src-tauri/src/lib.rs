@@ -19,10 +19,11 @@ fn runtime_inspector() -> Arc<RuntimeInspector> {
         process_icon::MacOSProcessIconProvider,
         process_provider::MacOSProcessProvider,
     };
-    Arc::new(RuntimeInspector::new_with_icons(
+    Arc::new(RuntimeInspector::new_with_icons_and_git_context(
         Arc::new(MacOSPortProvider),
         Arc::new(MacOSProcessProvider),
         Arc::new(MacOSProcessIconProvider),
+        Arc::new(platform::git_context::GitCliContextProvider::default()),
         Arc::new(MacOSProcessController),
         Arc::new(MacOSPlatformCapabilitiesProvider),
     ))
@@ -36,10 +37,11 @@ fn runtime_inspector() -> Arc<RuntimeInspector> {
         process_icon::WindowsProcessIconProvider,
         process_provider::WindowsProcessProvider,
     };
-    Arc::new(RuntimeInspector::new_with_icons(
+    Arc::new(RuntimeInspector::new_with_icons_and_git_context(
         Arc::new(WindowsPortProvider),
         Arc::new(WindowsProcessProvider),
         Arc::new(WindowsProcessIconProvider),
+        Arc::new(platform::git_context::GitCliContextProvider::default()),
         Arc::new(WindowsProcessController),
         Arc::new(WindowsPlatformCapabilitiesProvider),
     ))

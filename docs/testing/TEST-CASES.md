@@ -125,6 +125,17 @@ search/filter remains assigned to W014.
 - Each implementation PR should reference relevant FR/NFR/PR, case/threat IDs, actual platform result, and limitations.
 - No W004 case is reported as `PASS`; cases are `Planned` or `Deferred` until executable tests exist and run.
 
+## Git context (W016)
+
+| ID         | Scenario and expected evidence                                                                                                                  | Fixture                                    | Links               | Status                                                                                |
+| ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------ | ------------------- | ------------------------------------------------------------------------------------- |
+| TC-GIT-001 | A process directory inside a working tree resolves the repository root and current branch; nested repository uses the nearest root.             | Temporary Git repositories                 | FR-013, ADR-008     | Rust provider tests implemented; local pass; CI pending                               |
+| TC-GIT-002 | Detached HEAD is explicit; worktree .git file resolves through Git semantics.                                                                   | Controlled commit and linked worktree      | FR-013, ADR-008     | Detached HEAD and worktree Rust tests implemented; local pass; CI pending             |
+| TC-GIT-003 | Non-repository, missing path, and unavailable Git produce no context without dropping runtime rows or actions.                                  | Temporary directory and missing executable | FR-013, FR-011      | Provider/runtime tests implemented; local pass; CI pending                            |
+| TC-GIT-004 | Spaces, Unicode, newlines, and shell metacharacters remain a single path argument and do not execute a shell.                                   | Adversarial temporary path                 | FR-013, THR-016     | Spaces/Unicode/newlines/metacharacters Rust tests implemented; local pass; CI pending |
+| TC-GIT-005 | Repeated listener owners sharing a working directory cause one context lookup per scan; Git context never enters identity/action authorization. | Deterministic provider double              | FR-013, THR-016     | Runtime deduplication/action-reference test implemented; local pass; CI pending       |
+| TC-GIT-006 | UI displays repository root and branch, sanitizes hostile text, and renders detached HEAD without affecting listener actions.                   | Vitest / Testing Library                   | FR-013, THR-001/016 | Named/detached/hostile-text UI tests implemented; local pass; CI pending              |
+
 ## Runtime snapshot / UI integration (W013)
 
 | ID             | Scenario and expected evidence                                                                                                               | Fixture                        | Links                       | Status                                                                                                                                   |

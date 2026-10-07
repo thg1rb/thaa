@@ -191,6 +191,16 @@ Likelihood and impact are qualitative design-time estimates. Every mitigation an
 - **Residual risk:** The filesystem can change between metadata checks and later display; the value is contextual best-effort metadata and must not authorize filesystem/process operations.
 - **References / status:** FR-012; PR-001/004/007; ADR-006; TC-012. **W015 implemented and integrated into `develop` by PR #35; interactive validation limits remain documented.**
 
+### THR-016 — Untrusted Git context discovery and disclosure
+
+- **Asset / boundary:** Local filesystem privacy and application integrity; process working directory and repository metadata → Git CLI adapter → runtime snapshot/DTO/UI.
+- **Scenario:** A stale or attacker-controlled path, inherited Git environment override, repository layout, or hostile branch/path text redirects discovery, injects commands, executes project code, stalls a scan, misleads the user, or exposes private project names.
+- **Impact / likelihood:** Medium / Low.
+- **Mitigation:** Start only from the observed process working directory. Use fixed Git built-in read-only commands with structured arguments and no shell; clear inherited `GIT_*` overrides; never invoke project hooks/scripts or inspect status/history; bound and validate output; discard stderr; show values as sanitized text; do not log or upload repository paths. Treat missing Git, non-worktrees, stale/inaccessible paths, and command failures as absent optional context. Keep it out of process identity and action authorization.
+- **Verification:** Temporary fixtures cover root/branch, nested repositories, worktrees, detached HEAD, non-repositories, missing Git, spaces/Unicode/newlines/metacharacters, no shell execution, per-scan deduplication, DTO/UI sanitization, and preserved listener/actions.
+- **Residual risk:** The user-selected Git executable may be malicious or unavailable on PATH; kernel or remote-filesystem operations may still delay process creation or path access, even though each Git child is terminated after 750 ms. Branch and repository names can reveal local project information on screen.
+- **References / status:** FR-013; ADR-008; TC-GIT-001–TC-GIT-006. **W016 implementation and validation in progress.**
+
 ## Security review and finding disposition
 
 Mandatory review triggers are listed in [Engineering Security Baseline](SECURITY.md). Critical and High findings block merge. Medium findings block when required safety or acceptance remains unmet; other Medium/Low issues need explicit follow-up/owner and rationale. All findings use the repository severity terms; no CVSS score is required.

@@ -19,6 +19,13 @@ flowchart LR
   PC -. implemented by .-> WIN
 ```
 
+W016 adds one shared, cross-platform Git adapter in the platform boundary.
+It implements the domain Git-context provider using fixed read-only Git
+commands and structured arguments; it invokes no shell or project code. The
+adapter receives only the observed working directory and returns normalized
+optional repository-root/branch data. Missing Git or failed lookup remains
+ordinary absent metadata.
+
 ## `PortProvider`
 
 Responsibility: return a normalized snapshot of listening TCP endpoints, including local IPv4/IPv6 address, port, and ownership when resolvable. The shared contract is defined in `domain::port_provider`, consistent with W003's rule that stable provider ports belong to the inward-facing domain boundary.

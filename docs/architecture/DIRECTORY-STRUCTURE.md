@@ -47,6 +47,7 @@ src-tauri/
       mod.rs
       process_inspection.rs # per-PID inspection using ProcessProvider
       project_root.rs       # bounded marker-based ancestor lookup from process cwd
+      git_context.rs        # provider contract for optional repository/branch context
       process_icons.rs      # bounded, snapshot-scoped icon presentation contract
       runtime_inspection.rs # listener/process snapshot and refresh coordinator
     domain/               # shared, platform-neutral domain values and rules
@@ -59,8 +60,9 @@ src-tauri/
       process_action.rs   # identity-bound target and shared action values
       process_controller.rs # platform-neutral action and capability ports
       process_provider.rs # read-only one-process inspection contract and errors
-    platform/             # OS-specific adapters; conditionals stop here
+    platform/             # OS-specific and shared host adapters; conditionals stop here
       mod.rs
+      git_context.rs       # shared fixed-command Git CLI adapter
       macos/               # compiled only for macOS
         mod.rs
         lsof.rs            # bounded invocation helper and private byte parser
@@ -120,6 +122,10 @@ manifests and source stay together under `src-tauri/`. A Cargo workspace is
 not needed for the current single Rust application. Future domain/application
 modules belong under `src-tauri/src/` unless later evidence justifies a
 workspace.
+
+W016's platform Git adapter executes fixed, read-only Git CLI queries through
+the domain provider contract. The runtime scan deduplicates working-directory
+paths and keeps lookup failures optional.
 
 W013.1 adds `application/process_icons.rs` for the presentation-only icon port,
 PNG bounds, and snapshot asset values. Platform implementations live in

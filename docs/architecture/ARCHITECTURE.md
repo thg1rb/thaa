@@ -100,7 +100,7 @@ All process-provided strings and paths are untrusted. Use structured OS APIs or 
 
 ## Requirement support
 
-This architecture supports FR-001–FR-012 by establishing shared listener/process/action models, use cases, presentation boundaries, and platform contracts. It supports NFR-001–NFR-010 and PR-001–PR-013 through local-only boundaries, least privilege, explicit availability, privacy constraints, and substitutable native adapters. W015 derives optional project-root snapshot metadata in the application layer; Git repository/branch context remains deferred.
+This architecture supports FR-001–FR-013 by establishing shared listener/process/action models, use cases, presentation boundaries, and platform contracts. It supports NFR-001–NFR-010 and PR-001–PR-013 through local-only boundaries, least privilege, explicit availability, privacy constraints, and substitutable native adapters. W015 derives optional project-root snapshot metadata, and W016 derives optional Git repository/branch metadata from the same observed process working directory. Both remain presentation-only and are excluded from process identity and actions.
 
 W013.1 adds optional `ProcessIconProvider` enrichment as presentation data.
 Icon lookup runs after the runtime snapshot returns, through a separate

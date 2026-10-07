@@ -68,6 +68,7 @@ const row = (overrides: Record<string, unknown> = {}) => ({
     },
   },
   projectRoot: null as string | null,
+  gitContext: null as object | null,
   localUrl: "http://127.0.0.1:5173",
   actionTargetRef: "target-1-0",
   processIconRef: null as string | null,
@@ -154,11 +155,63 @@ describe("runtime inspector", () => {
     ).toBeInTheDocument();
   });
 
+  it("shows Git repository root and branch as secondary process context", async () => {
+    mockIPC((command) =>
+      command === "get_runtime_snapshot"
+        ? snapshot([
+            row({
+              gitContext: {
+                repositoryRoot: "/sample/repository",
+                branch: { state: "named", name: "feature/context" },
+              },
+            }),
+          ])
+        : undefined,
+    );
+    render(<App />);
+
+    const context = await screen.findByText(
+      "Git · /sample/repository · feature/context",
+    );
+    expect(context).toHaveAttribute(
+      "title",
+      "/sample/repository · feature/context",
+    );
+  });
+
+  it("identifies detached HEAD without displaying an empty branch", async () => {
+    mockIPC((command) =>
+      command === "get_runtime_snapshot"
+        ? snapshot([
+            row({
+              gitContext: {
+                repositoryRoot: "/sample/repository",
+                branch: { state: "detachedHead" },
+              },
+            }),
+          ])
+        : undefined,
+    );
+    render(<App />);
+
+    expect(
+      await screen.findByText("Git · /sample/repository · Detached HEAD"),
+    ).toBeInTheDocument();
+  });
+
   it("renders project paths without control or bidirectional override characters", async () => {
     const unsafePath = "/sample/project/\u202Etxt\u0007";
     mockIPC((command) =>
       command === "get_runtime_snapshot"
-        ? snapshot([row({ projectRoot: unsafePath })])
+        ? snapshot([
+            row({
+              projectRoot: unsafePath,
+              gitContext: {
+                repositoryRoot: unsafePath,
+                branch: { state: "named", name: "feature/\u202Esecret\u0007" },
+              },
+            }),
+          ])
         : undefined,
     );
     render(<App />);
@@ -167,6 +220,9 @@ describe("runtime inspector", () => {
       "Project root · /sample/project/�txt�",
     );
     expect(projectRoot).toHaveAttribute("title", "/sample/project/�txt�");
+    expect(
+      await screen.findByText("Git · /sample/project/�txt� · feature/�secret�"),
+    ).toBeInTheDocument();
   });
 
   it("uses the approved Thaa application icon as decorative header branding", async () => {
