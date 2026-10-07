@@ -1,6 +1,6 @@
 # W018 — Process Tree
 
-Status: READY FOR REVIEW
+Status: COMPLETE
 Requirement: remaining parent process/tree portion of FR-014
 Priority: P1
 
@@ -47,16 +47,16 @@ PID checks, or W017 metric sampling.
 
 ## Acceptance criteria
 
-| ID    | Criterion                                                                                                                    | Evidence                                 |
-| ----- | ---------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------- |
-| AC-01 | Parent PID is optional metadata obtained behind macOS/Windows adapters without elevation or shell commands.                  | Provider tests and native CI             |
-| AC-02 | One node represents each unique listener-owner process; multiple listeners remain attached to that node.                     | Tree derivation tests                    |
-| AC-03 | Missing parents, invalid/self/cyclic edges, and process churn degrade to safe forest roots without scan failure.             | Tree/provider tests                      |
-| AC-04 | The UI displays a collapsible forest and preserves expansion only for stable process identities across refresh.              | Component tests and manual UI validation |
-| AC-05 | Search keeps existing process-name and exact-port matching; matching descendants may show ancestors as non-matching context. | Search/tree tests                        |
-| AC-06 | Stop and Force Stop continue to target only the explicitly selected process.                                                 | Action-target regression tests           |
-| AC-07 | W017 metrics, ports, icons, Git context, and refresh generation semantics remain intact.                                     | Regression tests and CI                  |
-| AC-08 | Documentation and platform limitations match implementation; no W019 or release work is included.                            | Documentation checks and diff review     |
+| ID    | Criterion                                                                                                                    | Evidence                                                       |
+| ----- | ---------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------- |
+| AC-01 | Parent PID is optional metadata obtained behind macOS/Windows adapters without elevation or shell commands.                  | macOS provider test, Windows identity test, native CI          |
+| AC-02 | One node represents each unique listener-owner process; multiple listeners remain attached to that node.                     | Tree derivation tests                                          |
+| AC-03 | Missing parents, invalid/self/cyclic edges, and process churn degrade to safe forest roots without scan failure.             | Tree/provider tests                                            |
+| AC-04 | The UI displays a collapsible forest and preserves expansion only for stable process identities across refresh.              | Component regression test and macOS parent/child UI validation |
+| AC-05 | Search keeps existing process-name and exact-port matching; matching descendants may show ancestors as non-matching context. | Search/tree tests                                              |
+| AC-06 | Stop and Force Stop continue to target only the explicitly selected process.                                                 | Action-target regression tests                                 |
+| AC-07 | W017 metrics, ports, icons, Git context, and refresh generation semantics remain intact.                                     | Regression tests and CI                                        |
+| AC-08 | Documentation and platform limitations match implementation; no W019 or release work is included.                            | Documentation checks and diff review                           |
 
 ## Validation plan
 
@@ -77,6 +77,28 @@ reported separately from CI.
   provider compilation/tests and packaging in CI.
 - No release candidate or published release artifact was generated or changed.
 
+## Completion evidence
+
+- PR #59, `feature/w018-process-tree` → `develop`, merged with merge commit
+  `5981c50668f32e33171d4e115b39ab306bbbdaf3`; reviewed PR head:
+  `a292836391157301049be9850e64791356fb0082`.
+- Final PR CI run `37590566830`: Shared Quality, macOS Native Validation, and
+  Windows Native Validation all passed. Post-merge CI run `37591181425` passed.
+- Local quality gates passed: Rust format, Clippy, Rust tests; frontend format,
+  lint, typecheck, tests, build; documentation format and link checks;
+  dependency audit; and `git diff --check`. RustSec reported the two previously
+  accepted advisories documented by project policy. Local Windows cross-target
+  validation was unavailable because this host lacks `llvm-rc`; Windows Native
+  Validation passed in CI. Interactive Windows validation was not run.
+- Manual macOS local-debug-app parent/child listener, collapse, exact-port
+  descendant search, Refresh, and child-exit scenarios passed, as recorded
+  above. No release candidate or published release artifact was generated or
+  changed.
+- Post-merge state: `develop` at `5981c50668f32e33171d4e115b39ab306bbbdaf3`,
+  matching `origin/develop`; `main` remains
+  `3c1e9a53caf8ba048eaeeff3d77b26167b3140ff`; tag `v0.1.1` remains at
+  `b2784bf97b115e7e8ad10dff4f4ef5c29c3171fb`.
+
 ## Progress
 
 - Discovery and scope freeze complete.
@@ -87,9 +109,5 @@ reported separately from CI.
   process grouping, context-only search ancestors, and accessible disclosure.
 - Automated forest, search, action-target, and macOS current-process parent
   coverage added.
-- Local formatting, lint, typecheck, frontend tests/build, Rust tests/Clippy,
-  and documentation checks pass. Shared Quality, macOS Native Validation, and
-  Windows Native Validation pass on PR CI. Local Windows cross-target
-  validation could not run because this host lacks `llvm-rc`.
-- The disposable macOS parent/child listener UI scenario passes. Read-only
-  review found no material findings.
+- Implementation, tests, documentation, manual macOS validation, review, final
+  PR CI, merge, and post-merge validation are complete.
