@@ -2,7 +2,7 @@
 
 ## Status
 
-Status: Ready for review on `feature/w016-git-context`.
+Status: Complete; PR #55 was merged to `develop` on 2026-10-07.
 
 Requirement: FR-013 (frozen wording)
 
@@ -108,11 +108,19 @@ Windows working-directory acquisition, and W017 or later work.
 - Formatting, docs formatting/link checks, frontend dependency audit, RustSec
   audits, and macOS debug native build passed. The two previously accepted
   RustSec advisories remain documented.
-- Strict Clippy and local Rust tests pass for the final review follow-up;
-  final PR CI and re-review are pending. macOS and Windows Native Validation
-  remain required PR CI. Windows Git context is expected to remain
-  unavailable because its working-directory provider does not supply the
-  required input; Windows runtime behavior is not claimed as locally tested.
+- Strict Clippy, local Rust tests, and macOS debug native build pass. Final PR
+  CI run `37571864268` passed Shared Quality, macOS Native Validation, and
+  Windows Native Validation. Post-merge CI run `37572286692` also passed all
+  three jobs. Windows Git context is expected to remain unavailable because
+  its working-directory provider does not supply the required input; Windows
+  runtime behavior is not claimed as locally tested.
+
+Review: read-only W016 review found no remaining material findings on final
+head `83070632bdb8f8e8f7072ce23e3eb678439cbd88`. It noted one non-blocking
+edge case: an untrusted Git executable could leave a descendant holding the
+stdout pipe after the direct child exits, delaying reader completion. Normal
+fixed Git built-ins do not spawn descendants; the executable-on-PATH residual
+risk remains documented.
 
 ## Acceptance evidence
 
@@ -130,7 +138,8 @@ Windows working-directory acquisition, and W017 or later work.
 
 ## Progress and evidence
 
-Implementation and local validation are complete. Required macOS and Windows
-Native Validation and final reviewed-head CI are pending the PR. W016 does not
-alter application version, `main`, release tags/assets, R001, or the published
-`v0.1.1` provenance.
+PR #55 merged to `develop` with merge commit
+`6bab18e31b6bc8abb1451f09914f2de68c6e2cc9`; the resulting `develop` SHA was
+`6bab18e31b6bc8abb1451f09914f2de68c6e2cc9`. Post-merge CI passed. W016 does
+not alter application version, `main`, release tags/assets, R001, or the
+published `v0.1.1` provenance.
