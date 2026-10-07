@@ -39,6 +39,9 @@ pub struct ProcessIdentity {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ProcessInfo {
     pub identity: ProcessIdentity,
+    /// OS-reported parent PID observed for this snapshot. Informational only;
+    /// it is never process identity or action authorization evidence.
+    pub parent_process_id: Option<ProcessId>,
     /// OS-normalized argument elements; never a shell-escaped command string.
     pub command_arguments: FieldAvailability<Vec<OsString>>,
     pub working_directory: FieldAvailability<PathBuf>,
@@ -105,6 +108,7 @@ mod tests {
                 )),
                 start_time: FieldAvailability::Available(SystemTime::UNIX_EPOCH),
             },
+            parent_process_id: Some(ProcessId::new(1)),
             command_arguments: FieldAvailability::Available(vec![
                 OsString::from("--name"),
                 OsString::from("a value with spaces"),

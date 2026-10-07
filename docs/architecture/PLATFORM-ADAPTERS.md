@@ -292,3 +292,12 @@ interfaces. Windows uses documented Shell icon extraction and GDI image
 conversion APIs. These checks establish normal development/CI adapter
 behavior only; they do not establish App Store/sandbox or packaged
 distribution behavior.
+
+## Parent process metadata (W018)
+
+The macOS adapter reads parent PID in the same public `sysctl(KERN_PROC_PID)`
+process snapshot used for start-time identity evidence. The Windows adapter
+uses one documented Tool Help process snapshot for each batch of listener-owner
+inspections and retains parent IDs only for requested owner PIDs. Snapshot
+failure leaves parent metadata unavailable; it does not fail listener
+inspection or request elevation. No shell command or private API is used.

@@ -30,28 +30,39 @@ pub fn inspect_processes(
     process_ids: &[ProcessId],
 ) -> Vec<ProcessInspectionOutcome> {
     let mut seen = HashSet::with_capacity(process_ids.len());
-    let mut outcomes = Vec::with_capacity(process_ids.len());
+    let distinct: Vec<_> = process_ids
+        .iter()
+        .copied()
+        .filter(|id| seen.insert(id.get()))
+        .collect();
+    let results = provider.inspect_many(&distinct);
 
-    for &requested_process_id in process_ids {
-        if !seen.insert(requested_process_id.get()) {
-            continue;
-        }
+    distinct
+        .into_iter()
+        .enumerate()
+        .map(|(index, requested_process_id)| {
+            let result = results
+                .get(index)
+                .cloned()
+                .unwrap_or_else(|| {
+                    Err(ProcessProviderError::new(
+                        ProcessProviderErrorKind::ProviderFailure,
+                    ))
+                })
+                .and_then(|info| {
+                    if info.identity.pid == requested_process_id {
+                        Ok(info)
+                    } else {
+                        Err(ProcessProviderError::new(
+                            ProcessProviderErrorKind::ProviderFailure,
+                        ))
+                    }
+                });
 
-        let result = provider.inspect(requested_process_id).and_then(|info| {
-            if info.identity.pid == requested_process_id {
-                Ok(info)
-            } else {
-                Err(ProcessProviderError::new(
-                    ProcessProviderErrorKind::ProviderFailure,
-                ))
+            ProcessInspectionOutcome {
+                requested_process_id,
+                result,
             }
-        });
-
-        outcomes.push(ProcessInspectionOutcome {
-            requested_process_id,
-            result,
-        });
-    }
-
-    outcomes
+        })
+        .collect()
 }

@@ -4,7 +4,11 @@ use std::ffi::OsString;
 use std::path::PathBuf;
 use std::time::Instant;
 
+use windows_sys::Win32::Foundation::{CloseHandle, INVALID_HANDLE_VALUE};
 use windows_sys::Win32::Foundation::{ERROR_ACCESS_DENIED, ERROR_INVALID_PARAMETER};
+use windows_sys::Win32::System::Diagnostics::ToolHelp::{
+    CreateToolhelp32Snapshot, Process32FirstW, Process32NextW, PROCESSENTRY32W, TH32CS_SNAPPROCESS,
+};
 use windows_sys::Win32::System::Threading::{
     PROCESS_QUERY_LIMITED_INFORMATION, PROCESS_SYNCHRONIZE,
 };
@@ -73,6 +77,77 @@ impl ProcessProvider for WindowsProcessProvider {
             ),
             resource_sample,
         })
+    }
+
+    fn inspect_many(
+        &self,
+        process_ids: &[ProcessId],
+    ) -> Vec<Result<ProcessInfo, ProcessProviderError>> {
+        let requested: std::collections::HashSet<u32> =
+            process_ids.iter().map(|id| id.get()).collect();
+        let parents = read_parent_pids(&requested);
+        process_ids
+            .iter()
+            .map(|process_id| {
+                self.inspect(*process_id).map(|mut info| {
+                    info.parent_process_id = parents
+                        .get(&process_id.get())
+                        .copied()
+                        .filter(|parent| *parent != process_id.get())
+                        .map(ProcessId::new);
+                    info
+                })
+            })
+            .collect()
+    }
+}
+
+/// Reads parent IDs once per accepted batch. Native snapshot failure leaves
+/// this informational metadata unavailable without failing process inspection.
+fn read_parent_pids(
+    requested: &std::collections::HashSet<u32>,
+) -> std::collections::HashMap<u32, u32> {
+    if requested.is_empty() {
+        return std::collections::HashMap::new();
+    }
+    // SAFETY: Tool Help receives a documented process-snapshot flag and no
+    // process handle. The returned handle is owned and closed by SnapshotHandle.
+    let raw = unsafe { CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0) };
+    if raw == INVALID_HANDLE_VALUE {
+        return std::collections::HashMap::new();
+    }
+    let _snapshot = SnapshotHandle(raw);
+    let mut entry = PROCESSENTRY32W::default();
+    entry.dwSize = std::mem::size_of::<PROCESSENTRY32W>() as u32;
+    // SAFETY: entry is initialized to the documented structure size and lives
+    // through each synchronous Tool Help call; snapshot remains open.
+    if unsafe { Process32FirstW(raw, &mut entry) } == 0 {
+        return std::collections::HashMap::new();
+    }
+    let mut result = std::collections::HashMap::with_capacity(requested.len());
+    loop {
+        if requested.contains(&entry.th32ProcessID) {
+            result.insert(entry.th32ProcessID, entry.th32ParentProcessID);
+            if result.len() == requested.len() {
+                break;
+            }
+        }
+        // SAFETY: same initialized entry and live snapshot as Process32FirstW.
+        if unsafe { Process32NextW(raw, &mut entry) } == 0 {
+            break;
+        }
+    }
+    result
+}
+
+struct SnapshotHandle(windows_sys::Win32::Foundation::HANDLE);
+
+impl Drop for SnapshotHandle {
+    fn drop(&mut self) {
+        // SAFETY: this wrapper uniquely owns a valid Tool Help snapshot handle.
+        unsafe {
+            CloseHandle(self.0);
+        }
     }
 }
 

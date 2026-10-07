@@ -218,3 +218,19 @@ Mandatory review triggers are listed in [Engineering Security Baseline](SECURITY
 ## Requirement and verification summary
 
 Threats principally relate to FR-002/003/006–FR-009/011, NFR-001–NFR-006/NFR-008/NFR-010, and PR-001/004–PR-009. Verification case IDs and status are cataloged in [TEST-CASES.md](../testing/TEST-CASES.md). Every entry remains a design obligation, not an implemented mitigation.
+
+## THR-018 — Stale or malformed process hierarchy metadata
+
+- **Threat:** PID reuse, process churn, malformed parent relations, or a cycle
+  could attach a listener to the wrong process node or cause unbounded tree
+  traversal/rendering.
+- **Mitigation:** Parent PID is optional snapshot metadata, never action
+  identity. Only unique listener-owner nodes in an accepted scan are joined;
+  missing/ambiguous parents, self-links, and cycles become roots. The UI
+  derives from the accepted flat snapshot and does not recursively enumerate
+  the OS process table. Stop and Force Stop retain their existing identity
+  validation and target reference.
+- **Verification:** Deterministic forest tests cover missing parents,
+  self-links, cycles, PID ambiguity, snapshot refresh, and action-target
+  preservation. Platform queries fail locally to unavailable metadata.
+- **Status:** W018 implementation in progress.

@@ -62,6 +62,8 @@ pub struct RuntimeEntryDto {
     pub port: u16,
     pub binding: BindingDto,
     pub process_id: Option<u32>,
+    /// Parent PID is snapshot metadata only and is never an action target.
+    pub parent_process_id: Option<u32>,
     pub process: ProcessDetailsDto,
     pub resource_metrics: Option<ResourceMetricsDto>,
     pub project_root: Option<String>,
@@ -338,6 +340,11 @@ fn snapshot_dto(snapshot: &RuntimeSnapshot) -> RuntimeSnapshotDto {
                     port: entry.listener.local_port.get(),
                     binding,
                     process_id,
+                    parent_process_id: entry
+                        .process
+                        .as_ref()
+                        .and_then(|result| result.as_ref().ok())
+                        .and_then(|info| info.parent_process_id.map(|pid| pid.get())),
                     process: match (&entry.process, process_id) {
                         (None, None) => ProcessDetailsDto::NoOwner,
                         (Some(Ok(info)), Some(_)) => {

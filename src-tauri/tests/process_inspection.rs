@@ -67,6 +67,7 @@ fn info(process_id: ProcessId) -> ProcessInfo {
             executable_path: FieldAvailability::Available(PathBuf::from("Sample Apps/runner")),
             start_time: FieldAvailability::Available(SystemTime::UNIX_EPOCH),
         },
+        parent_process_id: None,
         command_arguments: FieldAvailability::Available(vec![OsString::from("runner")]),
         working_directory: FieldAvailability::Available(PathBuf::from("Sample Projects/demo")),
         resource_sample: Default::default(),

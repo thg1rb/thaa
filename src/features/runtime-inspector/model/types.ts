@@ -22,6 +22,7 @@ export type RuntimeEntry = {
   port: number;
   binding: "loopbackOnly" | "potentiallyReachable" | "unknown";
   processId: number | null;
+  parentProcessId: number | null;
   process: ProcessDetails;
   resourceMetrics: {
     cpuPercent: number | null;

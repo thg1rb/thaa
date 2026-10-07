@@ -71,6 +71,7 @@ mod tests {
                 ),
                 start_time: FieldAvailability::Available(UNIX_EPOCH + Duration::from_secs(1)),
             },
+            parent_process_id: None,
             command_arguments: FieldAvailability::Unavailable(
                 crate::domain::metadata::UnavailableReason::ProviderLimitation,
             ),
