@@ -15,6 +15,8 @@ export type ProcessDetails =
   | { state: "available"; details: ProcessInfo }
   | { state: "unavailable"; details: { processId: number; reason: string } };
 
+export type RuntimeKind = "nodeJs" | "python" | "java" | "ruby" | "php";
+
 export type RuntimeEntry = {
   entryRef: string;
   protocol: "tcp";
@@ -34,6 +36,7 @@ export type RuntimeEntry = {
     memoryBytes: number | null;
     uptimeMs: number | null;
   } | null;
+  runtime: RuntimeKind | null;
   projectRoot: string | null;
   gitContext: GitContext | null;
   localUrl: string | null;

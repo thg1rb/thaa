@@ -287,6 +287,19 @@ h1 {
   font-size: 11px;
 }
 
+.runtime-kind {
+  display: inline-flex;
+  width: fit-content;
+  align-items: center;
+  padding: 2px 7px;
+  border: 1px solid var(--border-emphasis);
+  border-radius: 999px;
+  color: var(--text-secondary);
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
 .process-tree-context-label {
   padding: 2px 4px;
 }

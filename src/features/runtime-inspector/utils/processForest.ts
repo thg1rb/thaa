@@ -1,4 +1,4 @@
-import type { RuntimeEntry } from "../model/types";
+import type { RuntimeEntry, RuntimeKind } from "../model/types";
 import { displayName } from "./processDisplay";
 import { normalizeRuntimeQuery } from "./filterRuntimeEntries";
 
@@ -6,6 +6,7 @@ export type ProcessNode = {
   key: string;
   processId: number | null;
   name: string;
+  runtime: RuntimeKind | null;
   entries: RuntimeEntry[];
   children: ProcessNode[];
   contextOnly: boolean;
@@ -40,6 +41,7 @@ export function buildProcessForest(
         key,
         processId: pid,
         name: displayName(entry),
+        runtime: entry.runtime,
         entries: [],
         children: [],
         contextOnly: false,

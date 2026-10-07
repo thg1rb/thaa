@@ -3,6 +3,7 @@ import { useMemo, useState } from "react";
 import type { CSSProperties } from "react";
 import { RuntimeCard } from "./RuntimeCard";
 import { buildProcessForest, type ProcessNode } from "../utils/processForest";
+import { runtimeLabel } from "../utils/runtimeKind";
 
 export function RuntimeList({
   snapshot,
@@ -91,7 +92,7 @@ export function RuntimeList({
                 className="process-tree-toggle"
                 aria-expanded={!isCollapsed}
                 disabled={query.trim().length > 0}
-                aria-label={`${isCollapsed ? "Expand" : "Collapse"} ${node.name}, ${node.children.length} child processes`}
+                aria-label={`${isCollapsed ? "Expand" : "Collapse"} ${node.name}, ${node.children.length} child processes${node.runtime ? `, runtime ${runtimeLabel(node.runtime)}` : ""}`}
                 onClick={() =>
                   setCollapseState((current) => {
                     const next = new Set(
@@ -105,6 +106,11 @@ export function RuntimeList({
               >
                 <span aria-hidden="true">{isCollapsed ? "▸" : "▾"}</span>
                 <strong>{node.name}</strong>
+                {node.runtime && (
+                  <span className="runtime-kind">
+                    {runtimeLabel(node.runtime)}
+                  </span>
+                )}
                 <span>
                   {node.children.length} child
                   {node.children.length === 1 ? "" : "ren"}
@@ -124,6 +130,12 @@ export function RuntimeList({
                 <RuntimeCard
                   key={entry.entryRef}
                   entry={entry}
+                  runtime={
+                    node.children.length === 0 &&
+                    entry.entryRef === node.entries[0]?.entryRef
+                      ? node.runtime
+                      : null
+                  }
                   capabilities={snapshot.capabilities}
                   iconSource={
                     entry.processIconRef

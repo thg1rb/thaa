@@ -1,4 +1,9 @@
-import type { Action, RuntimeEntry, RuntimeSnapshot } from "../model/types";
+import type {
+  Action,
+  RuntimeEntry,
+  RuntimeKind,
+  RuntimeSnapshot,
+} from "../model/types";
 import {
   availableText,
   displayName,
@@ -7,6 +12,7 @@ import {
 import { BindingBadge } from "./BindingBadge";
 import { ProcessIcon } from "./ProcessIcon";
 import { RuntimeActions } from "./RuntimeActions";
+import { runtimeLabel } from "../utils/runtimeKind";
 import {
   formatCpuPercent,
   formatMemoryBytes,
@@ -15,6 +21,7 @@ import {
 
 export function RuntimeCard({
   entry,
+  runtime,
   capabilities,
   iconSource,
   iconLoading,
@@ -25,6 +32,7 @@ export function RuntimeCard({
   onCopy,
 }: {
   entry: RuntimeEntry;
+  runtime: RuntimeKind | null;
   capabilities: RuntimeSnapshot["capabilities"];
   iconSource: string | undefined;
   iconLoading: boolean;
@@ -117,6 +125,14 @@ export function RuntimeCard({
           </div>
         </div>
         <div className="metadata-row">
+          {runtime && (
+            <span
+              className="runtime-kind"
+              aria-label={`Runtime: ${runtimeLabel(runtime)}`}
+            >
+              Runtime · {runtimeLabel(runtime)}
+            </span>
+          )}
           {resourceMetrics && (
             <>
               <span title="CPU normalized to total logical CPU capacity">
@@ -156,7 +172,8 @@ export function RuntimeCard({
             !executable &&
             !workingDirectory &&
             !projectRoot &&
-            !resourceMetrics && (
+            !resourceMetrics &&
+            !runtime && (
               <span className="muted-metadata">
                 Additional process details unavailable
               </span>
