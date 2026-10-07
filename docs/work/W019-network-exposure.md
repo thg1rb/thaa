@@ -1,6 +1,6 @@
 # W019 — Network Exposure
 
-Status: READY FOR REVIEW
+Status: COMPLETE
 Requirement: binding-explanation portion of FR-016; PR-009
 Priority: P2
 
@@ -47,16 +47,16 @@ constant-time per listener and does not add network or system enumeration.
 
 ## Acceptance criteria
 
-| ID    | Criterion                                                                                                       | Evidence                                    | Status  |
-| ----- | --------------------------------------------------------------------------------------------------------------- | ------------------------------------------- | ------- |
-| AC-01 | Each listener receives deterministic bind-scope classification from its observed address.                       | Domain and DTO tests                        | PASS    |
-| AC-02 | IPv4/IPv6 loopback, wildcard, specific, mapped IPv4, and unavailable address cases are handled correctly.       | Domain table tests                          | PASS    |
-| AC-03 | Wildcard and specific labels do not claim Internet/LAN reachability or dual-stack behavior.                     | UI copy/accessibility tests                 | PASS    |
-| AC-04 | Mixed listeners owned by one process retain independent exposure values.                                        | Forest regression test                      | PASS    |
-| AC-05 | Search, Refresh, Process Tree, metrics, and process actions retain their existing behavior.                     | Existing and updated frontend/runtime tests | PASS    |
-| AC-06 | macOS and Windows continue using existing structured local-address data without elevation or added enumeration. | Existing provider tests; native CI pending  | PENDING |
-| AC-07 | Documentation records the bind-scope/reachability boundary and current scoped-IPv6 limitation.                  | Documentation checks                        | PASS    |
-| AC-08 | No release/version/tag changes or W020 work is included.                                                        | Final diff review pending                   | PENDING |
+| ID    | Criterion                                                                                                       | Evidence                                                                                  | Status |
+| ----- | --------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- | ------ |
+| AC-01 | Each listener receives deterministic bind-scope classification from its observed address.                       | Domain classifier and DTO serialization tests                                             | PASS   |
+| AC-02 | IPv4/IPv6 loopback, wildcard, specific, mapped IPv4, and unavailable address cases are handled correctly.       | Domain cases include mapped loopback/special addresses, multicast, broadcast, and unknown | PASS   |
+| AC-03 | Wildcard and specific labels do not claim Internet/LAN reachability or dual-stack behavior.                     | Badge copy/accessibility tests                                                            | PASS   |
+| AC-04 | Mixed listeners owned by one process retain independent exposure values.                                        | Process-forest mixed-listener regression test                                             | PASS   |
+| AC-05 | Search, Refresh, Process Tree, metrics, and process actions retain their existing behavior.                     | Existing suites plus W019 integration regression tests                                    | PASS   |
+| AC-06 | macOS and Windows continue using existing structured local-address data without elevation or added enumeration. | Shared, macOS Native, and Windows Native CI on PR head `a1d6c2a`; no provider changes     | PASS   |
+| AC-07 | Documentation records the bind-scope/reachability boundary and current scoped-IPv6 limitation.                  | Documentation format/link checks                                                          | PASS   |
+| AC-08 | No release/version/tag changes or W020 work is included.                                                        | Read-only final review and inspected PR diff                                              | PASS   |
 
 ## Validation plan
 
@@ -77,8 +77,22 @@ macOS if available. Report interactive Windows validation separately.
   existing `IpAddr` model.
 - Rust tests/Clippy, frontend formatting/lint/typecheck/tests/build, docs
   formatting/links, audits, `git diff --check`, and the macOS native no-bundle
-  build pass. Required PR CI and review remain pending.
+  build passed locally. Required PR CI and read-only review passed as recorded
+  below.
 - Interactive macOS UI validation was not run: the desktop session contained
   a separately launched Thaa instance showing active user processes, so it was
   not replaced or used as evidence for this source tree. Interactive Windows
   validation is unavailable locally and remains NOT RUN.
+- Feature PR #61 was merged to `develop` as merge commit
+  `2ec07c2646e683630b580a19b4573c3203c2304c`; reviewed source head was
+  `a1d6c2a45e3795858e0193868efadec80db5204c`.
+- PR CI run `37604184793` passed Shared Quality, macOS Native Validation, and
+  Windows Native Validation.
+- Post-merge CI run `37605013097` passed Shared Quality, macOS Native
+  Validation, and Windows Native Validation on merge commit
+  `2ec07c2646e683630b580a19b4573c3203c2304c`.
+- Read-only review found and resolved mapped-address documentation/classifier
+  edge cases. Final read-only review found no remaining material findings.
+- No release candidate, version change, tag, or published artifact was
+  generated or changed. `main` and both historical release tags remain
+  unchanged.
