@@ -29,21 +29,33 @@ export function RuntimeList({
     () => buildProcessForest(snapshot.entries, query),
     [snapshot.entries, query],
   );
-  const allKeys = useMemo(() => {
+  const presentKeys = useMemo(() => {
+    const snapshotForest = buildProcessForest(snapshot.entries, "");
     const keys: string[] = [];
-    const pending = [...forest];
+    const pending = [...snapshotForest];
     while (pending.length > 0) {
       const node = pending.pop()!;
       keys.push(node.key);
       pending.push(...node.children);
     }
-    return keys;
-  }, [forest]);
-  const [collapsed, setCollapsed] = useState<Set<string>>(() => new Set());
-  const presentKeys = new Set(allKeys);
-  const activeCollapsed = new Set(
-    [...collapsed].filter((key) => presentKeys.has(key)),
-  );
+    return new Set(keys);
+  }, [snapshot.entries]);
+  const [collapseState, setCollapseState] = useState(() => ({
+    generation: snapshot.generation,
+    keys: new Set<string>(),
+  }));
+  if (collapseState.generation !== snapshot.generation) {
+    setCollapseState({
+      generation: snapshot.generation,
+      keys: new Set(
+        [...collapseState.keys].filter((key) => presentKeys.has(key)),
+      ),
+    });
+  }
+  const activeCollapsed =
+    collapseState.generation === snapshot.generation
+      ? collapseState.keys
+      : new Set([...collapseState.keys].filter((key) => presentKeys.has(key)));
   const visibleNodes: { node: ProcessNode; depth: number }[] = [];
   const pendingNodes = forest.map((node) => ({ node, depth: 0 })).reverse();
   while (pendingNodes.length > 0) {
@@ -81,13 +93,13 @@ export function RuntimeList({
                 disabled={query.trim().length > 0}
                 aria-label={`${isCollapsed ? "Expand" : "Collapse"} ${node.name}, ${node.children.length} child processes`}
                 onClick={() =>
-                  setCollapsed((current) => {
+                  setCollapseState((current) => {
                     const next = new Set(
-                      [...current].filter((key) => presentKeys.has(key)),
+                      [...current.keys].filter((key) => presentKeys.has(key)),
                     );
                     if (next.has(node.key)) next.delete(node.key);
                     else next.add(node.key);
-                    return next;
+                    return { generation: snapshot.generation, keys: next };
                   })
                 }
               >

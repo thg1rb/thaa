@@ -127,12 +127,14 @@ export function buildProcessForest(
   }
 
   if (normalized) {
+    const contextVisited = new Set<string>();
     for (const key of matched) {
       let current = parent.get(key);
-      while (current) {
+      while (current && !contextVisited.has(current)) {
         const ancestor = groups.get(current);
         if (!ancestor) break;
-        ancestor.contextOnly = true;
+        contextVisited.add(current);
+        ancestor.contextOnly = ancestor.entries.length === 0;
         current = parent.get(current);
       }
     }

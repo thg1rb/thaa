@@ -72,6 +72,15 @@ describe("buildProcessForest", () => {
     ).toEqual([5000]);
   });
 
+  it("does not label an ancestor as context when it also matches", () => {
+    const forest = buildProcessForest(
+      [entry(10, null, "web-app", 3000), entry(11, 10, "web-app-worker", 4000)],
+      "web-app",
+    );
+    expect(forest[0]?.contextOnly).toBe(false);
+    expect(forest[0]?.children[0]?.contextOnly).toBe(false);
+  });
+
   it("drops self-links, cycles, and ambiguous parent PIDs safely", () => {
     const self = buildProcessForest([entry(1, 1, "self", 1000)], "");
     expect(self[0]?.children).toHaveLength(0);
