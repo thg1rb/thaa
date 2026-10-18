@@ -111,10 +111,10 @@ macOS arm64 and Windows x64 because Linux is not a supported product target.
 Advisories are not silently ignored. Cargo-audit's default policy fails for
 vulnerabilities; allowed informational warnings remain visible in the logs
 and must be reviewed. The current lockfile emits warnings for unmaintained
-`proc-macro-error` and the `glib::VariantStrIter` soundness advisory; `cargo
-tree` shows neither crate in the supported macOS arm64 or Windows x64 target
-graphs. These transitive lockfile warnings are recorded rather than
-suppressed. JavaScript auditing uses `pnpm audit --audit-level high`; findings
+`proc-macro-error`, `zbus_names`, `zvariant`, and `zvariant_derive`, and the
+`glib::VariantStrIter` soundness advisory. `cargo tree` shows these crates are
+not present in the supported macOS arm64 or Windows x64 target graphs. These
+transitive lockfile warnings are recorded rather than suppressed. JavaScript auditing uses `pnpm audit --audit-level high`; findings
 at High or Critical fail CI, while lower severity remains subject to W004
 triage and review.
 
