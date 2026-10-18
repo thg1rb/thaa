@@ -125,7 +125,7 @@ was used.
 
 ### Automated validation and review update
 
-Rust tests pass (117 unit tests plus the platform integration suites), Clippy
+Rust tests pass (121 unit tests plus the platform integration suites), Clippy
 passes with warnings denied, and frontend tests pass (84 tests). Frontend
 formatting, lint, TypeScript, production build, documentation formatting/link
 checks, and `git diff --check` pass. `pnpm audit --audit-level high` reports no
@@ -215,6 +215,25 @@ remains pending because it explicitly requires both running states. PR #67
 must remain Draft until that acceptance gap is resolved without disturbing
 the user's session. The original three screenshots and original checkout
 were not touched.
+
+The W022.1 code head `496be5ad13d9883d65681e571d78a7759cff1ee6` passed local
+Rust format, Clippy with warnings denied, all Rust unit/integration tests,
+frontend format/lint/typecheck, 84 frontend tests, frontend production build,
+documentation format/link checks, `git diff --check`, and the isolated macOS
+debug app build. The JavaScript audit reported no known vulnerabilities.
+RustSec exited successfully with five existing advisory warnings
+(`proc-macro-error`, `glib`, `zbus_names`, `zvariant`, and
+`zvariant_derive`); W022 adds no dependency.
+
+On this exact PR head, GitHub Actions run `39140227945` passed Shared Quality,
+macOS Native Validation, and Windows Native Validation. The read-only
+security reviewer found no material security defect. The implementation
+reviewer's initial concern about un-targeted `do script` was reassessed and
+withdrawn as a demonstrable defect: it is the established Terminal new
+session pattern and the real UI test observed a distinct new window with the
+exact Project Root. The reviewer noted residual portability uncertainty,
+but no better supported alternative. The Terminal-not-running interactive
+scenario remains the sole acceptance blocker and keeps PR #67 Draft.
 
 ## Platform and known limits
 
