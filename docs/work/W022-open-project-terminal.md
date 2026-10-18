@@ -225,8 +225,9 @@ RustSec exited successfully with five existing advisory warnings
 (`proc-macro-error`, `glib`, `zbus_names`, `zvariant`, and
 `zvariant_derive`); W022 adds no dependency.
 
-On this exact PR head, GitHub Actions run `39140227945` passed Shared Quality,
-macOS Native Validation, and Windows Native Validation. The read-only
+On code-validation head `496be5ad13d9883d65681e571d78a7759cff1ee6`, GitHub
+Actions run `39140227945` passed Shared Quality, macOS Native Validation, and
+Windows Native Validation. The read-only
 security reviewer found no material security defect. The implementation
 reviewer's initial concern about un-targeted `do script` was reassessed and
 withdrawn as a demonstrable defect: it is the established Terminal new
