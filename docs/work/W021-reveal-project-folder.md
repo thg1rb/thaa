@@ -2,9 +2,10 @@
 
 ## Status
 
-Status: Ready for review
+Status: Done on merge
 
 Branch: `feature/w021-reveal-project-folder`
+Pull request: [#65 — feat: add project folder reveal action](https://github.com/thg1rb/thaa/pull/65)
 
 Base: `develop` at `c84901689eac8f399fc64c71229ee7e3465273c6`
 
