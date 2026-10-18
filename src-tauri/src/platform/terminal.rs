@@ -9,6 +9,8 @@ pub(crate) enum TerminalOpenError {
     #[cfg_attr(not(target_os = "macos"), allow(dead_code))]
     InvalidPath,
     #[cfg_attr(not(target_os = "macos"), allow(dead_code))]
+    AutomationDenied,
+    #[cfg_attr(not(target_os = "macos"), allow(dead_code))]
     Failed,
 }
 

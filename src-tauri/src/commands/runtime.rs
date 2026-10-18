@@ -611,8 +611,11 @@ fn terminal_open_error(error: TerminalOpenError) -> String {
         TerminalOpenError::InvalidPath => {
             "Thaa could not open this project in Terminal.".into()
         }
+        TerminalOpenError::AutomationDenied => {
+            "macOS denied Thaa permission to control Terminal. Allow it in System Settings > Privacy & Security > Automation, then try again.".into()
+        }
         TerminalOpenError::Failed => {
-            "Thaa could not open this project in Terminal. Check Automation permission for Terminal and try again.".into()
+            "Thaa could not open a new Terminal window. Check that Terminal.app is available and try again.".into()
         }
     }
 }
@@ -683,9 +686,13 @@ mod tests {
         use crate::platform::terminal::TerminalOpenError;
 
         let failed = terminal_open_error(TerminalOpenError::Failed);
-        assert!(failed.contains("Automation permission"));
+        assert!(failed.contains("new Terminal window"));
+        assert!(!failed.contains("Automation"));
         assert!(!failed.contains("/tmp"));
         assert!(!failed.contains("/Users"));
+        let denied = terminal_open_error(TerminalOpenError::AutomationDenied);
+        assert!(denied.contains("Privacy & Security > Automation"));
+        assert!(!denied.contains("/tmp"));
         assert_eq!(
             terminal_open_error(TerminalOpenError::Unsupported),
             "Opening a project in Terminal is unavailable on this platform."
@@ -694,6 +701,18 @@ mod tests {
             terminal_open_error(TerminalOpenError::InvalidPath),
             "Thaa could not open this project in Terminal."
         );
+    }
+
+    #[test]
+    fn main_window_capability_authorizes_opening_a_project_in_terminal() {
+        let capability: serde_json::Value =
+            serde_json::from_str(include_str!("../../capabilities/main-window.json"))
+                .expect("parse the main window capability");
+        assert!(capability["permissions"]
+            .as_array()
+            .expect("capability permissions are an array")
+            .iter()
+            .any(|permission| permission == "allow-open-project-in-terminal"));
     }
 
     #[test]

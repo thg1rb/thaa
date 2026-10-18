@@ -40,19 +40,25 @@ until Refresh. The existing W021 boundary is reused; no frontend path is
 accepted. A blocking worker performs validation and launches a
 fixed `/usr/bin/osascript` executable with a constant AppleScript program and
 the validated UTF-8 path as a separate argument. AppleScript asks Terminal.app
-to make a new window, then runs only a quoted `cd -- <path> || exit` command.
+to activate and run only a quoted `cd -- <path> || exit` command without an
+explicit window target. Terminal.app creates a new window for that `do script`
+request; this behavior is covered by the interactive evidence below.
 Thaa does not intentionally execute project scripts or commands. The shell's
 own startup files remain outside Thaa's control.
 
 `NSAppleEventsUsageDescription` explains the explicit action. macOS TCC
-authorization is respected; denial is reported as a generic recoverable
-error. No broad permission, privilege escalation, external call, additional
-scan, persistent cache, or dependency is introduced. Windows returns an
-unsupported result and the UI action is absent when no Project Root exists.
+authorization is respected; an observed Apple Events denial is reported as a
+recoverable authorization error, while other native failures receive a
+separate generic launch error. No broad permission, privilege escalation,
+external call, additional scan, persistent cache, or dependency is introduced.
+Windows returns an unsupported result and the UI action is absent when no
+Project Root exists.
 
 The path is data in an argv slot, then quoted using AppleScript's standard
 shell quoting. Non-UTF-8 paths are rejected instead of lossily converted.
-Output streams are discarded to avoid path disclosure. The normal filesystem
+Standard output is discarded; standard error is captured with a 4 KiB cap,
+used only to recognize known authorization-denial wording, then discarded.
+Raw diagnostics and paths are not logged or returned. The normal filesystem
 time-of-check/time-of-use race between canonical validation and Terminal's
 later directory change remains bounded and documented.
 
@@ -144,6 +150,71 @@ rerun, GitHub Actions run `39136381940` on code commit `4e3a44c`, passed Shared
 Quality, macOS Native Validation, and Windows Native Validation. This work
 record remains in progress because interactive Terminal behavior has not yet
 passed.
+
+### W022.1 diagnosis and follow-up (2026-10-18)
+
+The prior generic UI error was reproduced with a freshly rebuilt isolated
+debug bundle. The exact error was Tauri's permission rejection:
+`open_project_in_terminal not allowed. Permissions associated with this
+command: allow-open-project-in-terminal`. The command was rejected by the
+main-window capability before snapshot resolution or native launch. Therefore
+the original failure was not evidence of TCC denial. The missing
+`allow-open-project-in-terminal` capability grant is now present, with a
+regression test that parses the capability file and checks the permission.
+
+A separate direct AppleScript diagnostic of the old explicit `make new
+window` form returned Terminal AppleEvent handler error `-10000`; this was a
+diagnostic of that form, not the original UI failure. The integration now
+uses Terminal's `do script` without a window target. In the interactive test
+with Terminal already running, this created a distinct window and started in
+the requested directory. Native stderr is captured with a 4 KiB bound,
+discarded after classifying known Apple Events authorization-denial text, and
+never returned raw to the UI or logged. The UI now presents the backend's
+safe recoverable message. A unit test distinguishes the observed denial
+wording from unrelated Apple Events errors. No TCC database, system setting,
+installed app, signing identity, or entitlement was changed.
+
+The validation app was `Thaa W022 Validation.app`, bundle identifier
+`io.github.thg1rb.thaa.w022validation`, ad-hoc signed, with the existing
+`com.apple.security.automation.apple-events` entitlement and this bundle
+usage description: “Thaa uses Terminal automation only when you choose Open
+in Terminal, to create a new Terminal window at the detected project
+folder.” Unified logging associated the Apple Event request with this debug
+bundle and `/usr/bin/osascript`. The action succeeded without a permission
+prompt or denial; this establishes effective authorization for this test,
+not that a new authorization prompt was shown or approved during it.
+
+With Terminal already running, the UI action created a distinct window. For
+the disposable project root `/private/tmp/thaa-w022-acceptance space`, the
+listener ran from its `nested` child directory and the new window's observed
+`pwd` was exactly `/private/tmp/thaa-w022-acceptance space`. A second action
+used the literal project path
+`/private/tmp/thaa-w022 $(touch /private/tmp/thaa-w022-INJECTED); ampersand & (quoted)'`.
+The resulting window's `pwd` exactly matched that path and the sentinel file
+`/private/tmp/thaa-w022-INJECTED` was absent. Pre-existing Terminal window
+IDs remained present; only the two windows created by these tests were
+closed. The debug app showed an isolated, disposable loopback listener, its
+nested Working Directory, the expected project-root marker, and one action.
+After stopping only the fixture listeners and refreshing, their rows and
+actions disappeared.
+
+An additional fixture with `café` in its path did not expose Working
+Directory or Project Root: the existing macOS `lsof` provider escaped the
+UTF-8 bytes as `\\xc3\\xa9`, which the current provider intentionally treats
+as unavailable instead of lossy path conversion. No W022 action was offered.
+This is a metadata-provider limitation; Unicode remains covered by the
+automated shell-quoting tests. The automation denial path is covered through
+error classification tests; real TCC denial was not induced.
+
+Terminal.app was already running when validation began. Creating a
+not-running scenario would require closing the user's existing Terminal
+session, which was deliberately left untouched. Consequently the
+already-running/new-window and exact-`pwd` case passes, but the not-running
+case is **NOT RUN**. AC-03 is demonstrated for the running case; AC-08
+remains pending because it explicitly requires both running states. PR #67
+must remain Draft until that acceptance gap is resolved without disturbing
+the user's session. The original three screenshots and original checkout
+were not touched.
 
 ## Platform and known limits
 

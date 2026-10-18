@@ -37,12 +37,17 @@ export function useRuntimeEntryActions(showToast: (toast: ToastInput) => void) {
     async (entryRef: string) => {
       try {
         await runtimeClient.openProjectInTerminal(entryRef);
-      } catch {
+      } catch (error: unknown) {
+        const message =
+          typeof error === "string"
+            ? error
+            : error instanceof Error
+              ? error.message
+              : "Refresh the runtime list and try again.";
         showToast({
           tone: "error",
           title: "Could not open project in Terminal",
-          message:
-            "Refresh the runtime list and allow Thaa to control Terminal in System Settings if prompted.",
+          message,
         });
       }
     },

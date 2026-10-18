@@ -25,8 +25,10 @@ describe("useRuntimeEntryActions terminal action", () => {
     expect(showToast).not.toHaveBeenCalled();
   });
 
-  it("shows recoverable guidance when opening Terminal fails", async () => {
-    openProjectInTerminal.mockRejectedValueOnce(new Error("automation denied"));
+  it("shows the backend's safe recoverable failure message", async () => {
+    openProjectInTerminal.mockRejectedValueOnce(
+      "macOS denied Thaa permission to control Terminal. Allow it in System Settings > Privacy & Security > Automation, then try again.",
+    );
     const showToast = vi.fn<(toast: ToastInput) => void>();
     const { result } = renderHook(() => useRuntimeEntryActions(showToast));
 
@@ -38,7 +40,7 @@ describe("useRuntimeEntryActions terminal action", () => {
       tone: "error",
       title: "Could not open project in Terminal",
       message:
-        "Refresh the runtime list and allow Thaa to control Terminal in System Settings if prompted.",
+        "macOS denied Thaa permission to control Terminal. Allow it in System Settings > Privacy & Security > Automation, then try again.",
     });
   });
 });
