@@ -219,6 +219,7 @@ pub fn run() {
             commands::runtime::get_runtime_process_icons,
             commands::runtime::request_process_action,
             commands::runtime::open_listener_url,
+            commands::runtime::reveal_project_folder,
         ])
         .run(tauri::generate_context!())
         .expect("failed to run Thaa");

@@ -9,7 +9,7 @@ use tauri::State;
 use tauri_plugin_opener::OpenerExt;
 
 use crate::application::runtime_inspection::{
-    ListenerUrlError, RuntimeInspector, RuntimeScanError, RuntimeSnapshot,
+    ListenerUrlError, ProjectRootError, RuntimeInspector, RuntimeScanError, RuntimeSnapshot,
 };
 use crate::domain::capabilities::CapabilitySupport;
 use crate::domain::git_context::{GitBranch, GitContext};
@@ -322,6 +322,28 @@ pub async fn open_listener_url(
         .map_err(|_| "Thaa could not open this local address.".to_owned())
 }
 
+#[tauri::command]
+pub async fn reveal_project_folder(
+    app: tauri::AppHandle,
+    state: State<'_, RuntimeState>,
+    entry_ref: String,
+) -> Result<(), String> {
+    if !valid_reference(&entry_ref) || !entry_ref.starts_with("entry-") {
+        return Err("The project folder is no longer in the current scan.".into());
+    }
+    let inspector = Arc::clone(&state.0);
+    tauri::async_runtime::spawn_blocking(move || {
+        let project_root = inspector
+            .project_root_for_entry(&entry_ref)
+            .map_err(project_root_error)?;
+        app.opener()
+            .reveal_item_in_dir(&project_root)
+            .map_err(|_| "Thaa could not reveal this project folder.".to_owned())
+    })
+    .await
+    .map_err(|_| "The project folder is no longer available.".to_owned())?
+}
+
 fn valid_reference(value: &str) -> bool {
     let Some((kind, rest)) = value.split_once('-') else {
         return false;
@@ -534,14 +556,26 @@ fn listener_url_error(error: ListenerUrlError) -> String {
     }
 }
 
+fn project_root_error(error: ProjectRootError) -> String {
+    match error {
+        ProjectRootError::StaleReference => {
+            "The project folder is no longer in the current scan. Refresh and try again.".into()
+        }
+        ProjectRootError::Unavailable => "This process has no available project folder.".into(),
+        ProjectRootError::Changed => {
+            "The project folder changed since this entry was loaded. Refresh and try again.".into()
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::{
-        process_icon_assets_dto, snapshot_dto, valid_reference, ActionDto, BindingDto,
-        ResourceMetricsDto, RuntimeKindDto,
+        process_icon_assets_dto, project_root_error, snapshot_dto, valid_reference, ActionDto,
+        BindingDto, ResourceMetricsDto, RuntimeKindDto,
     };
     use crate::application::process_icons::ProcessIconAsset;
-    use crate::application::runtime_inspection::{RuntimeEntry, RuntimeSnapshot};
+    use crate::application::runtime_inspection::{ProjectRootError, RuntimeEntry, RuntimeSnapshot};
     use crate::domain::capabilities::{CapabilitySupport, PlatformCapabilities};
     use crate::domain::git_context::{GitBranch, GitContext};
     use crate::domain::network::{BindingScope, NetworkListener, NetworkProtocol};
@@ -560,6 +594,25 @@ mod tests {
         assert!(!valid_reference("target-12-a/../../pid"));
         assert!(!valid_reference("1234"));
         assert!(!valid_reference(&format!("target-{}-1", "f".repeat(17))));
+    }
+
+    #[test]
+    fn project_folder_errors_are_generic_and_do_not_disclose_paths() {
+        assert_eq!(
+            project_root_error(ProjectRootError::StaleReference),
+            "The project folder is no longer in the current scan. Refresh and try again."
+        );
+        assert_eq!(
+            project_root_error(ProjectRootError::Unavailable),
+            "This process has no available project folder."
+        );
+        assert_eq!(
+            project_root_error(ProjectRootError::Changed),
+            "The project folder changed since this entry was loaded. Refresh and try again."
+        );
+        assert!(valid_reference("entry-12-a"));
+        assert!(!valid_reference("entry-12-a/../../project"));
+        assert!(!valid_reference(&format!("entry-{}-1", "f".repeat(17))));
     }
 
     #[test]

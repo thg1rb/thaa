@@ -13,6 +13,7 @@ export const runtimeClient = {
   getProcessIcons,
   requestAction,
   openListener,
+  revealProjectFolder,
 };
 
 let initialSnapshot: Promise<RuntimeSnapshot> | undefined;
@@ -51,6 +52,10 @@ function requestAction(actionTargetRef: string, action: Action) {
 
 function openListener(entryRef: string) {
   return invoke<void>("open_listener_url", { entryRef });
+}
+
+function revealProjectFolder(entryRef: string) {
+  return invoke<void>("reveal_project_folder", { entryRef });
 }
 
 export function snapshotFromEvent(

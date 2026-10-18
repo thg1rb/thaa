@@ -18,6 +18,21 @@ export function useRuntimeEntryActions(showToast: (toast: ToastInput) => void) {
     [showToast],
   );
 
+  const revealProjectFolder = useCallback(
+    async (entryRef: string) => {
+      try {
+        await runtimeClient.revealProjectFolder(entryRef);
+      } catch {
+        showToast({
+          tone: "error",
+          title: "Could not reveal project folder",
+          message: "Refresh the runtime list and try again.",
+        });
+      }
+    },
+    [showToast],
+  );
+
   const copyValue = useCallback(
     async (value: string, label: string) => {
       try {
@@ -38,5 +53,5 @@ export function useRuntimeEntryActions(showToast: (toast: ToastInput) => void) {
     [showToast],
   );
 
-  return { openListener, copyValue };
+  return { openListener, revealProjectFolder, copyValue };
 }

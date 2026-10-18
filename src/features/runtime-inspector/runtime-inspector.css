@@ -614,6 +614,28 @@ h1 {
   unicode-bidi: plaintext;
 }
 
+.inline-metadata-action {
+  flex: 0 0 auto;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--primary);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.inline-metadata-action:hover {
+  color: var(--primary-hover);
+  text-decoration: underline;
+}
+
+.inline-metadata-action:focus-visible {
+  border-radius: 2px;
+  outline: 2px solid var(--primary);
+  outline-offset: 3px;
+}
+
 .muted-metadata {
   color: #82939a;
   font-style: normal;

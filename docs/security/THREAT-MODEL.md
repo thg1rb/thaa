@@ -116,10 +116,10 @@ Likelihood and impact are qualitative design-time estimates. Every mitigation an
 - **Asset / boundary:** User files and application launch; process/project path → file manager/terminal/editor.
 - **Scenario:** An untrusted or deleted path, path with quotes/control characters, or symlink redirects a future reveal/open action or injects arguments.
 - **Impact / likelihood:** High / Medium when feature exists.
-- **Mitigation:** No implicit open. Require explicit user action; validate target and existence as appropriate; use platform APIs or structured argument arrays, never shell strings; define symlink behavior per feature before implementing; do not execute project files.
-- **Verification:** Fixtures for spaces, quotes, unusual Unicode, deleted paths, and symlinks; assert no shell or arbitrary project execution. Add security review before FR-014 developer actions.
+- **Mitigation:** No implicit open. The W021 folder-reveal action requires explicit user action and a current snapshot entry reference; the backend resolves only the accepted project root, verifies that it still canonicalizes to the captured directory, and invokes the native opener API. Never accept a frontend path, build shell strings, execute project files, or elevate privileges. A filesystem change after validation remains a bounded TOCTOU risk.
+- **Verification:** W021 tests cover current/stale references, unavailable/deleted roots, symlink redirection, and paths with spaces, quotes, unusual Unicode, and control characters. Tests and review verify the native opener receives only the backend-resolved directory and no shell or project execution occurs.
 - **Residual risk:** Filesystem can change after validation; OS-specific file-manager behavior remains.
-- **References / status:** NFR-003; PR-007/010; FR-014 is P1; TC-SEC-004. **Deferred; not implemented.**
+- **References / status:** NFR-003; PR-007/010; FR-014 is P1; TC-SEC-004; W021. **Project-folder reveal is implemented on the W021 branch; terminal/editor opening remains deferred.**
 
 ### THR-009 — Unsafe native API/FFI use or resource leak
 

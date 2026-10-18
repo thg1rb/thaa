@@ -447,6 +447,51 @@ impl RuntimeInspector {
         build_local_url(&entry.listener).ok_or(ListenerUrlError::AddressUnavailable)
     }
 
+    /// Resolves a project root from the current snapshot and verifies that its
+    /// canonical directory is unchanged before handing it to an OS opener.
+    pub fn project_root_for_entry(&self, entry_ref: &str) -> Result<PathBuf, ProjectRootError> {
+        if entry_ref.len() > 96 {
+            return Err(ProjectRootError::StaleReference);
+        }
+        let (generation, expected_root) = {
+            let state = self.lock_state();
+            let snapshot = state
+                .snapshot
+                .as_ref()
+                .ok_or(ProjectRootError::StaleReference)?;
+            let generation = snapshot.generation;
+            let prefix = format!("entry-{:x}-", snapshot.generation);
+            let index = entry_ref
+                .strip_prefix(&prefix)
+                .and_then(|value| usize::from_str_radix(value, 16).ok())
+                .ok_or(ProjectRootError::StaleReference)?;
+            let root = snapshot
+                .entries
+                .get(index)
+                .ok_or(ProjectRootError::StaleReference)?
+                .project_root
+                .clone()
+                .ok_or(ProjectRootError::Unavailable)?;
+            (generation, root)
+        };
+
+        let canonical_root =
+            std::fs::canonicalize(&expected_root).map_err(|_| ProjectRootError::Unavailable)?;
+        let metadata =
+            std::fs::metadata(&canonical_root).map_err(|_| ProjectRootError::Unavailable)?;
+        if !metadata.is_dir() {
+            return Err(ProjectRootError::Unavailable);
+        }
+        if canonical_root != expected_root {
+            return Err(ProjectRootError::Changed);
+        }
+        let state = self.lock_state();
+        if state.snapshot.as_ref().map(|snapshot| snapshot.generation) != Some(generation) {
+            return Err(ProjectRootError::StaleReference);
+        }
+        Ok(canonical_root)
+    }
+
     fn run_worker(&self) {
         loop {
             let generation = self.lock_state().latest_requested;
@@ -531,6 +576,13 @@ pub enum ListenerUrlError {
     AddressUnavailable,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ProjectRootError {
+    StaleReference,
+    Unavailable,
+    Changed,
+}
+
 fn next_generation(state: &mut RefreshState) -> Result<u64, RuntimeScanError> {
     let generation = state
         .latest_requested
@@ -567,8 +619,8 @@ fn next_entry_ref(generation: u64, index: usize) -> String {
 #[cfg(test)]
 mod tests {
     use super::{
-        build_local_url, next_entry_ref, ListenerUrlError, RuntimeInspector, RuntimeScanError,
-        GIT_CONTEXT_SCAN_BUDGET,
+        build_local_url, next_entry_ref, ListenerUrlError, ProjectRootError, RuntimeInspector,
+        RuntimeScanError, GIT_CONTEXT_SCAN_BUDGET,
     };
     use crate::application::process_icons::ProcessIconProvider;
     use crate::domain::capabilities::{
@@ -1469,5 +1521,150 @@ mod tests {
             inspector.listener_url(&old_ref),
             Err(ListenerUrlError::StaleReference)
         );
+    }
+
+    #[test]
+    fn project_root_reference_is_current_snapshot_scoped_and_revalidated() {
+        static NEXT_PROJECT_FIXTURE: AtomicUsize = AtomicUsize::new(0);
+        let fixture_id = NEXT_PROJECT_FIXTURE.fetch_add(1, Ordering::Relaxed);
+        let fixture = std::env::temp_dir().join(format!(
+            "thaa-reveal project-🌿-\u{7f}-{}-{fixture_id}",
+            std::process::id()
+        ));
+        let project = fixture.join("project 'quoted'");
+        let working_directory = project.join("nested");
+        std::fs::create_dir_all(&working_directory).expect("create project fixture");
+        std::fs::write(project.join("package.json"), b"{}").expect("create marker");
+
+        let (inspector, _, _) = inspector(
+            complete(vec![listener(
+                Some(IpAddr::V4(Ipv4Addr::LOCALHOST)),
+                3000,
+                Some(7),
+            )]),
+            [(
+                7,
+                Ok(process_with_working_directory(
+                    7,
+                    FieldAvailability::Available(working_directory),
+                )),
+            )],
+        );
+        let snapshot = inspector.snapshot_or_initialize().expect("scan succeeds");
+        let entry_ref = snapshot.entries[0].entry_ref.clone();
+        let expected_root = std::fs::canonicalize(&project).expect("canonical project root");
+        assert_eq!(
+            inspector.project_root_for_entry(&entry_ref),
+            Ok(expected_root.clone())
+        );
+
+        inspector.refresh().expect("new accepted snapshot");
+        assert_eq!(
+            inspector.project_root_for_entry(&entry_ref),
+            Err(ProjectRootError::StaleReference)
+        );
+        std::fs::remove_dir_all(fixture).expect("remove fixture");
+    }
+
+    #[test]
+    fn project_root_reference_rejects_deleted_roots_and_missing_metadata() {
+        static NEXT_PROJECT_FIXTURE: AtomicUsize = AtomicUsize::new(0);
+        let fixture_id = NEXT_PROJECT_FIXTURE.fetch_add(1, Ordering::Relaxed);
+        let fixture = std::env::temp_dir().join(format!(
+            "thaa-reveal-deleted-{}-{fixture_id}",
+            std::process::id()
+        ));
+        let project = fixture.join("project");
+        let working_directory = project.join("nested");
+        std::fs::create_dir_all(&working_directory).expect("create project fixture");
+        std::fs::write(project.join("package.json"), b"{}").expect("create marker");
+
+        let (root_inspector, _, _) = inspector(
+            complete(vec![listener(
+                Some(IpAddr::V4(Ipv4Addr::LOCALHOST)),
+                3000,
+                Some(7),
+            )]),
+            [(
+                7,
+                Ok(process_with_working_directory(
+                    7,
+                    FieldAvailability::Available(working_directory),
+                )),
+            )],
+        );
+        let snapshot = root_inspector
+            .snapshot_or_initialize()
+            .expect("scan succeeds");
+        let entry_ref = snapshot.entries[0].entry_ref.clone();
+        std::fs::remove_dir_all(&project).expect("delete project root");
+        assert_eq!(
+            root_inspector.project_root_for_entry(&entry_ref),
+            Err(ProjectRootError::Unavailable)
+        );
+        std::fs::write(&project, b"not a directory").expect("replace root with a file");
+        assert_eq!(
+            root_inspector.project_root_for_entry(&entry_ref),
+            Err(ProjectRootError::Unavailable)
+        );
+        std::fs::remove_dir_all(fixture).expect("remove fixture");
+
+        let (no_root_inspector, _, _) = inspector(
+            complete(vec![listener(
+                Some(IpAddr::V4(Ipv4Addr::LOCALHOST)),
+                3001,
+                Some(8),
+            )]),
+            [(8, Ok(process(8)))],
+        );
+        let snapshot = no_root_inspector
+            .snapshot_or_initialize()
+            .expect("scan succeeds");
+        assert_eq!(
+            no_root_inspector.project_root_for_entry(&snapshot.entries[0].entry_ref),
+            Err(ProjectRootError::Unavailable)
+        );
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn project_root_reference_rejects_symlink_redirection() {
+        static NEXT_PROJECT_FIXTURE: AtomicUsize = AtomicUsize::new(0);
+        let fixture_id = NEXT_PROJECT_FIXTURE.fetch_add(1, Ordering::Relaxed);
+        let fixture = std::env::temp_dir().join(format!(
+            "thaa-reveal-symlink-{}-{fixture_id}",
+            std::process::id()
+        ));
+        let project = fixture.join("project");
+        let working_directory = project.join("nested");
+        let replacement = fixture.join("replacement");
+        std::fs::create_dir_all(&working_directory).expect("create project fixture");
+        std::fs::create_dir_all(&replacement).expect("create replacement fixture");
+        std::fs::write(project.join("package.json"), b"{}").expect("create marker");
+
+        let (inspector, _, _) = inspector(
+            complete(vec![listener(
+                Some(IpAddr::V4(Ipv4Addr::LOCALHOST)),
+                3000,
+                Some(7),
+            )]),
+            [(
+                7,
+                Ok(process_with_working_directory(
+                    7,
+                    FieldAvailability::Available(working_directory),
+                )),
+            )],
+        );
+        let snapshot = inspector.snapshot_or_initialize().expect("scan succeeds");
+        let entry_ref = snapshot.entries[0].entry_ref.clone();
+        std::fs::remove_dir_all(&project).expect("remove original project root");
+        std::os::unix::fs::symlink(&replacement, &project).expect("redirect project root");
+
+        assert_eq!(
+            inspector.project_root_for_entry(&entry_ref),
+            Err(ProjectRootError::Changed)
+        );
+        std::fs::remove_dir_all(fixture).expect("remove fixture");
     }
 }

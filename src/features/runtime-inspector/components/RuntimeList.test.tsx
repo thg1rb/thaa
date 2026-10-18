@@ -61,6 +61,7 @@ const callbacks = {
   onAction: vi.fn(),
   onConfirmForce: vi.fn(),
   onOpen: vi.fn(),
+  onRevealFolder: vi.fn(),
   onCopy: vi.fn(),
 };
 
@@ -110,6 +111,51 @@ describe("RuntimeList process-tree state", () => {
     );
 
     expect(screen.queryByText(/Runtime ·/)).not.toBeInTheDocument();
+  });
+
+  it("offers one reveal-folder action for a process with multiple listeners", () => {
+    const first = {
+      ...entry(10, null, "server"),
+      projectRoot: "/tmp/my project 🌱",
+    };
+    const second = {
+      ...first,
+      entryRef: "entry-10-2",
+      port: 3010,
+    };
+    const onRevealFolder = vi.fn();
+
+    render(
+      <RuntimeList
+        snapshot={snapshot(1, [first, second])}
+        {...callbacks}
+        onRevealFolder={onRevealFolder}
+        query=""
+      />,
+    );
+
+    const revealButton = screen.getByRole("button", {
+      name: "Reveal project folder for server",
+    });
+    expect(
+      screen.getAllByRole("button", { name: /Reveal project folder/ }),
+    ).toHaveLength(1);
+    fireEvent.click(revealButton);
+    expect(onRevealFolder).toHaveBeenCalledExactlyOnceWith("entry-10");
+  });
+
+  it("omits reveal-folder actions when project-root metadata is unavailable", () => {
+    render(
+      <RuntimeList
+        snapshot={snapshot(1, [entry(10, null, "server")])}
+        {...callbacks}
+        query=""
+      />,
+    );
+
+    expect(
+      screen.queryByRole("button", { name: /Reveal project folder/ }),
+    ).toBeNull();
   });
 
   it("forgets collapsed state when a process disappears from an accepted snapshot", () => {
