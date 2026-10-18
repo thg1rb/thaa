@@ -139,8 +139,11 @@ The first PR CI run passed Shared Quality and macOS Native Validation but
 Windows Native Validation found that the macOS-only `InvalidPath` and `Failed`
 error variants were unused on Windows under warnings-as-errors. The variants
 now carry target-specific dead-code allowances; this changes no Windows
-behavior. Both read-only reviewers approved that narrow correction. CI must be
-rerun against the corrected head.
+behavior. Both read-only reviewers approved that narrow correction. The
+rerun, GitHub Actions run `39136381940` on code commit `4e3a44c`, passed Shared
+Quality, macOS Native Validation, and Windows Native Validation. This work
+record remains in progress because interactive Terminal behavior has not yet
+passed.
 
 ## Platform and known limits
 
