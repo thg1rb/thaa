@@ -135,6 +135,13 @@ tests proving stale or unavailable snapshot entries do not reach the launcher.
 Both reviewers agree that the failed real UI attempt remains a merge-blocking
 validation gap until a new Terminal window and its exact `pwd` are observed.
 
+The first PR CI run passed Shared Quality and macOS Native Validation but
+Windows Native Validation found that the macOS-only `InvalidPath` and `Failed`
+error variants were unused on Windows under warnings-as-errors. The variants
+now carry target-specific dead-code allowances; this changes no Windows
+behavior. Both read-only reviewers approved that narrow correction. CI must be
+rerun against the corrected head.
+
 ## Platform and known limits
 
 - macOS: Apple Terminal.app only; TCC automation permission may be required.

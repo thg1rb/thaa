@@ -6,7 +6,9 @@ use std::path::Path;
 pub(crate) enum TerminalOpenError {
     #[cfg_attr(target_os = "macos", allow(dead_code))]
     Unsupported,
+    #[cfg_attr(not(target_os = "macos"), allow(dead_code))]
     InvalidPath,
+    #[cfg_attr(not(target_os = "macos"), allow(dead_code))]
     Failed,
 }
 
