@@ -49,8 +49,8 @@ The action appears at most once per represented process tree node, even when
 the process owns several listener rows. It sends a snapshot-scoped opaque entry
 reference to the backend, which resolves the project root from the accepted
 snapshot. The backend verifies the directory still exists, is a directory,
-and canonicalizes to the captured project root before calling Tauri's native
-`reveal_item_in_dir` API.
+and canonicalizes to the captured project root before asking Tauri's native
+opener to open that validated directory in the default file manager.
 
 ## Non-goals
 
@@ -128,6 +128,83 @@ symlink target, the request fails safely and the user can refresh.
   with five allowed advisories: `proc-macro-error`, `glib`, `zbus_names`,
   `zvariant`, and `zvariant_derive`; no dependency changed for W021.
 - Dedicated read-only review found no material findings (zero blocker/high/
-  medium/low/nit findings). PR CI is still pending.
-- Final status will be `Done on merge` with the PR link, following the agent
-  workflow.
+  medium/low/nit findings). PR #65 required CI passed and it merged to
+  `develop` at `9d5f7b362108b3fb2adec371be174b951e379426`.
+
+## Validation follow-up (2026-10-18)
+
+The initial interactive attempt above remains recorded as incomplete. A
+disposable fixture was then created outside the Thaa checkout at
+`/private/tmp/thaa-w021-validation.EvZcgA/project`. Its recognized
+`package.json` marker and `nested/` child directory let the provider distinguish
+Working Directory from Project Root. A Python standard-library TCP listener
+bound only to `127.0.0.1` on ephemeral port `52894`; its PID was `74254`, and
+its Working Directory was
+`/private/tmp/thaa-w021-validation.EvZcgA/project/nested`.
+
+The exact source build was launched as a separate app bundle named
+`Thaa W021 Validation`, avoiding the installed release app and the user's
+active application session. It displayed the listener, runtime `Python`, the
+expected Working Directory and Project Root, and one accessible
+`Reveal project folder for Python` action. The backend validated the current
+entry and project root. Finder then opened a window titled `project` containing
+`package.json` and `nested`, confirming that the opened directory exactly
+matched `/private/tmp/thaa-w021-validation.EvZcgA/project`. The earlier manual
+attempt had shown that `reveal_item_in_dir` selects a directory inside its
+parent; the W021 requirement is to open the Project Root itself.
+
+The corrective change uses Tauri's native `open_path` API with the
+backend-resolved canonical project directory. It retains the opaque entry
+reference, current-snapshot resolution, directory validation, and generic
+error handling. Paths that cannot be represented as Unicode are refused
+without lossy conversion. No shell or project code is executed, and no
+frontend-supplied path is trusted.
+
+Interactive checks passed for Project Root visibility and correctness, the
+accessible Reveal action on the correct process node, Finder opening the exact
+Project Root, retaining the metadata across Refresh, exact-port Search, and
+removal of the listener and its action after process exit and another Refresh.
+The process was stopped with Ctrl-C after checking. No Stop/Force Stop action
+was used. The existing process tree was flat for this fixture, so a child-node
+Reveal interaction and a multi-listener process were not manually exercised;
+deduplication and entry-reference behavior remain covered by frontend tests.
+Windows interactive validation is `NOT RUN`; the documented lack of Windows
+working-directory metadata remains unchanged. A deterministic unit test also
+verifies Unicode/space preservation and rejection of non-Unicode paths.
+
+### Roadmap review after W021
+
+| Requirement | Priority | Status after W021             | Completed work                                          | Remaining work                                                                                                                     |
+| ----------- | -------- | ----------------------------- | ------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| FR-012      | P1       | Partial platform availability | W015 project-root detection                             | Windows provider reports working directory unavailable by design; no safe supported cwd query is currently selected.               |
+| FR-013      | P1       | Partial platform availability | W016 Git root and branch                                | Windows working-directory limitation prevents context; do not guess.                                                               |
+| FR-014      | P1       | Partial                       | W017 metrics, W018 tree, W021 exact Project Root reveal | Terminal action and preferred IDE/editor action are still explicit product-scope items; Windows root metadata remains unavailable. |
+| FR-015      | P2       | Partial                       | W020 runtime-family recognition                         | Reliable framework, package-manager, and version context remains.                                                                  |
+| FR-016      | P2       | Partial                       | W019 factual bind-scope explanation                     | Desired-port conflict assistance remains.                                                                                          |
+| FR-017      | P3       | Deferred                      | None                                                    | Opt-in watch/favorite/notification and limited container context require separate requirements and safety review.                  |
+
+No unresolved P0/P1 correctness or security blocker was found. The Windows
+working-directory gap is an established platform limitation rather than a
+failure of the macOS Reveal flow; W011.2 records why invasive process-memory
+inspection, shell tooling, or elevation are outside the current design. PR #65
+also records the platform's graceful unavailability.
+
+**Proposed next work item (not started): W022 — Open Project in Terminal.**
+FR-014 is the highest-priority incomplete requirement, and the product prompt
+explicitly includes opening a terminal at a project. This can be bounded to an
+explicit action that uses only a Project Root already present in the accepted
+snapshot, follows a native platform adapter, and is hidden when no root is
+available. It must not execute project code, accept arbitrary frontend paths,
+change process identity/actions, or implement editor discovery. On Windows,
+the action would remain unavailable until a validated project root exists;
+Windows Working Directory discovery should stay a separate prerequisite
+decision rather than be silently bundled.
+
+Before implementation, product scope should decide which terminal is meant
+(the operating-system default versus a configured terminal) and whether the
+action requests a new window or tab. The existing architecture prompt names a
+`TerminalIntegration` boundary but does not settle those user-facing choices.
+The editor action remains a later FR-014 slice due additional editor-selection
+and availability questions. FR-015/FR-016 P2 work and FR-017 P3 work remain
+lower priority. This recommendation does not create a W022 branch or change
+project status; implementation awaits user approval.

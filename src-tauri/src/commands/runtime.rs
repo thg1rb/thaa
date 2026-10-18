@@ -336,8 +336,10 @@ pub async fn reveal_project_folder(
         let project_root = inspector
             .project_root_for_entry(&entry_ref)
             .map_err(project_root_error)?;
+        let project_path = project_root_opener_path(&project_root)
+            .ok_or_else(|| "Thaa could not reveal this project folder.".to_owned())?;
         app.opener()
-            .reveal_item_in_dir(&project_root)
+            .open_path(project_path.to_owned(), None::<&str>)
             .map_err(|_| "Thaa could not reveal this project folder.".to_owned())
     })
     .await
@@ -568,11 +570,15 @@ fn project_root_error(error: ProjectRootError) -> String {
     }
 }
 
+fn project_root_opener_path(path: &std::path::Path) -> Option<&str> {
+    path.to_str()
+}
+
 #[cfg(test)]
 mod tests {
     use super::{
-        process_icon_assets_dto, project_root_error, snapshot_dto, valid_reference, ActionDto,
-        BindingDto, ResourceMetricsDto, RuntimeKindDto,
+        process_icon_assets_dto, project_root_error, project_root_opener_path, snapshot_dto,
+        valid_reference, ActionDto, BindingDto, ResourceMetricsDto, RuntimeKindDto,
     };
     use crate::application::process_icons::ProcessIconAsset;
     use crate::application::runtime_inspection::{ProjectRootError, RuntimeEntry, RuntimeSnapshot};
@@ -613,6 +619,24 @@ mod tests {
         assert!(valid_reference("entry-12-a"));
         assert!(!valid_reference("entry-12-a/../../project"));
         assert!(!valid_reference(&format!("entry-{}-1", "f".repeat(17))));
+    }
+
+    #[test]
+    fn project_folder_opener_path_preserves_unicode_and_spaces() {
+        let path = PathBuf::from("/tmp/thaa validation/项目");
+        assert_eq!(
+            project_root_opener_path(&path),
+            Some("/tmp/thaa validation/项目")
+        );
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn project_folder_opener_path_rejects_non_unicode_without_lossy_substitution() {
+        use std::os::unix::ffi::OsStrExt;
+
+        let path = PathBuf::from(std::ffi::OsStr::from_bytes(b"/tmp/thaa-\xff"));
+        assert_eq!(project_root_opener_path(&path), None);
     }
 
     #[test]
