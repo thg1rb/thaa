@@ -233,6 +233,7 @@ struct RefreshState {
 /// available until a newer successful scan is committed.
 pub struct RuntimeInspector {
     scanner: RuntimeScanner,
+    processes: Arc<dyn ProcessProvider>,
     controller: Arc<dyn ProcessController>,
     icons: Arc<dyn ProcessIconProvider>,
     state: Mutex<RefreshState>,
@@ -281,6 +282,7 @@ impl RuntimeInspector {
         controller: Arc<dyn ProcessController>,
         capabilities: Arc<dyn PlatformCapabilitiesProvider>,
     ) -> Self {
+        let process_provider = Arc::clone(&processes);
         Self {
             scanner: RuntimeScanner {
                 ports,
@@ -289,6 +291,7 @@ impl RuntimeInspector {
                 git_contexts,
                 cpu_sampler: Mutex::new(CpuSampler::default()),
             },
+            processes: process_provider,
             controller,
             icons,
             state: Mutex::new(RefreshState::default()),
@@ -453,7 +456,7 @@ impl RuntimeInspector {
         if entry_ref.len() > 96 {
             return Err(ProjectRootError::StaleReference);
         }
-        let (generation, expected_root) = {
+        let (generation, expected_root, expected_process) = {
             let state = self.lock_state();
             let snapshot = state
                 .snapshot
@@ -465,15 +468,41 @@ impl RuntimeInspector {
                 .strip_prefix(&prefix)
                 .and_then(|value| usize::from_str_radix(value, 16).ok())
                 .ok_or(ProjectRootError::StaleReference)?;
-            let root = snapshot
+            let entry = snapshot
                 .entries
                 .get(index)
-                .ok_or(ProjectRootError::StaleReference)?
+                .ok_or(ProjectRootError::StaleReference)?;
+            let root = entry
                 .project_root
                 .clone()
                 .ok_or(ProjectRootError::Unavailable)?;
-            (generation, root)
+            let process = entry
+                .process
+                .as_ref()
+                .and_then(|result| result.as_ref().ok())
+                .ok_or(ProjectRootError::Unavailable)?;
+            (generation, root, process.identity.clone())
         };
+
+        // A current snapshot reference alone does not prove that its PID still
+        // names the same process. Re-inspect on the explicit filesystem action
+        // and fail closed when start-time evidence is unavailable or differs.
+        let observed_process = self
+            .processes
+            .inspect(expected_process.pid)
+            .map_err(|_| ProjectRootError::Changed)?;
+        let expected_start = match expected_process.start_time {
+            FieldAvailability::Available(start_time) => start_time,
+            FieldAvailability::Unavailable(_) => return Err(ProjectRootError::Changed),
+        };
+        let observed_start = match observed_process.identity.start_time {
+            FieldAvailability::Available(start_time) => start_time,
+            FieldAvailability::Unavailable(_) => return Err(ProjectRootError::Changed),
+        };
+        if observed_process.identity.pid != expected_process.pid || observed_start != expected_start
+        {
+            return Err(ProjectRootError::Changed);
+        }
 
         let canonical_root =
             std::fs::canonicalize(&expected_root).map_err(|_| ProjectRootError::Unavailable)?;
@@ -1562,6 +1591,51 @@ mod tests {
         assert_eq!(
             inspector.project_root_for_entry(&entry_ref),
             Err(ProjectRootError::StaleReference)
+        );
+        std::fs::remove_dir_all(fixture).expect("remove fixture");
+    }
+
+    #[test]
+    fn project_root_reference_rejects_reused_pid_with_a_different_start_time() {
+        static NEXT_PROJECT_FIXTURE: AtomicUsize = AtomicUsize::new(0);
+        let fixture_id = NEXT_PROJECT_FIXTURE.fetch_add(1, Ordering::Relaxed);
+        let fixture = std::env::temp_dir().join(format!(
+            "thaa-terminal-pid-reuse-{}-{fixture_id}",
+            std::process::id()
+        ));
+        let project = fixture.join("project");
+        let working_directory = project.join("nested");
+        std::fs::create_dir_all(&working_directory).expect("create project fixture");
+        std::fs::write(project.join("package.json"), b"{}").expect("create marker");
+
+        let (inspector, _, processes) = inspector(
+            complete(vec![listener(
+                Some(IpAddr::V4(Ipv4Addr::LOCALHOST)),
+                3000,
+                Some(7),
+            )]),
+            [(
+                7,
+                Ok(process_with_working_directory(
+                    7,
+                    FieldAvailability::Available(working_directory),
+                )),
+            )],
+        );
+        let snapshot = inspector.snapshot_or_initialize().expect("scan succeeds");
+        let entry_ref = snapshot.entries[0].entry_ref.clone();
+        let mut reused = process(7);
+        reused.identity.start_time =
+            FieldAvailability::Available(UNIX_EPOCH + Duration::from_secs(21));
+        processes
+            .responses
+            .lock()
+            .expect("responses lock")
+            .insert(7, Ok(reused));
+
+        assert_eq!(
+            inspector.project_root_for_entry(&entry_ref),
+            Err(ProjectRootError::Changed)
         );
         std::fs::remove_dir_all(fixture).expect("remove fixture");
     }

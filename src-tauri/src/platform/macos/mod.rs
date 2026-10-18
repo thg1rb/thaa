@@ -6,3 +6,4 @@ pub mod process_controller;
 pub mod process_icon;
 mod process_identity;
 pub mod process_provider;
+pub mod terminal;

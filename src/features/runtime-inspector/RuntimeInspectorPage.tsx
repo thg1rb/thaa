@@ -22,8 +22,12 @@ export function RuntimeInspectorPage() {
     refresh,
     showToast,
   );
-  const { openListener, revealProjectFolder, copyValue } =
-    useRuntimeEntryActions(showToast);
+  const {
+    openListener,
+    revealProjectFolder,
+    openProjectInTerminal,
+    copyValue,
+  } = useRuntimeEntryActions(showToast);
   const [confirming, setConfirming] = useState<RuntimeEntry | null>(null);
   const [query, setQuery] = useState("");
   const snapshot = state.snapshot;
@@ -152,6 +156,9 @@ export function RuntimeInspectorPage() {
               onConfirmForce={setConfirming}
               onOpen={(entryRef) => void openListener(entryRef)}
               onRevealFolder={(entryRef) => void revealProjectFolder(entryRef)}
+              onOpenTerminal={(entryRef) =>
+                void openProjectInTerminal(entryRef)
+              }
               onCopy={(value, label) => void copyValue(value, label)}
             />
           )}

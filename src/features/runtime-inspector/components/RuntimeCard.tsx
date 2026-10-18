@@ -30,6 +30,7 @@ export function RuntimeCard({
   onConfirmForce,
   onOpen,
   onRevealFolder,
+  onOpenTerminal,
   onCopy,
 }: {
   entry: RuntimeEntry;
@@ -42,6 +43,7 @@ export function RuntimeCard({
   onConfirmForce: () => void;
   onOpen: () => void;
   onRevealFolder?: () => void;
+  onOpenTerminal?: () => void;
   onCopy: (value: string, label: string) => void;
 }) {
   const info =
@@ -163,6 +165,16 @@ export function RuntimeCard({
                   onClick={onRevealFolder}
                 >
                   Reveal folder
+                </button>
+              )}
+              {onOpenTerminal && (
+                <button
+                  className="inline-metadata-action"
+                  aria-label={`Open terminal at project folder for ${processName}`}
+                  title={`Open a new Terminal window at ${projectRoot}`}
+                  onClick={onOpenTerminal}
+                >
+                  Open in Terminal
                 </button>
               )}
             </>

@@ -62,6 +62,7 @@ const callbacks = {
   onConfirmForce: vi.fn(),
   onOpen: vi.fn(),
   onRevealFolder: vi.fn(),
+  onOpenTerminal: vi.fn(),
   onCopy: vi.fn(),
 };
 
@@ -156,6 +157,77 @@ describe("RuntimeList process-tree state", () => {
     expect(
       screen.queryByRole("button", { name: /Reveal project folder/ }),
     ).toBeNull();
+  });
+
+  it("offers one terminal action for a process with multiple listeners", () => {
+    const first = {
+      ...entry(10, null, "server"),
+      projectRoot: "/tmp/my project 🌱",
+    };
+    const second = { ...first, entryRef: "entry-10-2", port: 3010 };
+    const onOpenTerminal = vi.fn();
+
+    render(
+      <RuntimeList
+        snapshot={snapshot(1, [first, second])}
+        {...callbacks}
+        onOpenTerminal={onOpenTerminal}
+        query=""
+      />,
+    );
+
+    const openButton = screen.getByRole("button", {
+      name: "Open terminal at project folder for server",
+    });
+    expect(
+      screen.getAllByRole("button", {
+        name: /Open terminal at project folder/,
+      }),
+    ).toHaveLength(1);
+    fireEvent.click(openButton);
+    expect(onOpenTerminal).toHaveBeenCalledExactlyOnceWith("entry-10");
+  });
+
+  it("omits terminal actions when project-root metadata is unavailable", () => {
+    render(
+      <RuntimeList
+        snapshot={snapshot(1, [entry(10, null, "server")])}
+        {...callbacks}
+        query=""
+      />,
+    );
+
+    expect(
+      screen.queryByRole("button", { name: /Open terminal at project folder/ }),
+    ).toBeNull();
+  });
+
+  it("keeps a descendant terminal action attached to the matching child under search context", () => {
+    const parent = entry(10, null, "parent");
+    const child = {
+      ...entry(11, 10, "child-server"),
+      projectRoot: "/tmp/child-project",
+    };
+    const onOpenTerminal = vi.fn();
+
+    render(
+      <RuntimeList
+        snapshot={snapshot(1, [parent, child])}
+        {...callbacks}
+        onOpenTerminal={onOpenTerminal}
+        query="child-server"
+      />,
+    );
+
+    expect(
+      screen.getByRole("button", { name: /Collapse parent/ }),
+    ).toBeDisabled();
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: "Open terminal at project folder for child-server",
+      }),
+    );
+    expect(onOpenTerminal).toHaveBeenCalledExactlyOnceWith("entry-11");
   });
 
   it("forgets collapsed state when a process disappears from an accepted snapshot", () => {

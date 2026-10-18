@@ -33,6 +33,22 @@ export function useRuntimeEntryActions(showToast: (toast: ToastInput) => void) {
     [showToast],
   );
 
+  const openProjectInTerminal = useCallback(
+    async (entryRef: string) => {
+      try {
+        await runtimeClient.openProjectInTerminal(entryRef);
+      } catch {
+        showToast({
+          tone: "error",
+          title: "Could not open project in Terminal",
+          message:
+            "Refresh the runtime list and allow Thaa to control Terminal in System Settings if prompted.",
+        });
+      }
+    },
+    [showToast],
+  );
+
   const copyValue = useCallback(
     async (value: string, label: string) => {
       try {
@@ -53,5 +69,10 @@ export function useRuntimeEntryActions(showToast: (toast: ToastInput) => void) {
     [showToast],
   );
 
-  return { openListener, revealProjectFolder, copyValue };
+  return {
+    openListener,
+    revealProjectFolder,
+    openProjectInTerminal,
+    copyValue,
+  };
 }
