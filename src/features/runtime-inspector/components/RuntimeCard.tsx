@@ -29,6 +29,7 @@ export function RuntimeCard({
   onAction,
   onConfirmForce,
   onOpen,
+  onRevealFolder,
   onCopy,
 }: {
   entry: RuntimeEntry;
@@ -40,6 +41,7 @@ export function RuntimeCard({
   onAction: (targetRef: string, action: Action) => void;
   onConfirmForce: () => void;
   onOpen: () => void;
+  onRevealFolder?: () => void;
   onCopy: (value: string, label: string) => void;
 }) {
   const info =
@@ -151,7 +153,19 @@ export function RuntimeCard({
             <span title={workingDirectory}>in {workingDirectory}</span>
           )}
           {projectRoot && (
-            <span title={projectRoot}>Project root · {projectRoot}</span>
+            <>
+              <span title={projectRoot}>Project root · {projectRoot}</span>
+              {onRevealFolder && (
+                <button
+                  className="inline-metadata-action"
+                  aria-label={`Reveal project folder for ${processName}`}
+                  title={`Reveal ${projectRoot} in the file manager`}
+                  onClick={onRevealFolder}
+                >
+                  Reveal folder
+                </button>
+              )}
+            </>
           )}
           {gitRepository && gitBranch && (
             <span title={gitRepository + " · " + gitBranch}>

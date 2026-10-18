@@ -14,6 +14,7 @@ export function RuntimeList({
   onAction,
   onConfirmForce,
   onOpen,
+  onRevealFolder,
   onCopy,
 }: {
   snapshot: RuntimeSnapshot;
@@ -24,6 +25,7 @@ export function RuntimeList({
   onAction: (targetRef: string, action: Action) => void;
   onConfirmForce: (entry: RuntimeEntry) => void;
   onOpen: (entryRef: string) => void;
+  onRevealFolder: (entryRef: string) => void;
   onCopy: (value: string, label: string) => void;
 }) {
   const forest = useMemo(
@@ -81,6 +83,9 @@ export function RuntimeList({
       {visibleNodes.map(({ node, depth }) => {
         const isCollapsed =
           activeCollapsed.has(node.key) && query.trim() === "";
+        const revealEntryRef = node.entries.find(
+          (entry) => entry.projectRoot !== null,
+        )?.entryRef;
         return (
           <div
             className="process-tree-node"
@@ -150,6 +155,9 @@ export function RuntimeList({
                   onAction={onAction}
                   onConfirmForce={() => onConfirmForce(entry)}
                   onOpen={() => onOpen(entry.entryRef)}
+                  {...(entry.entryRef === revealEntryRef
+                    ? { onRevealFolder: () => onRevealFolder(entry.entryRef) }
+                    : {})}
                   onCopy={onCopy}
                 />
               ))}

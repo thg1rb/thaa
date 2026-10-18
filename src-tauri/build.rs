@@ -22,6 +22,7 @@ fn main() {
             "refresh_runtime_snapshot",
             "request_process_action",
             "open_listener_url",
+            "reveal_project_folder",
         ]),
     ))
     .expect("failed to build Tauri application");
