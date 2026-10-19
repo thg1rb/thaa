@@ -153,6 +153,18 @@ mod tests {
     }
 
     #[test]
+    fn unicode_working_directory_resolves_unicode_project_root() {
+        let fixture = Fixture::new();
+        let working_directory = fixture.dir("projet-café/nested");
+        fixture.file("projet-café/package.json");
+
+        assert_eq!(
+            detect_project_root(&working_directory),
+            Some(fixture.canonical("projet-café"))
+        );
+    }
+
+    #[test]
     fn searches_immediate_and_distant_ancestors() {
         let fixture = Fixture::new();
         let working_directory = fixture.dir("one/two/three/four");

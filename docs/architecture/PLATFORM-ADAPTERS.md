@@ -198,7 +198,12 @@ zombie records, and reads `p_starttime` at timeval precision before and after
 the bounded `lsof` metadata query. `lsof` supplies the command name and
 working directory. Executable path and structured argv remain unavailable;
 the provider does not use private `libproc` APIs or reconstruct argv from
-display text. Apple documents `sysctl` process-table selectors in its
+display text. The process-metadata `lsof` invocation uses a fixed UTF-8 locale
+(`en_US.UTF-8`) after clearing inherited environment variables, so valid
+Unicode working-directory bytes are emitted directly. It continues to parse
+output as bytes and treats ambiguous escaped representations as unavailable;
+it does not attempt lossy or guessed decoding. Apple documents `sysctl`
+process-table selectors in its
 [sysctl manual](https://developer.apple.com/library/archive/documentation/System/Conceptual/ManPages_iPhoneOS/man3/sysctlnametomib.3.html).
 
 The native integration fixture is a test-owned `/bin/sleep` child, not a GUI

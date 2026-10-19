@@ -20,6 +20,7 @@ use super::process_identity::{
 };
 
 const LSOF_PATH: &str = "/usr/sbin/lsof";
+const LSOF_UTF8_LOCALE: &str = "en_US.UTF-8";
 const COMMAND_TIMEOUT: Duration = Duration::from_secs(10);
 const MAX_CAPTURE_BYTES: usize = 256 * 1024;
 /// Read-only, best-effort process metadata inspection for macOS.
@@ -75,6 +76,16 @@ fn read_process_snapshot(process_id: ProcessId) -> Result<ProcessSnapshot, Proce
 }
 
 fn invoke_lsof(process_id: ProcessId) -> Result<LsofOutput, RunError> {
+    run_bounded(
+        lsof_command(process_id),
+        RunLimits {
+            timeout: COMMAND_TIMEOUT,
+            max_capture_bytes: MAX_CAPTURE_BYTES,
+        },
+    )
+}
+
+fn lsof_command(process_id: ProcessId) -> Command {
     let mut command = Command::new(LSOF_PATH);
     command
         .args([
@@ -87,16 +98,9 @@ fn invoke_lsof(process_id: ProcessId) -> Result<LsofOutput, RunError> {
             "cwd",
         ])
         .env_clear()
-        .env("LC_ALL", "C")
+        .env("LC_ALL", LSOF_UTF8_LOCALE)
         .env("TZ", "UTC");
-
-    run_bounded(
-        command,
-        RunLimits {
-            timeout: COMMAND_TIMEOUT,
-            max_capture_bytes: MAX_CAPTURE_BYTES,
-        },
-    )
+    command
 }
 
 #[derive(Debug, Default, PartialEq, Eq)]
@@ -284,12 +288,36 @@ fn provider_error(kind: ProcessProviderErrorKind) -> ProcessProviderError {
 #[cfg(test)]
 mod tests {
     use super::{
-        normalize_lsof_result, normalize_os_string, normalize_path, parse_lsof_metadata,
-        LsofMetadataAvailability, LsofOutput,
+        lsof_command, normalize_lsof_result, normalize_os_string, normalize_path,
+        parse_lsof_metadata, LsofMetadataAvailability, LsofOutput, LSOF_PATH, LSOF_UTF8_LOCALE,
     };
     use crate::domain::metadata::{FieldAvailability, UnavailableReason};
     use crate::domain::process::ProcessId;
     use std::path::PathBuf;
+
+    #[test]
+    fn lsof_command_uses_fixed_executable_arguments_and_utf8_locale() {
+        let command = lsof_command(ProcessId::new(42));
+        assert_eq!(command.get_program(), LSOF_PATH);
+        assert_eq!(
+            command.get_args().collect::<Vec<_>>(),
+            ["-nP", "-F0pcfn", "-a", "-p", "42", "-d", "cwd"].map(std::ffi::OsStr::new)
+        );
+        let environment = command
+            .get_envs()
+            .map(|(key, value)| (key, value.expect("configured environment value")))
+            .collect::<Vec<_>>();
+        assert_eq!(
+            environment,
+            [
+                (
+                    std::ffi::OsStr::new("LC_ALL"),
+                    std::ffi::OsStr::new(LSOF_UTF8_LOCALE)
+                ),
+                (std::ffi::OsStr::new("TZ"), std::ffi::OsStr::new("UTC")),
+            ]
+        );
+    }
     #[test]
     fn parses_lsof_process_and_cwd_records_with_nul_fields() {
         let pid = ProcessId::new(42);
@@ -324,6 +352,15 @@ mod tests {
         assert_eq!(
             normalize_path(b"/tmp/plain path".to_vec()),
             FieldAvailability::Available(PathBuf::from("/tmp/plain path"))
+        );
+    }
+
+    #[test]
+    fn raw_utf8_path_bytes_are_preserved_exactly() {
+        let path = "/tmp/thaa-café";
+        assert_eq!(
+            normalize_path(path.as_bytes().to_vec()),
+            FieldAvailability::Available(PathBuf::from(path))
         );
     }
 
