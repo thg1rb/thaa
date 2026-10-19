@@ -9,7 +9,11 @@ describe("RuntimeActions", () => {
     render(
       <RuntimeActions
         targetRef="target-1"
-        capabilities={{ gracefulStop: true, forceStop: true }}
+        capabilities={{
+          gracefulStop: true,
+          forceStop: true,
+          openProjectInEditor: true,
+        }}
         busy={false}
         onAction={vi.fn()}
         onConfirmForce={vi.fn()}
@@ -29,7 +33,11 @@ describe("RuntimeActions", () => {
     render(
       <RuntimeActions
         targetRef="target-1"
-        capabilities={{ gracefulStop: false, forceStop: true }}
+        capabilities={{
+          gracefulStop: false,
+          forceStop: true,
+          openProjectInEditor: true,
+        }}
         busy={false}
         onAction={vi.fn()}
         onConfirmForce={vi.fn()}

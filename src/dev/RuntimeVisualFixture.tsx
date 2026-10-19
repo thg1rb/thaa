@@ -20,7 +20,11 @@ const fixtureSnapshot: RuntimeSnapshot = {
   generation: 1,
   observedAtUnixMs: Date.now(),
   completeness: { state: "complete" },
-  capabilities: { gracefulStop: true, forceStop: true },
+  capabilities: {
+    gracefulStop: true,
+    forceStop: true,
+    openProjectInEditor: true,
+  },
   entries: [
     {
       entryRef: "fixture-entry-app",

@@ -25,6 +25,7 @@ pub(crate) fn same_filesystem(start: &Path, candidate: &Path) -> io::Result<bool
     }
 }
 
+pub(crate) mod editor;
 pub mod git_context;
 pub(crate) mod terminal;
 

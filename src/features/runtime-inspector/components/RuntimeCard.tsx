@@ -31,6 +31,7 @@ export function RuntimeCard({
   onOpen,
   onRevealFolder,
   onOpenTerminal,
+  onOpenEditor,
   onCopy,
 }: {
   entry: RuntimeEntry;
@@ -44,6 +45,7 @@ export function RuntimeCard({
   onOpen: () => void;
   onRevealFolder?: () => void;
   onOpenTerminal?: () => void;
+  onOpenEditor?: () => void;
   onCopy: (value: string, label: string) => void;
 }) {
   const info =
@@ -175,6 +177,16 @@ export function RuntimeCard({
                   onClick={onOpenTerminal}
                 >
                   Open in Terminal
+                </button>
+              )}
+              {onOpenEditor && (
+                <button
+                  className="inline-metadata-action"
+                  aria-label={`Open project in editor for ${processName}`}
+                  title={`Open ${projectRoot} in Visual Studio Code`}
+                  onClick={onOpenEditor}
+                >
+                  Open in Editor
                 </button>
               )}
             </>

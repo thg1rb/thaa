@@ -1,5 +1,6 @@
 //! macOS-specific provider implementations.
 
+pub mod editor;
 mod lsof;
 pub mod port_provider;
 pub mod process_controller;

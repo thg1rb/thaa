@@ -221,6 +221,7 @@ pub fn run() {
             commands::runtime::open_listener_url,
             commands::runtime::reveal_project_folder,
             commands::runtime::open_project_in_terminal,
+            commands::runtime::open_project_in_editor,
         ])
         .run(tauri::generate_context!())
         .expect("failed to run Thaa");

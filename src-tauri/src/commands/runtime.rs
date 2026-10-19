@@ -19,6 +19,7 @@ use crate::domain::process::{ProcessInfo, ProcessResourceMetrics};
 use crate::domain::process_action::{ProcessAction, ProcessActionError, ProcessActionOutcome};
 use crate::domain::process_provider::ProcessProviderErrorKind;
 use crate::domain::runtime::RuntimeKind;
+use crate::platform::editor::{self, EditorOpenError};
 use crate::platform::terminal::{self, TerminalOpenError};
 
 #[derive(Clone)]
@@ -53,6 +54,7 @@ pub enum ScanCompletenessDto {
 pub struct CapabilitiesDto {
     pub graceful_stop: bool,
     pub force_stop: bool,
+    pub open_project_in_editor: bool,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -367,6 +369,28 @@ pub async fn open_project_in_terminal(
     .map_err(|_| "Thaa could not open this project in Terminal.".to_owned())?
 }
 
+#[tauri::command]
+pub async fn open_project_in_editor(
+    state: State<'_, RuntimeState>,
+    entry_ref: String,
+) -> Result<(), String> {
+    if !valid_reference(&entry_ref) || !entry_ref.starts_with("entry-") {
+        return Err(
+            "The project folder is no longer in the current scan. Refresh and try again.".into(),
+        );
+    }
+    let inspector = Arc::clone(&state.0);
+    tauri::async_runtime::spawn_blocking(move || {
+        open_project_in_editor_for_entry(
+            &entry_ref,
+            || inspector.project_root_for_entry(&entry_ref),
+            editor::open_project,
+        )
+    })
+    .await
+    .map_err(|_| "Thaa could not open this project in the editor.".to_owned())?
+}
+
 fn open_project_in_terminal_for_entry(
     entry_ref: &str,
     resolve_project_root: impl FnOnce() -> Result<std::path::PathBuf, ProjectRootError>,
@@ -377,6 +401,20 @@ fn open_project_in_terminal_for_entry(
     }
     let project_root = resolve_project_root().map_err(project_root_error)?;
     launch_terminal(&project_root).map_err(terminal_open_error)
+}
+
+fn open_project_in_editor_for_entry(
+    entry_ref: &str,
+    resolve_project_root: impl FnOnce() -> Result<std::path::PathBuf, ProjectRootError>,
+    launch_editor: impl FnOnce(&std::path::Path) -> Result<(), EditorOpenError>,
+) -> Result<(), String> {
+    if !valid_reference(entry_ref) || !entry_ref.starts_with("entry-") {
+        return Err(
+            "The project folder is no longer in the current scan. Refresh and try again.".into(),
+        );
+    }
+    let project_root = resolve_project_root().map_err(project_root_error)?;
+    launch_editor(&project_root).map_err(editor_open_error)
 }
 
 fn valid_reference(value: &str) -> bool {
@@ -414,6 +452,7 @@ fn snapshot_dto(snapshot: &RuntimeSnapshot) -> RuntimeSnapshotDto {
         capabilities: CapabilitiesDto {
             graceful_stop: snapshot.capabilities.graceful_stop == CapabilitySupport::Supported,
             force_stop: snapshot.capabilities.force_stop == CapabilitySupport::Supported,
+            open_project_in_editor: cfg!(target_os = "macos"),
         },
         entries: snapshot
             .entries
@@ -465,6 +504,21 @@ fn snapshot_dto(snapshot: &RuntimeSnapshot) -> RuntimeSnapshotDto {
                 }
             })
             .collect(),
+    }
+}
+
+fn editor_open_error(error: EditorOpenError) -> String {
+    match error {
+        EditorOpenError::Unsupported => {
+            "Opening a project in an editor is unavailable on this platform.".into()
+        }
+        EditorOpenError::InvalidPath => "Thaa could not open this project in the editor.".into(),
+        EditorOpenError::Unavailable => {
+            "Visual Studio Code is not available. Install it and try again.".into()
+        }
+        EditorOpenError::Failed => {
+            "Thaa could not open this project in Visual Studio Code. Try again.".into()
+        }
     }
 }
 
@@ -627,9 +681,10 @@ fn project_root_opener_path(path: &std::path::Path) -> Option<&str> {
 #[cfg(test)]
 mod tests {
     use super::{
-        open_project_in_terminal_for_entry, process_icon_assets_dto, project_root_error,
-        project_root_opener_path, snapshot_dto, terminal_open_error, valid_reference, ActionDto,
-        BindingDto, ResourceMetricsDto, RuntimeKindDto,
+        open_project_in_editor_for_entry, open_project_in_terminal_for_entry,
+        process_icon_assets_dto, project_root_error, project_root_opener_path, snapshot_dto,
+        terminal_open_error, valid_reference, ActionDto, BindingDto, ResourceMetricsDto,
+        RuntimeKindDto,
     };
     use crate::application::process_icons::ProcessIconAsset;
     use crate::application::runtime_inspection::{ProjectRootError, RuntimeEntry, RuntimeSnapshot};
@@ -716,6 +771,18 @@ mod tests {
     }
 
     #[test]
+    fn main_window_capability_authorizes_opening_a_project_in_editor() {
+        let capability: serde_json::Value =
+            serde_json::from_str(include_str!("../../capabilities/main-window.json"))
+                .expect("parse the main window capability");
+        assert!(capability["permissions"]
+            .as_array()
+            .expect("capability permissions are an array")
+            .iter()
+            .any(|permission| permission == "allow-open-project-in-editor"));
+    }
+
+    #[test]
     fn terminal_action_passes_only_the_backend_resolved_root_to_launcher() {
         use std::cell::RefCell;
 
@@ -771,6 +838,68 @@ mod tests {
         );
         assert!(missing_root.is_err());
         assert!(!launched.get());
+    }
+
+    #[test]
+    fn editor_action_passes_only_backend_resolved_project_root_to_launcher() {
+        use std::cell::RefCell;
+
+        let launched = RefCell::new(None);
+        let expected = PathBuf::from("/validated/project root");
+        open_project_in_editor_for_entry(
+            "entry-12-a",
+            || Ok(expected.clone()),
+            |path| {
+                *launched.borrow_mut() = Some(path.to_path_buf());
+                Ok(())
+            },
+        )
+        .expect("valid current entry opens");
+        assert_eq!(launched.into_inner(), Some(expected));
+    }
+
+    #[test]
+    fn invalid_or_stale_editor_entries_never_reach_native_launcher() {
+        use crate::platform::editor::EditorOpenError;
+        use std::cell::Cell;
+
+        let launched = Cell::new(false);
+        assert!(open_project_in_editor_for_entry(
+            "entry-12-../../path",
+            || panic!("invalid reference must not resolve"),
+            |_| {
+                launched.set(true);
+                Ok(())
+            },
+        )
+        .is_err());
+        assert!(!launched.get());
+
+        assert!(open_project_in_editor_for_entry(
+            "entry-12-a",
+            || Err(ProjectRootError::StaleReference),
+            |_| {
+                launched.set(true);
+                Err(EditorOpenError::Failed)
+            },
+        )
+        .is_err());
+        assert!(!launched.get());
+    }
+
+    #[test]
+    fn editor_errors_are_recoverable_and_do_not_disclose_paths() {
+        use crate::platform::editor::EditorOpenError;
+
+        let unavailable = super::editor_open_error(EditorOpenError::Unavailable);
+        assert!(unavailable.contains("Visual Studio Code is not available"));
+        assert!(!unavailable.contains("/Users"));
+        assert_eq!(
+            super::editor_open_error(EditorOpenError::Unsupported),
+            "Opening a project in an editor is unavailable on this platform."
+        );
+        assert!(super::editor_open_error(EditorOpenError::Failed)
+            .contains("could not open this project in Visual Studio Code"));
     }
 
     #[cfg(unix)]
@@ -877,6 +1006,10 @@ mod tests {
         );
         assert_eq!(json["capabilities"]["gracefulStop"], false);
         assert_eq!(json["capabilities"]["forceStop"], true);
+        assert_eq!(
+            json["capabilities"]["openProjectInEditor"],
+            cfg!(target_os = "macos")
+        );
         assert_eq!(
             json["entries"][0]["processIconRef"],
             serde_json::Value::Null

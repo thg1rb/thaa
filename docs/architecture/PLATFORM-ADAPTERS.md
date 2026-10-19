@@ -119,6 +119,17 @@ does not supply Project Root metadata; no speculative Windows terminal
 integration is included. Interactive validation evidence and residual path
 race limitations are recorded in the [W022 work record](../work/W022-open-project-terminal.md).
 
+### Project Editor integration (W023)
+
+The process-node action sends only its current snapshot entry reference. The
+application resolves and revalidates that entry's Project Root through the
+shared snapshot validator, then calls the editor platform boundary. On macOS,
+the adapter invokes fixed `/usr/bin/open` with the fixed Visual Studio Code
+bundle identifier and canonical directory as a separate path argument. It
+does not use a shell, search `PATH`, or inspect project files. Windows does
+not advertise the action while its process provider lacks Project Root
+metadata; W023 does not add Windows directory discovery or an editor launcher.
+
 ### Windows process implementation evidence (W011.2)
 
 `platform::windows::process_provider::WindowsProcessProvider` implements the
