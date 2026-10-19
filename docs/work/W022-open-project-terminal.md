@@ -247,6 +247,66 @@ scenario remains the sole acceptance blocker and keeps PR #67 Draft.
 - Terminal.app and macOS determine whether automation succeeds; the app does
   not retry, elevate, or choose another terminal.
 
+### W022.2 Terminal-not-running acceptance (2026-10-19)
+
+The user confirmed Terminal.app had been quit normally. Before setup and again
+immediately before activating the feature, a non-launching `pgrep -x Terminal`
+check found no Terminal process; the computer-use application inventory also
+reported Terminal as not running. No command used to inspect state launched
+Terminal. Validation used the isolated debug application at
+`src-tauri/target/debug/bundle/macos/Thaa W022 Validation.app`, bundle ID
+`io.github.thg1rb.thaa.w022validation`; the installed `/Applications/Thaa.app`
+was not used or modified.
+
+A fresh disposable fixture at
+`/private/tmp/thaa-w022-final-validation-20261019` contained the recognized
+`package.json` marker and a `nested` directory. A Python standard-library
+listener (PID `20200`, TCP port `56190`) bound only to `127.0.0.1` and ran with
+Working Directory
+`/private/tmp/thaa-w022-final-validation-20261019/nested`. Runtime Inspector
+reported the expected Project Root
+`/private/tmp/thaa-w022-final-validation-20261019`, and showed one Open in
+Terminal action and one Reveal action on the Python process node.
+
+With Terminal confirmed absent immediately before activation, the actual
+Open in Terminal UI action launched Terminal.app (process PID `20687`). No
+Automation permission dialog or application error was observed. Terminal
+created two windows as it started: the default startup window (window ID
+`2614`) and a distinct W022-requested window (ID `2625`). The first `pwd`
+probe targeted the default startup window and returned `/Users/bowornrat`;
+window enumeration identified the mistake, and no W022 result was inferred
+from that probe. A second probe explicitly targeted the distinct W022-created
+window ID `2625`; its observed `pwd` was exactly
+`/private/tmp/thaa-w022-final-validation-20261019`, matching the canonical
+Project Root. The W022 window showed the validated directory-change command
+and the `pwd` evidence command only; no project startup or package-manager
+command was issued by Thaa. The startup window is an observed Terminal.app
+launch behavior and remains a UX limitation when Terminal was not already
+running; neither window was closed automatically.
+
+The action succeeded without an Automation prompt. This records successful
+effective authorization for this invocation; it does not claim that a new
+authorization was requested or granted during this test. The previously
+observed Terminal-already-running test remains valid: it created a distinct
+window, preserved pre-existing windows, and started at the exact Project
+Root. Together these observations complete both Terminal initial-state cases.
+
+Refresh while the fixture listener was active retained the process, Project
+Root, and action. After interrupting only the disposable listener and
+refreshing, the Python process and its action disappeared (the snapshot
+reported 15 listeners rather than 16). No unrelated process action was used.
+The original checkout and its three untracked screenshots, and the installed
+Thaa application, remained untouched.
+
+The first missing-window `pwd` probe was an evidence-targeting mistake, not a
+product failure: it inspected Terminal's default startup window rather than
+the W022-created window. The correctly identified W022 window was then
+observed directly and matched the Project Root. No implementation change was
+needed for W022.2.
+
 ## Final status
 
-Pending implementation validation, review, CI, and merge.
+Interactive acceptance for both Terminal states is complete. AC-03 and AC-08
+are supported by the observations above and the retained Terminal-already-
+running evidence. Final read-only review, documentation validation, CI on the
+updated PR head, merge to `develop`, and post-merge CI remain to be recorded.
