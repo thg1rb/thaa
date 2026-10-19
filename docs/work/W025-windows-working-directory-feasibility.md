@@ -251,10 +251,15 @@ approval and is not implied by this report.
 - Documentation formatting: PASS with Prettier 3.9.9 on the changed Markdown.
 - Local Markdown links: PASS (`pnpm docs:check`, 88 Markdown files).
 - `git diff --check`: PASS.
-- Shared Quality, macOS Native Validation, and Windows Native Validation on
-  the final documentation PR head: pending.
-- The documentation-only PR may merge to `develop` only after the independent
-  reviews and required CI pass. It must not be treated as feature completion.
+- PR #73 (`816e08e7f9e7515e3c05ae22549f6b3425827a14`): Shared Quality, macOS
+  Native Validation, and Windows Native Validation all passed in run
+  [39217548815](https://github.com/thg1rb/thaa/actions/runs/39217548815).
+- PR #73 merged to `develop` as
+  `77f5e43049ed1f62a11fa8abc5fe2a3f020fa49c`. Post-merge CI passed on that
+  merge commit in run
+  [39218294122](https://github.com/thg1rb/thaa/actions/runs/39218294122).
+- This documentation closeout records research and feasibility only; it is
+  not Windows Working Directory feature completion or production approval.
 
 ## Scope Record
 
