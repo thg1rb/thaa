@@ -103,6 +103,22 @@ adapters supply normalized socket addresses; W019's bind-scope classification
 is shared and does not require another scan. W019 does not infer IPv4
 dual-stack behavior from an IPv6 wildcard address.
 
+### Project Terminal integration (W022)
+
+The explicit process-node action sends only its current snapshot entry
+reference to the backend. The application resolves the Project Root through
+the W021 snapshot validation path; platform code receives only that validated
+directory. macOS uses a fixed `/usr/bin/osascript` invocation and a constant
+AppleScript program to ask Apple Terminal.app for a new window, then change
+that new session's directory using a shell-quoted path passed as data. The
+adapter suppresses child output to avoid disclosing private paths. Tauri's
+merged `Info.plist` declares the Apple Events purpose and the application
+respects macOS automation authorization. Thaa does not execute project
+commands. Windows currently returns unsupported because its process provider
+does not supply Project Root metadata; no speculative Windows terminal
+integration is included. Interactive validation evidence and residual path
+race limitations are recorded in the [W022 work record](../work/W022-open-project-terminal.md).
+
 ### Windows process implementation evidence (W011.2)
 
 `platform::windows::process_provider::WindowsProcessProvider` implements the

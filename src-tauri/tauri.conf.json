@@ -33,6 +33,7 @@
     "macOS": {
       "minimumSystemVersion": "15.0",
       "hardenedRuntime": true,
+      "entitlements": "./Entitlements.plist",
       "signingIdentity": "-"
     },
     "icon": [

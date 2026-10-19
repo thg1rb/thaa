@@ -19,6 +19,7 @@ use crate::domain::process::{ProcessInfo, ProcessResourceMetrics};
 use crate::domain::process_action::{ProcessAction, ProcessActionError, ProcessActionOutcome};
 use crate::domain::process_provider::ProcessProviderErrorKind;
 use crate::domain::runtime::RuntimeKind;
+use crate::platform::terminal::{self, TerminalOpenError};
 
 #[derive(Clone)]
 pub struct RuntimeState(pub Arc<RuntimeInspector>);
@@ -346,6 +347,38 @@ pub async fn reveal_project_folder(
     .map_err(|_| "The project folder is no longer available.".to_owned())?
 }
 
+#[tauri::command]
+pub async fn open_project_in_terminal(
+    state: State<'_, RuntimeState>,
+    entry_ref: String,
+) -> Result<(), String> {
+    if !valid_reference(&entry_ref) || !entry_ref.starts_with("entry-") {
+        return Err("The project folder is no longer in the current scan.".into());
+    }
+    let inspector = Arc::clone(&state.0);
+    tauri::async_runtime::spawn_blocking(move || {
+        open_project_in_terminal_for_entry(
+            &entry_ref,
+            || inspector.project_root_for_entry(&entry_ref),
+            terminal::open_project,
+        )
+    })
+    .await
+    .map_err(|_| "Thaa could not open this project in Terminal.".to_owned())?
+}
+
+fn open_project_in_terminal_for_entry(
+    entry_ref: &str,
+    resolve_project_root: impl FnOnce() -> Result<std::path::PathBuf, ProjectRootError>,
+    launch_terminal: impl FnOnce(&std::path::Path) -> Result<(), TerminalOpenError>,
+) -> Result<(), String> {
+    if !valid_reference(entry_ref) || !entry_ref.starts_with("entry-") {
+        return Err("The project folder is no longer in the current scan.".into());
+    }
+    let project_root = resolve_project_root().map_err(project_root_error)?;
+    launch_terminal(&project_root).map_err(terminal_open_error)
+}
+
 fn valid_reference(value: &str) -> bool {
     let Some((kind, rest)) = value.split_once('-') else {
         return false;
@@ -570,6 +603,23 @@ fn project_root_error(error: ProjectRootError) -> String {
     }
 }
 
+fn terminal_open_error(error: TerminalOpenError) -> String {
+    match error {
+        TerminalOpenError::Unsupported => {
+            "Opening a project in Terminal is unavailable on this platform.".into()
+        }
+        TerminalOpenError::InvalidPath => {
+            "Thaa could not open this project in Terminal.".into()
+        }
+        TerminalOpenError::AutomationDenied => {
+            "macOS denied Thaa permission to control Terminal. Allow it in System Settings > Privacy & Security > Automation, then try again.".into()
+        }
+        TerminalOpenError::Failed => {
+            "Thaa could not open a new Terminal window. Check that Terminal.app is available and try again.".into()
+        }
+    }
+}
+
 fn project_root_opener_path(path: &std::path::Path) -> Option<&str> {
     path.to_str()
 }
@@ -577,8 +627,9 @@ fn project_root_opener_path(path: &std::path::Path) -> Option<&str> {
 #[cfg(test)]
 mod tests {
     use super::{
-        process_icon_assets_dto, project_root_error, project_root_opener_path, snapshot_dto,
-        valid_reference, ActionDto, BindingDto, ResourceMetricsDto, RuntimeKindDto,
+        open_project_in_terminal_for_entry, process_icon_assets_dto, project_root_error,
+        project_root_opener_path, snapshot_dto, terminal_open_error, valid_reference, ActionDto,
+        BindingDto, ResourceMetricsDto, RuntimeKindDto,
     };
     use crate::application::process_icons::ProcessIconAsset;
     use crate::application::runtime_inspection::{ProjectRootError, RuntimeEntry, RuntimeSnapshot};
@@ -628,6 +679,98 @@ mod tests {
             project_root_opener_path(&path),
             Some("/tmp/thaa validation/项目")
         );
+    }
+
+    #[test]
+    fn terminal_errors_are_actionable_without_disclosing_paths() {
+        use crate::platform::terminal::TerminalOpenError;
+
+        let failed = terminal_open_error(TerminalOpenError::Failed);
+        assert!(failed.contains("new Terminal window"));
+        assert!(!failed.contains("Automation"));
+        assert!(!failed.contains("/tmp"));
+        assert!(!failed.contains("/Users"));
+        let denied = terminal_open_error(TerminalOpenError::AutomationDenied);
+        assert!(denied.contains("Privacy & Security > Automation"));
+        assert!(!denied.contains("/tmp"));
+        assert_eq!(
+            terminal_open_error(TerminalOpenError::Unsupported),
+            "Opening a project in Terminal is unavailable on this platform."
+        );
+        assert_eq!(
+            terminal_open_error(TerminalOpenError::InvalidPath),
+            "Thaa could not open this project in Terminal."
+        );
+    }
+
+    #[test]
+    fn main_window_capability_authorizes_opening_a_project_in_terminal() {
+        let capability: serde_json::Value =
+            serde_json::from_str(include_str!("../../capabilities/main-window.json"))
+                .expect("parse the main window capability");
+        assert!(capability["permissions"]
+            .as_array()
+            .expect("capability permissions are an array")
+            .iter()
+            .any(|permission| permission == "allow-open-project-in-terminal"));
+    }
+
+    #[test]
+    fn terminal_action_passes_only_the_backend_resolved_root_to_launcher() {
+        use std::cell::RefCell;
+
+        let launched = RefCell::new(None);
+        let expected = PathBuf::from("/validated/project root");
+        open_project_in_terminal_for_entry(
+            "entry-12-a",
+            || Ok(expected.clone()),
+            |path| {
+                *launched.borrow_mut() = Some(path.to_path_buf());
+                Ok(())
+            },
+        )
+        .expect("valid entry launches");
+        assert_eq!(launched.into_inner(), Some(expected));
+    }
+
+    #[test]
+    fn stale_or_unavailable_terminal_entries_never_reach_launcher() {
+        use crate::platform::terminal::TerminalOpenError;
+        use std::cell::Cell;
+
+        let launched = Cell::new(false);
+        let invalid = open_project_in_terminal_for_entry(
+            "entry-12-../../tmp",
+            || panic!("invalid entry must not resolve"),
+            |_| {
+                launched.set(true);
+                Ok(())
+            },
+        );
+        assert!(invalid.is_err());
+        assert!(!launched.get());
+
+        let stale = open_project_in_terminal_for_entry(
+            "entry-12-a",
+            || Err(ProjectRootError::StaleReference),
+            |_| {
+                launched.set(true);
+                Ok(())
+            },
+        );
+        assert!(stale.is_err());
+        assert!(!launched.get());
+
+        let missing_root = open_project_in_terminal_for_entry(
+            "entry-12-a",
+            || Err(ProjectRootError::Unavailable),
+            |_| {
+                launched.set(true);
+                Err(TerminalOpenError::Failed)
+            },
+        );
+        assert!(missing_root.is_err());
+        assert!(!launched.get());
     }
 
     #[cfg(unix)]

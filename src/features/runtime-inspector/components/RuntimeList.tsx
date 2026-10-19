@@ -15,6 +15,7 @@ export function RuntimeList({
   onConfirmForce,
   onOpen,
   onRevealFolder,
+  onOpenTerminal,
   onCopy,
 }: {
   snapshot: RuntimeSnapshot;
@@ -26,6 +27,7 @@ export function RuntimeList({
   onConfirmForce: (entry: RuntimeEntry) => void;
   onOpen: (entryRef: string) => void;
   onRevealFolder: (entryRef: string) => void;
+  onOpenTerminal: (entryRef: string) => void;
   onCopy: (value: string, label: string) => void;
 }) {
   const forest = useMemo(
@@ -157,6 +159,9 @@ export function RuntimeList({
                   onOpen={() => onOpen(entry.entryRef)}
                   {...(entry.entryRef === revealEntryRef
                     ? { onRevealFolder: () => onRevealFolder(entry.entryRef) }
+                    : {})}
+                  {...(entry.entryRef === revealEntryRef
+                    ? { onOpenTerminal: () => onOpenTerminal(entry.entryRef) }
                     : {})}
                   onCopy={onCopy}
                 />
