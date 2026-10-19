@@ -168,3 +168,82 @@ requested more precise wording for AC-04 because the Project Root and Git
 Unicode evidence is component-level rather than a single end-to-end provider
 flow; this record was clarified accordingly. Documentation re-review found no
 further findings. The implementation review and re-review were both read-only.
+
+## Post-merge Unicode workflow validation
+
+An isolated debug build (`io.github.thg1rb.thaa.w024validation`) was exercised
+on macOS 27.0.1 (arm64, build 26A434) after PR #71 merged. The installed
+`/Applications/Thaa.app` was not used. `/usr/sbin/lsof` 4.91 was run with the
+provider's fixed arguments and controlled environment (`env_clear`,
+`LC_ALL=en_US.UTF-8`, `TZ=UTC`). The locale was available on this host. Raw
+provider output preserved Thai, accented Latin, and Japanese path bytes; the
+Working Directory matched the disposable fixture's `nested` directory, and
+Project Root detection returned the exact marked ancestor. No lossy conversion
+was observed.
+
+The primary disposable project used a `package.json` marker, a nested working
+directory, and a local Git repository. Its path included Thai, `é`, Japanese,
+spaces, and parentheses. Runtime Inspector showed the correct listener PID and
+loopback port, exact Working Directory and Project Root, Git root and `main`
+branch, and rendered Unicode correctly. Searching by port returned the
+listener; Refresh preserved its metadata.
+
+The actual UI actions were exercised:
+
+- **Reveal Project Folder:** Finder displayed the exact Project Root, with the
+  marker and `nested` directory visible. It did not open the parent.
+- **Open in Terminal:** Terminal.app was confirmed not running immediately
+  before the UI action. The action launched Terminal.app without a permission
+  prompt or Thaa error. The project shell's current directory, observed
+  read-only through `lsof`, exactly matched the canonical Unicode Project
+  Root. A separate default shell also appeared during cold start. The
+  Computer Use interface refused access to Terminal.app, so typing `pwd` in
+  that window was **NOT RUN**; the literal-command criterion therefore remains
+  pending user-assisted confirmation even though the OS-reported shell cwd
+  matched.
+- **Open in Editor:** VS Code opened the exact project folder in Restricted
+  Mode. No workspace trust was granted and no project task was started by
+  Thaa.
+
+A second disposable project combined Japanese characters, spaces, single
+quotes, a dollar sign, a semicolon, and parentheses. The provider and Runtime
+Inspector preserved the exact Working Directory, Project Root, Git root, and
+branch. The actual **Open in Editor** action opened that exact folder in the
+already running VS Code window. The workspace remained in Restricted Mode.
+Automated W022/W023 path-safety coverage remains the evidence for the broader
+metacharacter matrix; this interactive run did not execute a command-like
+sentinel.
+
+Both test-owned loopback listeners were stopped and their disposable
+directories removed. Refresh then showed zero matches for the test port, with
+no stale project actions. Existing user processes and the installed Thaa
+application were not terminated or changed.
+
+### Post-merge validation status
+
+| Check                                             | Result  | Evidence                                                                                                                                 |
+| ------------------------------------------------- | ------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| Unicode Working Directory through provider and UI | PASS    | Controlled listener with Thai, `é`, Japanese, spaces, and parentheses; exact directory displayed                                         |
+| Unicode Project Root detection                    | PASS    | Marked ancestor exactly matched expected Project Root                                                                                    |
+| Unicode Git Context                               | PASS    | Disposable repository root and `main` branch displayed                                                                                   |
+| Search and Refresh                                | PASS    | Port search found listener; Refresh retained metadata                                                                                    |
+| Reveal Project Folder                             | PASS    | Finder showed the Project Root contents                                                                                                  |
+| Open in Terminal                                  | PARTIAL | Real UI action launched app; OS-reported project-shell cwd matched root; interactive `pwd` NOT RUN because CUA denied Terminal UI access |
+| Open in Editor                                    | PASS    | VS Code Explorer showed exact Unicode and mixed-special-character project roots; Restricted Mode retained                                |
+| Listener exit and stale-action removal            | PASS    | Both fixtures stopped, directories removed, Refresh showed no matching test listener                                                     |
+| W024 PR CI                                        | PASS    | PR #71 run 39202113984: Shared Quality, macOS Native Validation, Windows Native Validation                                               |
+
+The complete interactive W024 downstream acceptance remains **PARTIAL** until
+the project shell prints `pwd` and that output is confirmed against the
+fixture's canonical Project Root. This record intentionally does not infer
+that check from process cwd metadata or from Terminal launch success. No
+corrective implementation was indicated by the observed results.
+
+### Locale compatibility observation
+
+`en_US.UTF-8` was available and behaved as intended on local macOS 27.0.1
+arm64 with `lsof` 4.91, and the PR's macOS Native Validation passed on the
+repository's hosted macOS runner. This is evidence for those tested
+environments, not a guarantee for every supported macOS installation. If the
+locale or provider output is unavailable or ambiguous, metadata remains
+unavailable; the provider does not fall back to lossy decoding.
