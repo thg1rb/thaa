@@ -581,10 +581,12 @@ describe("runtime inspector", () => {
 
     fireEvent.change(search, { target: { value: "300" } });
     expect(
-      screen.getByRole("heading", { name: "No matching listeners" }),
+      screen.getByText(
+        "No TCP listener for port 300 was observed in the displayed snapshot.",
+      ),
     ).toBeInTheDocument();
     expect(
-      screen.queryByText("No listening TCP ports found"),
+      screen.queryByRole("heading", { name: "No matching listeners" }),
     ).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "Clear search" }));
@@ -601,6 +603,113 @@ describe("runtime inspector", () => {
     expect(
       screen.getByRole("heading", { name: "Node Service" }),
     ).toBeInTheDocument();
+  });
+
+  it("shows exact TCP port assistance without changing Search's name matching", async () => {
+    mockIPC((command) =>
+      command === "get_runtime_snapshot"
+        ? snapshot([
+            namedRow("3000 worker", 4000, "name-match"),
+            namedRow("Web service", 3000, "port-match"),
+            namedRow("Second service", 3000, "second-port-match"),
+          ])
+        : undefined,
+    );
+    render(<App />);
+    const search = await screen.findByRole("searchbox", {
+      name: "Search listeners by process or port",
+    });
+
+    fireEvent.change(search, { target: { value: "3000" } });
+
+    expect(
+      screen.getByText(
+        "Observed 2 TCP listeners for port 3000 in the displayed snapshot.",
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "3000 worker" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/additional rows may not be listeners observed/i),
+    ).toBeInTheDocument();
+    expect(screen.getByText("3 of 3 listeners")).toBeInTheDocument();
+  });
+
+  it("keeps Search available for desired-port queries when the snapshot is empty", async () => {
+    mockIPC((command) =>
+      command === "get_runtime_snapshot" ? snapshot([]) : undefined,
+    );
+    render(<App />);
+
+    expect(
+      await screen.findByRole("heading", {
+        name: "No listening TCP ports found",
+      }),
+    ).toBeInTheDocument();
+    const search = screen.getByRole("searchbox", {
+      name: "Search listeners by process or port",
+    });
+    fireEvent.change(search, { target: { value: "3000" } });
+
+    expect(
+      screen.getByText(
+        "No TCP listener for port 3000 was observed in the displayed snapshot.",
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText("This does not guarantee that the port is available."),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("heading", { name: "No matching listeners" }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("labels numeric process-name results when the exact port has no listener", async () => {
+    mockIPC((command) =>
+      command === "get_runtime_snapshot"
+        ? snapshot([namedRow("3000 worker", 4000, "name-match")])
+        : undefined,
+    );
+    render(<App />);
+    const search = await screen.findByRole("searchbox", {
+      name: "Search listeners by process or port",
+    });
+    fireEvent.change(search, { target: { value: "3000" } });
+
+    expect(
+      screen.getByText(
+        "No TCP listener for port 3000 was observed in the displayed snapshot.",
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/additional rows may not be listeners observed/i),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "3000 worker" }),
+    ).toBeInTheDocument();
+  });
+
+  it("does not show desired-port assistance for port zero or invalid numeric input", async () => {
+    mockIPC((command) =>
+      command === "get_runtime_snapshot"
+        ? snapshot([
+            namedRow("0", 5173, "zero-name"),
+            namedRow("worker", 0, "zero-port"),
+          ])
+        : undefined,
+    );
+    render(<App />);
+    const search = await screen.findByRole("searchbox", {
+      name: "Search listeners by process or port",
+    });
+
+    fireEvent.change(search, { target: { value: "0" } });
+    expect(screen.queryByRole("region", { name: /port 0/i })).toBeNull();
+    expect(screen.getByRole("heading", { name: "0" })).toBeInTheDocument();
+
+    fireEvent.change(search, { target: { value: "65536" } });
+    expect(screen.queryByRole("region", { name: /port 65536/i })).toBeNull();
   });
 
   it("filters immediately as each Search character is entered", async () => {
