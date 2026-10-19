@@ -2,7 +2,8 @@
 
 ## Status
 
-**IN PROGRESS** on `fix/w024-macos-unicode-working-directory`, based on
+**Done on merge** — PR [#71](https://github.com/thg1rb/thaa/pull/71) targets
+`develop`. The branch is `fix/w024-macos-unicode-working-directory`, based on
 `develop` / `origin/develop` `6e213a9886513bb1e60f65fa3a86c9bc7d8a50b0`.
 
 The original checkout was left untouched because it contains three user-owned
@@ -138,8 +139,10 @@ final acceptance evidence; native tests and CI remain required.
 - JavaScript dependency audit: PASS; no known vulnerabilities.
 - RustSec: PASS with allowed advisory warnings for `proc-macro-error`, `glib`,
   and `zbus_names` / `zvariant` family advisories; W024 changes no dependency.
-- Hosted macOS and Windows Native Validation, final read-only review, PR, and
-  post-merge validation: pending.
+- PR #71 checks passed on implementation head `42f8241cea84a7ecf73423f503a21a8669afd70b`:
+  Shared Quality, macOS Native Validation, and Windows Native Validation.
+- Final PR-head checks after this work-record closeout commit and post-merge
+  validation: pending.
 
 ### Acceptance status before PR
 
@@ -153,15 +156,15 @@ final acceptance evidence; native tests and CI remain required.
   Unicode working directory. Existing Git-context tests independently cover
   Unicode path input; this is component-level evidence, not a full provider-to-
   Git end-to-end test.
-- AC-05 — Safety and regression: local full Rust and frontend regression suites
-  pass; platform CI and review remain pending.
-- AC-06 — Validation and review: IN PROGRESS; hosted CI, review, and merge
-  remain pending.
+- AC-05 — Safety and regression: PASS locally and on the implementation-head
+  Shared Quality, macOS Native Validation, and Windows Native Validation jobs.
+- AC-06 — Validation and review: implementation review PASS with no findings;
+  final PR-head checks and merge remain pending.
 
 ### Read-only review
 
 The dedicated W024 read-only review found no code or security findings. It
 requested more precise wording for AC-04 because the Project Root and Git
 Unicode evidence is component-level rather than a single end-to-end provider
-flow; this record was clarified accordingly. Final re-review and hosted CI
-remain pending.
+flow; this record was clarified accordingly. Documentation re-review found no
+further findings. The implementation review and re-review were both read-only.
