@@ -2,11 +2,17 @@
 
 ## Status
 
-Status: In progress
+Status: Complete; merged to `develop`
 
 Branch: `feature/w023-open-project-editor`
 
 Base: `develop` at `65c8832c4ec116b575998dc2527f0e8dcfb382f6`
+
+Implementation PR: [#69](https://github.com/thg1rb/thaa/pull/69)
+
+Reviewed head: `e3843f4fe2701cb9f6a503803bd018449f48028d`
+
+Merge commit: `3a0c80e9455e8de857102debc502b9925235de63`
 
 Requirement: FR-014 (project-oriented editor action; P1)
 
@@ -94,8 +100,9 @@ Project Root remains unavailable under the current provider.
 
 ## Roadmap and limitations
 
-FR-014 remains partial while editor action work is in progress and the Windows
-Project Root limitation remains. FR-015 framework/package-manager/version
+FR-014 remains partial because the Windows Project Root limitation remains.
+W023 completed the macOS editor action; the Windows provider gap remains a
+separate platform limitation. FR-015 framework/package-manager/version
 work and FR-016 desired-port conflict assistance are P2; FR-017 is P3. The
 macOS `lsof` UTF-8 escape limitation can hide Project Root for some Unicode
 working directories and remains a separate provider-correctness candidate.
@@ -115,8 +122,8 @@ an accepted separate UX improvement candidate.
   that diagnostic, with a regression test; the launcher argument tests also
   cover a leading-hyphen path, the frontend has an unavailable-editor feedback
   test, and the editor test-catalog statuses have been aligned with evidence.
-- Read-only security and implementation re-reviews are requested for these
-  final corrections.
+- Read-only security and implementation re-reviews were requested for these
+  final corrections and passed with no remaining material findings.
 - Implementation and acceptance evidence will be recorded below as work
   proceeds.
 
@@ -208,14 +215,12 @@ isolated debug app.
 - **AC-06 — Existing integration:** PASS in frontend regression tests; process
   grouping, child process association, search context, and Refresh were also
   observed in the live app.
-- **AC-07 — Platform boundary:** IN PROGRESS. The Windows capability is false
-  and the action is not shown; required Windows Native Validation CI remains
-  outstanding.
+- **AC-07 — Platform boundary:** PASS. The Windows capability is false, the
+  action is not shown, and Windows Native Validation passed.
 - **AC-08 — Interactive validation:** PASS. VS Code opened the fixture while
   initially stopped and accepted the second fixture while already running.
-- **AC-09 — Documentation, review, and CI:** IN PROGRESS. Documentation is
-  updated and read-only security/implementation re-reviews pass; PR CI and
-  post-merge validation remain outstanding.
+- **AC-09 — Documentation, review, and CI:** PASS. Documentation, read-only
+  reviews, PR CI, and post-merge CI are complete.
 
 ### Review and local quality
 
@@ -233,8 +238,16 @@ lint, typecheck, tests (92), production build, documentation format/link checks,
 Target-specific RustSec audit exited successfully with five previously accepted
 warnings: `proc-macro-error`, `zbus_names`, `zvariant`, `zvariant_derive`, and
 `glib`; W023 adds no dependencies. Shared Quality and macOS/Windows Native
-Validation on the final PR head are still required.
+Validation passed on the final PR head.
 
-W023 remains **IN PROGRESS** until dedicated read-only reviews and required
-PR CI pass, the feature PR merges into `develop`, and post-merge validation is
-recorded.
+### Final closeout
+
+- Security review and implementation review: PASS after resolving the missing-
+  editor diagnostic classification and test-catalog status findings.
+- PR #69 CI run `39194680201`: Shared Quality, macOS Native Validation, and
+  Windows Native Validation all passed on reviewed head `e3843f4`.
+- Post-merge CI run `39195127501`: Shared Quality, macOS Native Validation,
+  and Windows Native Validation all passed on merge commit
+  `3a0c80e9455e8de857102debc502b9925235de63`.
+- The feature PR merged to `develop`; no release or `main` change was made.
+- W024 was not selected or started.
