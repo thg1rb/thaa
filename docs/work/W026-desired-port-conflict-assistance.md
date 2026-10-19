@@ -1,9 +1,11 @@
 # W026 — Desired-Port Conflict Assistance in Search
 
-Status: In Progress
+Status: Complete; merged to `develop`
 Requirement: FR-016
 Priority: P2
 Type: Feature
+Implementation PR: [#75](https://github.com/thg1rb/thaa/pull/75)
+Merge commit: `fa5ade120e508985eb9579cf146b074ee4cea1fa`
 
 ## Objective
 
@@ -68,17 +70,17 @@ filesystem access, external request, persistence, or new dependency is added.
 
 ## Acceptance criteria
 
-| ID    | Criterion                                                                                                                                                               | Validation                           | Status                                                                                                                                                        |
-| ----- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| AC-01 | Valid desired-port queries cover 1–65535; empty, invalid, and zero queries do not produce port-availability assistance. Existing W014 query behavior remains unchanged. | Utility and UI tests                 | PASS — 53 focused and 112 full frontend tests                                                                                                                 |
-| AC-02 | Assistance counts only exact endpoint-port matches, even when Search also shows process-name matches.                                                                   | Utility and UI tests                 | PASS — exact-port/name-overlap regression tests                                                                                                               |
-| AC-03 | Multiple matching endpoints are counted independently; no owner or address is fabricated.                                                                               | Utility and UI tests                 | PASS — multiple endpoint and missing metadata cases                                                                                                           |
-| AC-04 | Match and no-match copy never guarantees conflict or availability.                                                                                                      | Component tests and review           | PASS — component assertions and read-only review                                                                                                              |
-| AC-05 | Partial and stale snapshots qualify the displayed evidence.                                                                                                             | Component and UI tests               | PASS — component and app tests                                                                                                                                |
-| AC-06 | Search remains available for an empty snapshot and existing Search, Refresh, tree, and actions remain unchanged.                                                        | App regression tests                 | PASS — app regression suite                                                                                                                                   |
-| AC-07 | macOS and Windows use the same observed-TCP meaning without native provider changes.                                                                                    | Shared tests and required native CI  | PASS — Shared Quality, macOS Native Validation, and Windows Native Validation passed in run 39230145266 on PR head `19973a0b33598211afedc25512856bca2d91f7be` |
-| AC-08 | The interface exposes assistance as a labeled, keyboard-readable region without announcing every Search keystroke.                                                      | Testing Library and read-only review | PASS — accessibility assertions and review                                                                                                                    |
-| AC-09 | Documentation records semantics and limitations; no probing or automatic process action is introduced.                                                                  | Documentation checks and diff review | PASS — docs checks and scope review                                                                                                                           |
+| ID    | Criterion                                                                                                                                                               | Validation                           | Status                                                                                                                                                              |
+| ----- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| AC-01 | Valid desired-port queries cover 1–65535; empty, invalid, and zero queries do not produce port-availability assistance. Existing W014 query behavior remains unchanged. | Utility and UI tests                 | PASS — 53 focused and 112 full frontend tests                                                                                                                       |
+| AC-02 | Assistance counts only exact endpoint-port matches, even when Search also shows process-name matches.                                                                   | Utility and UI tests                 | PASS — exact-port/name-overlap regression tests                                                                                                                     |
+| AC-03 | Multiple matching endpoints are counted independently; no owner or address is fabricated.                                                                               | Utility and UI tests                 | PASS — multiple endpoint and missing metadata cases                                                                                                                 |
+| AC-04 | Match and no-match copy never guarantees conflict or availability.                                                                                                      | Component tests and review           | PASS — component assertions and read-only review                                                                                                                    |
+| AC-05 | Partial and stale snapshots qualify the displayed evidence.                                                                                                             | Component and UI tests               | PASS — component and app tests                                                                                                                                      |
+| AC-06 | Search remains available for an empty snapshot and existing Search, Refresh, tree, and actions remain unchanged.                                                        | App regression tests                 | PASS — app regression suite                                                                                                                                         |
+| AC-07 | macOS and Windows use the same observed-TCP meaning without native provider changes.                                                                                    | Shared tests and required native CI  | PASS — Shared Quality, macOS Native Validation, and Windows Native Validation passed in run 39236577723 on final PR head `bbb808c1289a5517aa11f7a7772319ea22cc7aad` |
+| AC-08 | The interface exposes assistance as a labeled, keyboard-readable region without announcing every Search keystroke.                                                      | Testing Library and read-only review | PASS — accessibility assertions and review                                                                                                                          |
+| AC-09 | Documentation records semantics and limitations; no probing or automatic process action is introduced.                                                                  | Documentation checks and diff review | PASS — docs checks and scope review                                                                                                                                 |
 
 ## Validation plan
 
@@ -113,11 +115,13 @@ filesystem access, external request, persistence, or new dependency is added.
 - Rust formatting, Clippy, and Rust tests PASS. Native macOS integration tests
   PASS locally; Windows runtime behavior is not interactively validated on this
   macOS host. Dependency audits report only previously allowed advisories.
-- PR #75 checks PASS on both implementation head `19973a0b33598211afedc25512856bca2d91f7be`
-  (run `39230145266`) and the following documentation-evidence head
-  `e0a1c4502e5a8d6f8b91c053788b6816c143a383` (run `39235657405`): Shared
-  Quality, macOS Native Validation, and Windows Native Validation. The final
-  PR head is separately checked before merge.
-- Interactive desktop acceptance was not run; platform-native CI remains a
-  required PR gate. This feature reuses existing listener snapshot data and
-  does not add a platform-specific integration.
+- PR #75 checks PASS on final head `bbb808c1289a5517aa11f7a7772319ea22cc7aad`
+  (run `39236577723`): Shared Quality, macOS Native Validation, and Windows
+  Native Validation.
+- PR #75 merged to `develop` with merge commit
+  `fa5ade120e508985eb9579cf146b074ee4cea1fa`. Post-merge CI run
+  `39240158371` passed Shared Quality, macOS Native Validation, and Windows
+  Native Validation on that merge commit.
+- Interactive desktop acceptance was not run. Windows runtime behavior is not
+  claimed from CI. This feature reuses existing listener snapshot data and does
+  not add a platform-specific integration.
