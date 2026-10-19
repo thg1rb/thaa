@@ -20,14 +20,15 @@ struct FixtureDirectory(PathBuf);
 
 impl FixtureDirectory {
     fn new() -> Self {
+        Self::named("thaa-process-provider")
+    }
+
+    fn named(prefix: &str) -> Self {
         let nonce = SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .expect("clock is after Unix epoch")
             .as_nanos();
-        let path = std::env::temp_dir().join(format!(
-            "thaa-process-provider-{}-{nonce}",
-            std::process::id()
-        ));
+        let path = std::env::temp_dir().join(format!("{prefix}-{}-{nonce}", std::process::id()));
         fs::create_dir(&path).expect("create private controlled fixture directory");
         Self(fs::canonicalize(path).expect("canonicalize controlled fixture directory"))
     }
@@ -105,4 +106,28 @@ fn inspects_controlled_non_gui_child_and_reports_disappearance_after_exit() {
     child.0.kill().expect("stop only the controlled child");
     child.0.wait().expect("reap controlled child");
     assert_process_disappeared(&provider, process_id);
+}
+
+#[test]
+fn preserves_unicode_working_directory_from_controlled_child() {
+    let directory = FixtureDirectory::named("thaa-process-provider-café");
+    let child = Command::new("/bin/sleep")
+        .arg("60")
+        .current_dir(&directory.0)
+        .stdin(Stdio::null())
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
+        .spawn()
+        .expect("spawn controlled child in Unicode working directory");
+    let process_id = ProcessId::new(child.id());
+    let _child = ControlledChild(child);
+
+    let info = MacOSProcessProvider
+        .inspect(process_id)
+        .expect("inspect controlled child");
+
+    assert!(matches!(
+        info.working_directory,
+        FieldAvailability::Available(path) if path == directory.0
+    ));
 }
