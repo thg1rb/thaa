@@ -16,6 +16,7 @@ export function RuntimeList({
   onOpen,
   onRevealFolder,
   onOpenTerminal,
+  onOpenEditor,
   onCopy,
 }: {
   snapshot: RuntimeSnapshot;
@@ -28,6 +29,7 @@ export function RuntimeList({
   onOpen: (entryRef: string) => void;
   onRevealFolder: (entryRef: string) => void;
   onOpenTerminal: (entryRef: string) => void;
+  onOpenEditor: (entryRef: string) => void;
   onCopy: (value: string, label: string) => void;
 }) {
   const forest = useMemo(
@@ -162,6 +164,10 @@ export function RuntimeList({
                     : {})}
                   {...(entry.entryRef === revealEntryRef
                     ? { onOpenTerminal: () => onOpenTerminal(entry.entryRef) }
+                    : {})}
+                  {...(entry.entryRef === revealEntryRef &&
+                  snapshot.capabilities.openProjectInEditor
+                    ? { onOpenEditor: () => onOpenEditor(entry.entryRef) }
                     : {})}
                   onCopy={onCopy}
                 />

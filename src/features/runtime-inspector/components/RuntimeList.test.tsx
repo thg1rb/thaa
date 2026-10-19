@@ -48,7 +48,11 @@ function snapshot(
     generation,
     observedAtUnixMs: generation,
     completeness: { state: "complete" },
-    capabilities: { gracefulStop: false, forceStop: false },
+    capabilities: {
+      gracefulStop: false,
+      forceStop: false,
+      openProjectInEditor: true,
+    },
     entries,
     processIcons: [],
   };
@@ -63,6 +67,7 @@ const callbacks = {
   onOpen: vi.fn(),
   onRevealFolder: vi.fn(),
   onOpenTerminal: vi.fn(),
+  onOpenEditor: vi.fn(),
   onCopy: vi.fn(),
 };
 
@@ -200,6 +205,89 @@ describe("RuntimeList process-tree state", () => {
     expect(
       screen.queryByRole("button", { name: /Open terminal at project folder/ }),
     ).toBeNull();
+  });
+
+  it("offers one editor action for a process with multiple listeners", () => {
+    const first = {
+      ...entry(10, null, "server"),
+      projectRoot: "/tmp/my project 🌱",
+    };
+    const second = { ...first, entryRef: "entry-10-2", port: 3010 };
+    const onOpenEditor = vi.fn();
+
+    render(
+      <RuntimeList
+        snapshot={snapshot(1, [first, second])}
+        {...callbacks}
+        onOpenEditor={onOpenEditor}
+        query=""
+      />,
+    );
+
+    const openButton = screen.getByRole("button", {
+      name: "Open project in editor for server",
+    });
+    expect(
+      screen.getAllByRole("button", { name: /Open project in editor/ }),
+    ).toHaveLength(1);
+    fireEvent.click(openButton);
+    expect(onOpenEditor).toHaveBeenCalledExactlyOnceWith("entry-10");
+  });
+
+  it("omits editor actions without Project Root or editor platform support", () => {
+    const withoutRoot = entry(10, null, "server");
+    const withRoot = { ...withoutRoot, projectRoot: "/tmp/project" };
+    const unsupported = {
+      ...snapshot(1, [withRoot]),
+      capabilities: {
+        ...snapshot(1, []).capabilities,
+        openProjectInEditor: false,
+      },
+    };
+
+    const { rerender } = render(
+      <RuntimeList
+        snapshot={snapshot(1, [withoutRoot])}
+        {...callbacks}
+        query=""
+      />,
+    );
+    expect(
+      screen.queryByRole("button", { name: /Open project in editor/ }),
+    ).toBeNull();
+
+    rerender(<RuntimeList snapshot={unsupported} {...callbacks} query="" />);
+    expect(
+      screen.queryByRole("button", { name: /Open project in editor/ }),
+    ).toBeNull();
+  });
+
+  it("keeps an editor action attached to the selected child process under search context", () => {
+    const parent = {
+      ...entry(10, null, "parent"),
+      projectRoot: "/tmp/parent",
+    };
+    const child = {
+      ...entry(11, 10, "child"),
+      projectRoot: "/tmp/child",
+    };
+    const onOpenEditor = vi.fn();
+
+    render(
+      <RuntimeList
+        snapshot={snapshot(1, [parent, child])}
+        {...callbacks}
+        onOpenEditor={onOpenEditor}
+        query="child"
+      />,
+    );
+
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: "Open project in editor for child",
+      }),
+    );
+    expect(onOpenEditor).toHaveBeenCalledExactlyOnceWith("entry-11");
   });
 
   it("keeps a descendant terminal action attached to the matching child under search context", () => {

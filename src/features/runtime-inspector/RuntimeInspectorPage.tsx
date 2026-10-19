@@ -26,6 +26,7 @@ export function RuntimeInspectorPage() {
     openListener,
     revealProjectFolder,
     openProjectInTerminal,
+    openProjectInEditor,
     copyValue,
   } = useRuntimeEntryActions(showToast);
   const [confirming, setConfirming] = useState<RuntimeEntry | null>(null);
@@ -159,6 +160,7 @@ export function RuntimeInspectorPage() {
               onOpenTerminal={(entryRef) =>
                 void openProjectInTerminal(entryRef)
               }
+              onOpenEditor={(entryRef) => void openProjectInEditor(entryRef)}
               onCopy={(value, label) => void copyValue(value, label)}
             />
           )}

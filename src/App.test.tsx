@@ -33,7 +33,11 @@ afterEach(() => {
 const available = <T,>(value: T) => ({ state: "available" as const, value });
 const snapshot = (
   entries: object[] = [],
-  capabilities = { gracefulStop: true, forceStop: true },
+  capabilities = {
+    gracefulStop: true,
+    forceStop: true,
+    openProjectInEditor: true,
+  },
   generation = 1,
 ) => ({
   generation,
@@ -166,6 +170,31 @@ describe("runtime inspector", () => {
     expect(
       screen.getByText("in /sample/workspace/app/src"),
     ).toBeInTheDocument();
+  });
+
+  it("invokes Open in Editor with only the current entry reference", async () => {
+    const invokeCalls: Array<{ command: string; args?: unknown }> = [];
+    mockIPC((command, args) => {
+      if (command === "get_runtime_snapshot")
+        return snapshot([row({ projectRoot: "/tmp/workspace/project" })]);
+      if (command === "open_project_in_editor") {
+        invokeCalls.push({ command, args });
+        return undefined;
+      }
+      return undefined;
+    });
+    render(<App />);
+
+    const action = await screen.findByRole("button", {
+      name: "Open project in editor for node",
+    });
+    fireEvent.click(action);
+
+    await waitFor(() => expect(invokeCalls).toHaveLength(1));
+    expect(invokeCalls[0]).toEqual({
+      command: "open_project_in_editor",
+      args: { entryRef: "entry-1-0" },
+    });
   });
 
   it("shows process metrics and uses an explicit unavailable marker", async () => {
@@ -415,7 +444,7 @@ describe("runtime inspector", () => {
               actionTargetRef: "target-2-0",
             }),
           ],
-          { gracefulStop: true, forceStop: true },
+          { gracefulStop: true, forceStop: true, openProjectInEditor: true },
           2,
         ),
       });
@@ -424,7 +453,11 @@ describe("runtime inspector", () => {
 
     await act(async () => {
       resolveInitial?.(
-        snapshot([row()], { gracefulStop: true, forceStop: true }, 1),
+        snapshot(
+          [row()],
+          { gracefulStop: true, forceStop: true, openProjectInEditor: true },
+          1,
+        ),
       );
     });
     expect(screen.getByText(":6000")).toBeInTheDocument();
@@ -757,7 +790,11 @@ describe("runtime inspector", () => {
   it("exposes only capability-supported actions and confirms force stop", async () => {
     mockIPC((command) => {
       if (command === "get_runtime_snapshot")
-        return snapshot([row()], { gracefulStop: false, forceStop: true });
+        return snapshot([row()], {
+          gracefulStop: false,
+          forceStop: true,
+          openProjectInEditor: true,
+        });
       if (command === "request_process_action") return { state: "requested" };
       if (command === "refresh_runtime_snapshot") return snapshot([]);
       return undefined;
@@ -807,7 +844,11 @@ describe("runtime inspector", () => {
   it("does not show graceful stop on Windows capability snapshots", async () => {
     mockIPC((command) =>
       command === "get_runtime_snapshot"
-        ? snapshot([row()], { gracefulStop: false, forceStop: true })
+        ? snapshot([row()], {
+            gracefulStop: false,
+            forceStop: true,
+            openProjectInEditor: true,
+          })
         : undefined,
     );
     render(<App />);

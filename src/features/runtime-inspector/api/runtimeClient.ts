@@ -15,6 +15,7 @@ export const runtimeClient = {
   openListener,
   revealProjectFolder,
   openProjectInTerminal,
+  openProjectInEditor,
 };
 
 let initialSnapshot: Promise<RuntimeSnapshot> | undefined;
@@ -61,6 +62,10 @@ function revealProjectFolder(entryRef: string) {
 
 function openProjectInTerminal(entryRef: string) {
   return invoke<void>("open_project_in_terminal", { entryRef });
+}
+
+function openProjectInEditor(entryRef: string) {
+  return invoke<void>("open_project_in_editor", { entryRef });
 }
 
 export function snapshotFromEvent(

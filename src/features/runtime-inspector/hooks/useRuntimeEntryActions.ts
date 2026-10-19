@@ -54,6 +54,27 @@ export function useRuntimeEntryActions(showToast: (toast: ToastInput) => void) {
     [showToast],
   );
 
+  const openProjectInEditor = useCallback(
+    async (entryRef: string) => {
+      try {
+        await runtimeClient.openProjectInEditor(entryRef);
+      } catch (error: unknown) {
+        const message =
+          typeof error === "string"
+            ? error
+            : error instanceof Error
+              ? error.message
+              : "Refresh the runtime list and try again.";
+        showToast({
+          tone: "error",
+          title: "Could not open project in editor",
+          message,
+        });
+      }
+    },
+    [showToast],
+  );
+
   const copyValue = useCallback(
     async (value: string, label: string) => {
       try {
@@ -78,6 +99,7 @@ export function useRuntimeEntryActions(showToast: (toast: ToastInput) => void) {
     openListener,
     revealProjectFolder,
     openProjectInTerminal,
+    openProjectInEditor,
     copyValue,
   };
 }

@@ -55,7 +55,11 @@ export type RuntimeSnapshot = {
   generation: number;
   observedAtUnixMs: number;
   completeness: { state: "complete" } | { state: "partial"; reason: string };
-  capabilities: { gracefulStop: boolean; forceStop: boolean };
+  capabilities: {
+    gracefulStop: boolean;
+    forceStop: boolean;
+    openProjectInEditor: boolean;
+  };
   entries: RuntimeEntry[];
   processIcons: ProcessIconAsset[];
 };

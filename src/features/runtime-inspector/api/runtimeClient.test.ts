@@ -26,3 +26,24 @@ describe("runtimeClient project terminal action", () => {
     ).rejects.toThrow("stale entry");
   });
 });
+
+describe("runtimeClient project editor action", () => {
+  beforeEach(() => invokeMock.mockReset());
+
+  it("sends only the current snapshot entry reference", async () => {
+    await runtimeClient.openProjectInEditor("entry-7-a");
+
+    expect(invokeMock).toHaveBeenCalledExactlyOnceWith(
+      "open_project_in_editor",
+      { entryRef: "entry-7-a" },
+    );
+  });
+
+  it("preserves backend errors for the action hook", async () => {
+    invokeMock.mockRejectedValueOnce(new Error("stale entry"));
+
+    await expect(
+      runtimeClient.openProjectInEditor("entry-7-a"),
+    ).rejects.toThrow("stale entry");
+  });
+});

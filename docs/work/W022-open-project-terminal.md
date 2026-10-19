@@ -2,7 +2,7 @@
 
 ## Status
 
-Status: In progress
+Status: Done on merge — PR #67 merged to `develop`; documentation closeout PR #68 merged
 
 Branch: `feature/w022-open-project-terminal`
 
@@ -355,5 +355,5 @@ validation, and `git diff --check` passed for the closeout documentation.
 
 **W022 — Open Project in Terminal: COMPLETE, merged to `develop`.** Interactive
 macOS acceptance passed for both Terminal initial states. Windows Project
-Root remains unavailable through the current process provider, and Editor
-integration remains deferred. No W023 work was started.
+Root remains unavailable through the current process provider. W023 Editor
+integration is tracked as a separate work item and is now in progress.
