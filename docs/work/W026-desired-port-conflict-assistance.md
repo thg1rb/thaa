@@ -113,9 +113,11 @@ filesystem access, external request, persistence, or new dependency is added.
 - Rust formatting, Clippy, and Rust tests PASS. Native macOS integration tests
   PASS locally; Windows runtime behavior is not interactively validated on this
   macOS host. Dependency audits report only previously allowed advisories.
-- PR #75 checks PASS on reviewed implementation head `19973a0b33598211afedc25512856bca2d91f7be`:
-  Shared Quality, macOS Native Validation, and Windows Native Validation (run
-  `39230145266`). A final documentation-only head update requires a fresh CI run.
+- PR #75 checks PASS on both implementation head `19973a0b33598211afedc25512856bca2d91f7be`
+  (run `39230145266`) and the following documentation-evidence head
+  `e0a1c4502e5a8d6f8b91c053788b6816c143a383` (run `39235657405`): Shared
+  Quality, macOS Native Validation, and Windows Native Validation. The final
+  PR head is separately checked before merge.
 - Interactive desktop acceptance was not run; platform-native CI remains a
   required PR gate. This feature reuses existing listener snapshot data and
   does not add a platform-specific integration.
