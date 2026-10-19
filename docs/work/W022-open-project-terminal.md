@@ -305,12 +305,55 @@ the W022-created window. The correctly identified W022 window was then
 observed directly and matched the Project Root. No implementation change was
 needed for W022.2.
 
-## Final status
+## W022.2 closeout
 
-Interactive acceptance for both Terminal states is complete. AC-03 and AC-08
-are supported by the observations above and the retained Terminal-already-
-running evidence. Read-only security and implementation reviews pass; the
-security review's low-severity home-path privacy note was addressed. Markdown
-formatting, local-link validation, and `git diff --check` pass. Required CI on
-the exact PR head is pending; PR #67 remains Draft until it passes. Merge and
-post-merge CI are not yet complete.
+Acceptance results after W022.2:
+
+- **AC-01 — Eligible action:** PASS. The disposable Python process showed one
+  accessible Open in Terminal action when its accepted snapshot carried the
+  detected Project Root; Refresh removed the action after process exit.
+- **AC-02 — Snapshot validation:** PASS. Existing backend and IPC tests cover
+  opaque entry-reference resolution, current snapshot, PID/start-time
+  revalidation, and rejection before launcher invocation for invalid entries.
+- **AC-03 — New window at Project Root:** PASS. With Terminal both already
+  running and initially absent, the W022 UI created a distinct project
+  window. In each case, the observed `pwd` matched the validated Project
+  Root. When Terminal was absent, macOS also created its default startup
+  window; the project window was separately identified and tested.
+- **AC-04 — Safe failure:** PASS. Automated tests cover stale/unavailable
+  entries, missing or invalid roots, unsupported path representation,
+  automation denial classification, and launcher errors.
+- **AC-05 — Path safety:** PASS. Automated path-quoting cases and the retained
+  interactive shell-metacharacter/sentinel test passed. Thaa accepts no
+  frontend path and intentionally runs no project command. Non-ASCII `lsof`
+  metadata loss remains a documented upstream Project Root limitation.
+- **AC-06 — Existing integration:** PASS. Frontend/backend regression tests
+  cover process grouping, search, refresh, metadata, and process actions;
+  interactive Refresh/process-exit behavior also passed.
+- **AC-07 — Automated validation and review:** PASS. PR CI run `39186837240`
+  passed Shared Quality, macOS Native Validation, and Windows Native
+  Validation on final PR head `a70d718a1ebba451553f1aad3fa89eca9a70cee7`.
+  Final read-only security and implementation reviews passed on that head.
+- **AC-08 — Both interactive Terminal states:** PASS. The prior
+  already-running test and the W022.2 not-running test each observed a new
+  project window with exact Project Root `pwd`.
+
+The W022 feature PR [#67](https://github.com/thg1rb/thaa/pull/67) targeted
+`develop` and merged on 2026-10-19. Its reviewed head was
+`a70d718a1ebba451553f1aad3fa89eca9a70cee7`; merge commit and resulting
+`develop` were `9949b808e222463357cb58a8243835a422822843`. Post-merge CI run
+`39187276096` passed Shared Quality, macOS Native Validation, and Windows
+Native Validation on that merge commit. `main` remains
+`3c1e9a53caf8ba048eaeeff3d77b26167b3140ff`; no version, tag, or release
+changed.
+
+The final security review's low-severity privacy note was addressed by
+replacing the literal local home path from the discarded startup-window probe
+with a generic description. The final review found no remaining material
+security or implementation findings. Markdown formatting, local-link
+validation, and `git diff --check` passed for the closeout documentation.
+
+**W022 — Open Project in Terminal: COMPLETE, merged to `develop`.** Interactive
+macOS acceptance passed for both Terminal initial states. Windows Project
+Root remains unavailable through the current process provider, and Editor
+integration remains deferred. No W023 work was started.
