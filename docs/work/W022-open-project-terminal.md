@@ -309,5 +309,8 @@ needed for W022.2.
 
 Interactive acceptance for both Terminal states is complete. AC-03 and AC-08
 are supported by the observations above and the retained Terminal-already-
-running evidence. Final read-only review, documentation validation, CI on the
-updated PR head, merge to `develop`, and post-merge CI remain to be recorded.
+running evidence. Read-only security and implementation reviews pass; the
+security review's low-severity home-path privacy note was addressed. Markdown
+formatting, local-link validation, and `git diff --check` pass. Required CI on
+the exact PR head is pending; PR #67 remains Draft until it passes. Merge and
+post-merge CI are not yet complete.
