@@ -273,7 +273,8 @@ Open in Terminal UI action launched Terminal.app (process PID `20687`). No
 Automation permission dialog or application error was observed. Terminal
 created two windows as it started: the default startup window (window ID
 `2614`) and a distinct W022-requested window (ID `2625`). The first `pwd`
-probe targeted the default startup window and returned `/Users/bowornrat`;
+probe targeted the default startup window and returned the user's home
+directory;
 window enumeration identified the mistake, and no W022 result was inferred
 from that probe. A second probe explicitly targeted the distinct W022-created
 window ID `2625`; its observed `pwd` was exactly
