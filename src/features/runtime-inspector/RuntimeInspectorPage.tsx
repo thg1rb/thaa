@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { useToast } from "../../shared/ui/toast/useToast";
+import { DesiredPortAssistance } from "./components/DesiredPortAssistance";
 import { ForceStopDialog } from "./components/ForceStopDialog";
 import { RuntimeHeader } from "./components/RuntimeHeader";
 import { RuntimeList } from "./components/RuntimeList";
@@ -12,6 +13,7 @@ import {
   filterRuntimeEntries,
   normalizeRuntimeQuery,
 } from "./utils/filterRuntimeEntries";
+import { deriveDesiredPortAssistance } from "./utils/desiredPortAssistance";
 import type { Action, RuntimeEntry } from "./model/types";
 import "./runtime-inspector.css";
 
@@ -34,6 +36,10 @@ export function RuntimeInspectorPage() {
   const snapshot = state.snapshot;
   const visibleEntries = useMemo(
     () => filterRuntimeEntries(snapshot?.entries ?? [], query),
+    [snapshot?.entries, query],
+  );
+  const desiredPortAssistance = useMemo(
+    () => deriveDesiredPortAssistance(snapshot?.entries ?? [], query),
     [snapshot?.entries, query],
   );
   const isSearching = normalizeRuntimeQuery(query).length > 0;
@@ -115,25 +121,36 @@ export function RuntimeInspectorPage() {
             <RuntimeCardSkeleton key={index} />
           ))}
         </section>
-      ) : snapshot && snapshot.entries.length === 0 ? (
-        <section className="empty-panel">
-          <div className="empty-symbol" aria-hidden="true">
-            ⌁
-          </div>
-          <h3>No listening TCP ports found</h3>
-          <p>Start a local server and refresh to see it here.</p>
-          <button
-            className="button-secondary"
-            onClick={() => void manualRefresh()}
-            disabled={state.refreshing}
-          >
-            Refresh list
-          </button>
-        </section>
       ) : snapshot ? (
         <>
           <RuntimeSearch query={query} onQueryChange={setQuery} />
-          {visibleEntries.length === 0 ? (
+          {desiredPortAssistance && (
+            <DesiredPortAssistance
+              result={desiredPortAssistance}
+              partial={snapshot.completeness.state === "partial"}
+              stale={state.backgroundStale}
+              hasAdditionalNameMatches={
+                visibleEntries.length >
+                desiredPortAssistance.matchingEntries.length
+              }
+            />
+          )}
+          {snapshot.entries.length === 0 && !isSearching ? (
+            <section className="empty-panel">
+              <div className="empty-symbol" aria-hidden="true">
+                ⌁
+              </div>
+              <h3>No listening TCP ports found</h3>
+              <p>Start a local server and refresh to see it here.</p>
+              <button
+                className="button-secondary"
+                onClick={() => void manualRefresh()}
+                disabled={state.refreshing}
+              >
+                Refresh list
+              </button>
+            </section>
+          ) : visibleEntries.length === 0 && !desiredPortAssistance ? (
             <section
               className="empty-panel search-empty"
               aria-labelledby="search-empty-title"
@@ -146,7 +163,7 @@ export function RuntimeInspectorPage() {
                 Try another process name or exact port, or clear the search.
               </p>
             </section>
-          ) : (
+          ) : visibleEntries.length > 0 ? (
             <RuntimeList
               snapshot={snapshot}
               query={query}
@@ -163,7 +180,7 @@ export function RuntimeInspectorPage() {
               onOpenEditor={(entryRef) => void openProjectInEditor(entryRef)}
               onCopy={(value, label) => void copyValue(value, label)}
             />
-          )}
+          ) : null}
         </>
       ) : null}
 

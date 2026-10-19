@@ -143,6 +143,30 @@ h1 {
   margin: 0 0 16px;
 }
 
+.port-assistance {
+  margin: 0 0 16px;
+  padding: 12px 15px;
+  border: 1px solid #38515b;
+  border-radius: var(--radius-sm);
+  background: rgb(20 38 45 / 78%);
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.port-assistance p {
+  margin: 0;
+}
+
+.port-assistance p + p {
+  margin-top: 5px;
+}
+
+.port-assistance-summary {
+  color: var(--text);
+  font-weight: 700;
+}
+
 .runtime-search {
   position: relative;
   width: 100%;
