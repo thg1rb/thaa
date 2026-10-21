@@ -3,13 +3,15 @@ mod commands;
 pub mod domain;
 pub mod platform;
 
+use std::sync::atomic::Ordering;
 use std::sync::Arc;
 
 use application::runtime_inspection::RuntimeInspector;
 use commands::runtime::RuntimeState;
 use tauri::menu::{IsMenuItem, Menu, MenuItem, PredefinedMenuItem};
 use tauri::tray::TrayIconBuilder;
-use tauri::{Emitter, Manager};
+use tauri::{Emitter, Manager, WebviewUrl, WebviewWindow, WebviewWindowBuilder};
+use tauri::{LogicalSize, PhysicalPosition};
 
 #[cfg(target_os = "macos")]
 fn runtime_inspector() -> Arc<RuntimeInspector> {
@@ -54,82 +56,12 @@ fn runtime_inspector() -> Arc<RuntimeInspector> {
 
 fn build_tray_menu<R: tauri::Runtime>(app: &tauri::AppHandle<R>) -> tauri::Result<Menu<R>> {
     let menu = Menu::new(app)?;
-    if let Some(snapshot) = app
-        .try_state::<RuntimeState>()
-        .and_then(|state| state.0.current_snapshot())
-    {
-        for (index, entry) in snapshot.entries.iter().take(8).enumerate() {
-            let name = entry
-                .process
-                .as_ref()
-                .and_then(|result| result.as_ref().ok())
-                .and_then(|info| match &info.identity.name {
-                    crate::domain::metadata::FieldAvailability::Available(name) => {
-                        Some(name.to_string_lossy().into_owned())
-                    }
-                    _ => None,
-                })
-                .unwrap_or_else(|| "Unknown process".to_owned());
-            let name = safe_tray_text(&name, 42);
-            let item = MenuItem::with_id(
-                app,
-                format!("runtime-{index}"),
-                format!("TCP {} · {name}", entry.listener.local_port),
-                false,
-                None::<&str>,
-            )?;
-            menu.append(&item)?;
-        }
-        if snapshot.entries.is_empty() {
-            menu.append(&MenuItem::new(
-                app,
-                "No listening TCP ports",
-                false,
-                None::<&str>,
-            )?)?;
-        } else if snapshot.entries.len() > 8 {
-            menu.append(&MenuItem::new(
-                app,
-                format!("+ {} more", snapshot.entries.len() - 8),
-                false,
-                None::<&str>,
-            )?)?;
-        }
-    } else {
-        menu.append(&MenuItem::new(
-            app,
-            "Runtime list loading…",
-            false,
-            None::<&str>,
-        )?)?;
-    }
     let show = MenuItem::with_id(app, "show", "Show Thaa", true, None::<&str>)?;
     let refresh = MenuItem::with_id(app, "refresh", "Refresh runtimes", true, None::<&str>)?;
     let quit = MenuItem::with_id(app, "quit", "Quit Thaa", true, None::<&str>)?;
     let separator = PredefinedMenuItem::separator(app)?;
     menu.append_items(&[&separator as &dyn IsMenuItem<R>, &refresh, &show, &quit])?;
     Ok(menu)
-}
-
-fn safe_tray_text(value: &str, max_chars: usize) -> String {
-    value
-        .chars()
-        .map(|character| {
-            let point = character as u32;
-            if character.is_control()
-                || (0x202a..=0x202e).contains(&point)
-                || (0x2066..=0x2069).contains(&point)
-            {
-                '�'
-            } else if character == '&' {
-                '&'
-            } else {
-                character
-            }
-        })
-        .take(max_chars)
-        .collect::<String>()
-        .replace('&', "&&")
 }
 
 pub(crate) fn update_tray_menu<R: tauri::Runtime>(app: &tauri::AppHandle<R>) {
@@ -140,7 +72,10 @@ pub(crate) fn update_tray_menu<R: tauri::Runtime>(app: &tauri::AppHandle<R>) {
 
 pub fn run() {
     tauri::Builder::default()
-        .manage(RuntimeState(runtime_inspector()))
+        .manage(RuntimeState(
+            runtime_inspector(),
+            Arc::new(std::sync::atomic::AtomicBool::new(false)),
+        ))
         .plugin(tauri_plugin_opener::init())
         .setup(|app| {
             let menu = build_tray_menu(app.handle())?;
@@ -169,6 +104,9 @@ pub fn run() {
             tray.show_menu_on_left_click(false)
                 .on_menu_event(|app, event| match event.id().as_ref() {
                     "show" => {
+                        if let Some(popover) = app.get_webview_window("tray-popover") {
+                            let _ = popover.hide();
+                        }
                         if let Some(window) = app.get_webview_window("main") {
                             let _ = window.show();
                             let _ = window.set_focus();
@@ -179,36 +117,36 @@ pub fn run() {
                     _ => {}
                 })
                 .on_tray_icon_event(|tray, event| {
-                    let activate = matches!(
-                        event,
-                        tauri::tray::TrayIconEvent::Click {
-                            button: tauri::tray::MouseButton::Left,
-                            button_state: tauri::tray::MouseButtonState::Up,
-                            ..
-                        } | tauri::tray::TrayIconEvent::DoubleClick { .. }
-                    );
-                    let menu_open = matches!(
-                        event,
-                        tauri::tray::TrayIconEvent::Click {
-                            button_state: tauri::tray::MouseButtonState::Up,
-                            ..
-                        }
-                    );
-                    if activate || menu_open {
-                        refresh_from_tray(tray.app_handle());
-                    }
-                    if activate {
-                        if let Some(window) = tray.app_handle().get_webview_window("main") {
-                            let _ = window.show();
-                            let _ = window.set_focus();
-                        }
+                    if let tauri::tray::TrayIconEvent::Click {
+                        button: tauri::tray::MouseButton::Left,
+                        button_state: tauri::tray::MouseButtonState::Up,
+                        position,
+                        rect,
+                        ..
+                    } = event
+                    {
+                        let app = tray.app_handle().clone();
+                        let callback_app = app.clone();
+                        let _ = app.run_on_main_thread(move || {
+                            toggle_tray_popover(&callback_app, rect, position)
+                        });
                     }
                 })
                 .build(app)?;
             Ok(())
         })
         .on_window_event(|window, event| {
+            if window.label() == "tray-popover"
+                && matches!(event, tauri::WindowEvent::Focused(false))
+            {
+                let _ = window.hide();
+            }
             if let tauri::WindowEvent::CloseRequested { api, .. } = event {
+                if window.label() == "tray-popover" {
+                    api.prevent_close();
+                    let _ = window.hide();
+                    return;
+                }
                 api.prevent_close();
                 let _ = window.hide();
             }
@@ -222,6 +160,9 @@ pub fn run() {
             commands::runtime::reveal_project_folder,
             commands::runtime::open_project_in_terminal,
             commands::runtime::open_project_in_editor,
+            commands::runtime::get_tray_runtime_snapshot,
+            commands::runtime::navigate_to_runtime_entry,
+            commands::runtime::show_main_window,
         ])
         .run(tauri::generate_context!())
         .expect("failed to run Thaa");
@@ -232,14 +173,204 @@ fn refresh_from_tray<R: tauri::Runtime>(app: &tauri::AppHandle<R>) {
         return;
     };
     let inspector = Arc::clone(&state.0);
+    let refresh_failed = Arc::clone(&state.1);
     let app = app.clone();
-    tauri::async_runtime::spawn_blocking(move || {
-        if let Ok(snapshot) = inspector.refresh() {
+    tauri::async_runtime::spawn_blocking(move || match inspector.refresh() {
+        Ok(snapshot) => {
+            refresh_failed.store(false, Ordering::Release);
             update_tray_menu(&app);
             let _ = app.emit(
                 "runtime-snapshot-updated",
                 commands::runtime::snapshot_for_event(&snapshot),
             );
         }
+        Err(_) => {
+            refresh_failed.store(true, Ordering::Release);
+            let _ = app.emit_to("tray-popover", "runtime-snapshot-stale", true);
+        }
     });
+}
+
+fn tray_popover<R: tauri::Runtime>(app: &tauri::AppHandle<R>) -> tauri::Result<WebviewWindow<R>> {
+    if let Some(window) = app.get_webview_window("tray-popover") {
+        return Ok(window);
+    }
+
+    WebviewWindowBuilder::new(app, "tray-popover", WebviewUrl::App("index.html".into()))
+        .title("Thaa Runtime Overview")
+        .inner_size(400.0, 620.0)
+        .min_inner_size(320.0, 200.0)
+        .max_inner_size(480.0, 900.0)
+        .decorations(false)
+        .resizable(false)
+        .always_on_top(true)
+        .skip_taskbar(true)
+        .visible(false)
+        .shadow(true)
+        .build()
+}
+
+fn toggle_tray_popover<R: tauri::Runtime>(
+    app: &tauri::AppHandle<R>,
+    anchor: tauri::Rect,
+    click_position: PhysicalPosition<f64>,
+) {
+    let Ok(window) = tray_popover(app) else {
+        return;
+    };
+    if window.is_visible().unwrap_or(false) {
+        let _ = window.hide();
+        return;
+    }
+
+    let monitor = app
+        .monitor_from_point(click_position.x, click_position.y)
+        .ok()
+        .flatten()
+        .or_else(|| app.primary_monitor().ok().flatten());
+    if let Some(monitor) = monitor {
+        let area = monitor.work_area();
+        let scale = monitor.scale_factor();
+        let anchor_position = anchor.position.to_physical::<f64>(scale);
+        let anchor_size = anchor.size.to_physical::<f64>(scale);
+        let (x, y, width, height) = calculate_tray_popover_position(
+            PopoverAnchor {
+                x: anchor_position.x,
+                y: anchor_position.y,
+                width: anchor_size.width,
+                height: anchor_size.height,
+            },
+            WorkArea {
+                x: area.position.x,
+                y: area.position.y,
+                width: area.size.width,
+                height: area.size.height,
+            },
+            scale,
+        );
+        let _ = window.set_size(LogicalSize::new(width, height));
+        let _ = window.set_position(PhysicalPosition::new(x, y));
+    }
+    let _ = window.show();
+    let _ = window.set_focus();
+}
+
+#[derive(Clone, Copy)]
+struct PopoverAnchor {
+    x: f64,
+    y: f64,
+    width: f64,
+    height: f64,
+}
+
+#[derive(Clone, Copy)]
+struct WorkArea {
+    x: i32,
+    y: i32,
+    width: u32,
+    height: u32,
+}
+
+fn calculate_tray_popover_position(
+    anchor: PopoverAnchor,
+    area: WorkArea,
+    scale: f64,
+) -> (i32, i32, f64, f64) {
+    const WIDTH: f64 = 400.0;
+    const MAX_HEIGHT: f64 = 620.0;
+    const MARGIN: f64 = 8.0;
+    let scale = if scale.is_finite() && scale > 0.0 {
+        scale
+    } else {
+        1.0
+    };
+    let work_x = area.x;
+    let work_y = area.y;
+    let work_width = f64::from(area.width);
+    let work_height = f64::from(area.height);
+    let logical_width = WIDTH.min((work_width / scale - MARGIN * 2.0).max(320.0));
+    let logical_height = MAX_HEIGHT.min((work_height / scale - MARGIN * 2.0).max(200.0));
+    let width = logical_width * scale;
+    let height = logical_height * scale;
+    let work_right = f64::from(work_x) + work_width;
+    let work_bottom = f64::from(work_y) + work_height;
+
+    let distances = [
+        (anchor.y - f64::from(work_y)).abs(),
+        (work_bottom - (anchor.y + anchor.height)).abs(),
+        (anchor.x - f64::from(work_x)).abs(),
+        (work_right - (anchor.x + anchor.width)).abs(),
+    ];
+    let nearest = distances
+        .iter()
+        .enumerate()
+        .min_by(|left, right| left.1.total_cmp(right.1))
+        .map(|(index, _)| index)
+        .unwrap_or(1);
+
+    let (raw_x, raw_y) = match nearest {
+        0 => (anchor.x + anchor.width - width, anchor.y + anchor.height),
+        1 => (anchor.x + anchor.width - width, anchor.y - height),
+        2 => (anchor.x + anchor.width, anchor.y),
+        _ => (anchor.x - width, anchor.y),
+    };
+    let max_x = (work_right - width - MARGIN).max(f64::from(work_x) + MARGIN);
+    let max_y = (work_bottom - height - MARGIN).max(f64::from(work_y) + MARGIN);
+    let x = raw_x.clamp(f64::from(work_x) + MARGIN, max_x).round() as i32;
+    let y = raw_y.clamp(f64::from(work_y) + MARGIN, max_y).round() as i32;
+    (x, y, logical_width, logical_height)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{calculate_tray_popover_position, PopoverAnchor, WorkArea};
+
+    #[test]
+    fn tray_popover_position_stays_within_work_area_at_bottom_edge() {
+        let (x, y, width, height) = calculate_tray_popover_position(
+            PopoverAnchor {
+                x: 1800.0,
+                y: 1020.0,
+                width: 30.0,
+                height: 30.0,
+            },
+            WorkArea {
+                x: 0,
+                y: 0,
+                width: 1920,
+                height: 1080,
+            },
+            1.0,
+        );
+        assert!(x >= 8);
+        assert!(x + (width as i32) <= 1912);
+        assert!(y >= 8);
+        assert!(y + height as i32 <= 1072);
+        assert_eq!(y, 400);
+    }
+
+    #[test]
+    fn tray_popover_respects_display_scale_and_nonzero_monitor_origin() {
+        let (x, y, width, height) = calculate_tray_popover_position(
+            PopoverAnchor {
+                x: 3000.0,
+                y: 20.0,
+                width: 60.0,
+                height: 40.0,
+            },
+            WorkArea {
+                x: 2560,
+                y: 0,
+                width: 1920,
+                height: 1080,
+            },
+            2.0,
+        );
+        assert!(x >= 2568);
+        assert!(x + (width * 2.0) as i32 <= 4472);
+        assert!(y >= 8);
+        assert!(y + (height * 2.0) as i32 <= 1072);
+        assert_eq!(width, 400.0);
+        assert_eq!(height, 524.0);
+    }
 }

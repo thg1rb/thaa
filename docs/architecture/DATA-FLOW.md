@@ -177,6 +177,23 @@ This establishes FR-004/NFR-005/006 invariants. Exact runtime primitives, pollin
 
 The coordinator publishes one committed snapshot and safe status to interested UI surfaces. It owns generation and in-flight state, not view rendering or per-window filter state. A tray view may use a compact projection of the same snapshot; it must not run duplicate port/process discovery.
 
+W027 implements the tray view as a lazily created, reusable Tauri WebView
+window. The popover requests only the already accepted snapshot, subscribes to
+the shared snapshot event, and invokes the existing explicit refresh command.
+The backend publishes a successful accepted refresh to all application
+windows. The native context menu retains Show, Refresh, and Quit; a primary
+tray click toggles the popover on supported macOS and Windows tray platforms.
+
+The popover sends a snapshot generation and opaque entry reference when a user
+selects a process or endpoint. The backend checks both against the current
+snapshot before showing the existing Main Window and emitting a navigation
+event. No PID or path crosses this navigation boundary. The Main Window clears
+its search query, expands the selected process's ancestors, and highlights the
+selected entry. The popover capability does not grant process actions or
+project-folder/terminal/editor opening. Window anchoring uses the clicked tray
+position, selected monitor work area, and display scale; focus loss, Escape,
+and close hide the reusable popover.
+
 ## Traceability
 
 These flows support FR-001–FR-006 and FR-008–FR-013, NFR-003/005/006/008/009, and PR-004/005/006/009.

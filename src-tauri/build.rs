@@ -25,6 +25,9 @@ fn main() {
             "reveal_project_folder",
             "open_project_in_terminal",
             "open_project_in_editor",
+            "get_tray_runtime_snapshot",
+            "navigate_to_runtime_entry",
+            "show_main_window",
         ]),
     ))
     .expect("failed to build Tauri application");

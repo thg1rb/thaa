@@ -1,5 +1,5 @@
 import type { Action, RuntimeEntry, RuntimeSnapshot } from "../model/types";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { CSSProperties } from "react";
 import { RuntimeCard } from "./RuntimeCard";
 import { buildProcessForest, type ProcessNode } from "../utils/processForest";
@@ -8,6 +8,7 @@ import { runtimeLabel } from "../utils/runtimeKind";
 export function RuntimeList({
   snapshot,
   query,
+  selectedEntryRef = null,
   pendingTargets,
   iconSources,
   iconsLoading,
@@ -21,6 +22,7 @@ export function RuntimeList({
 }: {
   snapshot: RuntimeSnapshot;
   query: string;
+  selectedEntryRef?: string | null;
   pendingTargets: Set<string>;
   iconSources: Map<string, string>;
   iconsLoading: boolean;
@@ -59,17 +61,57 @@ export function RuntimeList({
       ),
     });
   }
-  const activeCollapsed =
-    collapseState.generation === snapshot.generation
-      ? collapseState.keys
-      : new Set([...collapseState.keys].filter((key) => presentKeys.has(key)));
+  const activeCollapsed = useMemo(
+    () =>
+      collapseState.generation === snapshot.generation
+        ? collapseState.keys
+        : new Set(
+            [...collapseState.keys].filter((key) => presentKeys.has(key)),
+          ),
+    [collapseState, presentKeys, snapshot.generation],
+  );
+  const selectedPathKeys = useMemo(() => {
+    const pathKeys = new Set<string>();
+    if (!selectedEntryRef) return pathKeys;
+    const pending = forest.map((node) => ({ node, ancestors: [] as string[] }));
+    while (pending.length > 0) {
+      const current = pending.pop()!;
+      if (
+        current.node.entries.some(
+          (entry) => entry.entryRef === selectedEntryRef,
+        )
+      ) {
+        current.ancestors.forEach((key) => pathKeys.add(key));
+        return pathKeys;
+      }
+      const ancestors = [...current.ancestors, current.node.key];
+      for (const child of current.node.children)
+        pending.push({ node: child, ancestors });
+    }
+    return pathKeys;
+  }, [forest, selectedEntryRef]);
+  const visibleCollapsed = useMemo(
+    () =>
+      new Set([...activeCollapsed].filter((key) => !selectedPathKeys.has(key))),
+    [activeCollapsed, selectedPathKeys],
+  );
+
+  useEffect(() => {
+    if (!selectedEntryRef) return;
+    const frame = window.setTimeout(() => {
+      document
+        .getElementById(`runtime-entry-${selectedEntryRef}`)
+        ?.scrollIntoView?.({ block: "center", behavior: "smooth" });
+    }, 0);
+    return () => window.clearTimeout(frame);
+  }, [activeCollapsed, forest, selectedEntryRef]);
   const visibleNodes: { node: ProcessNode; depth: number }[] = [];
   const pendingNodes = forest.map((node) => ({ node, depth: 0 })).reverse();
   while (pendingNodes.length > 0) {
     const current = pendingNodes.pop()!;
     visibleNodes.push(current);
     const isCollapsed =
-      activeCollapsed.has(current.node.key) && query.trim() === "";
+      visibleCollapsed.has(current.node.key) && query.trim() === "";
     if (!isCollapsed) {
       for (
         let index = current.node.children.length - 1;
@@ -86,7 +128,7 @@ export function RuntimeList({
     <section className="runtime-list" aria-label="Listening TCP ports">
       {visibleNodes.map(({ node, depth }) => {
         const isCollapsed =
-          activeCollapsed.has(node.key) && query.trim() === "";
+          visibleCollapsed.has(node.key) && query.trim() === "";
         const revealEntryRef = node.entries.find(
           (entry) => entry.projectRoot !== null,
         )?.entryRef;
@@ -139,6 +181,7 @@ export function RuntimeList({
                 <RuntimeCard
                   key={entry.entryRef}
                   entry={entry}
+                  selected={entry.entryRef === selectedEntryRef}
                   runtime={
                     node.children.length === 0 &&
                     entry.entryRef === node.entries[0]?.entryRef

@@ -150,6 +150,27 @@ describe("buildProcessForest", () => {
     ]);
   });
 
+  it("does not group process rows by PID when start-time identity is missing", () => {
+    const first = entry(42, null, "first observation", 6001);
+    const second = entry(42, null, "second observation", 6002);
+    first.process = {
+      state: "unavailable",
+      details: { processId: 42, reason: "Process details unavailable" },
+    };
+    second.process = {
+      state: "unavailable",
+      details: { processId: 42, reason: "Process details unavailable" },
+    };
+
+    const forest = buildProcessForest([first, second], "");
+
+    expect(forest).toHaveLength(2);
+    expect(forest.map((node) => node.entries[0]?.entryRef)).toEqual([
+      "42-6001",
+      "42-6002",
+    ]);
+  });
+
   it("keeps a missing parent as a root and preserves exact-port semantics", () => {
     const entries = [
       entry(2, 99, "child", 30000),

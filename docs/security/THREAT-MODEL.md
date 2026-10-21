@@ -254,3 +254,30 @@ Threats principally relate to FR-002/003/006–FR-009/011, NFR-001–NFR-006/NFR
   labels remain possible.
 - **References / status:** FR-015, PR-004/007, THR-001/003/004, W020.
   **W020 implementation in progress.**
+
+## THR-020 — Tray projection confusion or stale navigation
+
+- **Threat:** A compact tray projection could merge separate process
+  instances, hide distinct listener endpoints, show a snapshot as current when
+  refresh failed, or navigate using an entry that was replaced after display.
+  A compromised tray WebView could also attempt process actions or pass an
+  arbitrary PID/path if its capability were broader than needed.
+- **Mitigation:** Group only entries whose PID and observed process start time
+  agree; keep unknown identities separate and preserve every endpoint. Label
+  counts as observed snapshot data and retain partial/error/age information.
+  Navigation accepts only generation plus an opaque entry reference and
+  validates both against the current backend snapshot. The tray capability is
+  window-scoped and excludes Stop, Force Stop, and project-opening commands.
+  No separate provider scan, arbitrary filesystem path, or process ID is
+  accepted from the tray frontend.
+- **Verification:** Grouping and navigation tests cover separate identities,
+  endpoint preservation, stale generations, exact entry references, and
+  capability scope; native and interactive tray behavior are tracked by
+  TC-TRAY-001.
+- **Residual risk:** Snapshot data can become stale immediately after a
+  successful observation, and users may interpret a compact view as complete
+  system visibility. Wording identifies observed data and never asserts
+  completeness or port availability.
+- **References / status:** FR-010, W014, W018, NFR-001/005/006, THR-003/009,
+  TC-TRAY-001. **W027 implementation in progress; final review and desktop
+  validation pending.**

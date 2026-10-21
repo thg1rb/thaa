@@ -21,6 +21,7 @@ import {
 
 export function RuntimeCard({
   entry,
+  selected = false,
   runtime,
   capabilities,
   iconSource,
@@ -35,6 +36,7 @@ export function RuntimeCard({
   onCopy,
 }: {
   entry: RuntimeEntry;
+  selected?: boolean;
   runtime: RuntimeKind | null;
   capabilities: RuntimeSnapshot["capabilities"];
   iconSource: string | undefined;
@@ -66,7 +68,11 @@ export function RuntimeCard({
   const pid = entry.processId;
 
   return (
-    <article className="runtime-card">
+    <article
+      id={`runtime-entry-${entry.entryRef}`}
+      className={`runtime-card${selected ? " runtime-card-selected" : ""}`}
+      aria-label={`${processName}, TCP port ${entry.port}`}
+    >
       <div className="runtime-details">
         <div className="process-heading">
           <ProcessIcon

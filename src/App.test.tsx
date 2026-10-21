@@ -11,23 +11,30 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import App from "./App";
 
 const eventState = vi.hoisted(() => ({
-  listener: null as ((event: { payload: unknown }) => void) | null,
+  listeners: {} as Record<
+    string,
+    ((event: { payload: unknown }) => void) | undefined
+  >,
 }));
 
 vi.mock("@tauri-apps/api/event", () => ({
   listen: vi.fn(
-    (_event: string, callback: (event: { payload: unknown }) => void) => {
-      eventState.listener = callback;
+    (eventName: string, callback: (event: { payload: unknown }) => void) => {
+      eventState.listeners[eventName] = callback;
       return Promise.resolve(() => undefined);
     },
   ),
+}));
+
+vi.mock("@tauri-apps/api/window", () => ({
+  getCurrentWindow: () => ({ label: "main" }),
 }));
 
 afterEach(() => {
   cleanup();
   clearMocks();
   vi.restoreAllMocks();
-  eventState.listener = null;
+  eventState.listeners = {};
 });
 
 const available = <T,>(value: T) => ({ state: "available" as const, value });
@@ -145,6 +152,38 @@ describe("runtime inspector", () => {
           element.textContent?.includes("PID 123") === true,
       ),
     ).toBeInTheDocument();
+  });
+
+  it("clears search and highlights the exact listener requested by the tray", async () => {
+    mockIPC((command) =>
+      command === "get_runtime_snapshot"
+        ? snapshot([row()], undefined, 1)
+        : undefined,
+    );
+    render(<App />);
+
+    const search = await screen.findByRole("searchbox", {
+      name: "Search listeners by process or port",
+    });
+    fireEvent.change(search, { target: { value: "not-a-match" } });
+    expect(
+      await screen.findByText("No matching listeners"),
+    ).toBeInTheDocument();
+    await waitFor(() =>
+      expect(eventState.listeners["navigate-to-runtime-entry"]).toBeDefined(),
+    );
+
+    act(() =>
+      eventState.listeners["navigate-to-runtime-entry"]?.({
+        payload: { generation: 1, entryRef: "entry-1-0" },
+      }),
+    );
+
+    expect(search).toHaveValue("");
+    expect(await screen.findByText(":5173")).toBeInTheDocument();
+    expect(document.getElementById("runtime-entry-entry-1-0")).toHaveClass(
+      "runtime-card-selected",
+    );
   });
 
   it("shows a distinct project root without confusing it with working directory", async () => {
@@ -432,10 +471,12 @@ describe("runtime inspector", () => {
         : undefined,
     );
     render(<App />);
-    await waitFor(() => expect(eventState.listener).not.toBeNull());
+    await waitFor(() =>
+      expect(eventState.listeners["runtime-snapshot-updated"]).toBeDefined(),
+    );
 
     act(() => {
-      eventState.listener?.({
+      eventState.listeners["runtime-snapshot-updated"]?.({
         payload: snapshot(
           [
             row({

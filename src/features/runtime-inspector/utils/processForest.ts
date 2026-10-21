@@ -34,7 +34,9 @@ export function buildProcessForest(
           : null
         : null;
     const key =
-      pid === null ? `entry:${entry.entryRef}` : `${pid}:${start ?? "unknown"}`;
+      pid === null || start === null
+        ? `entry:${entry.entryRef}`
+        : `process:${pid}:${start}`;
     let node = groups.get(key);
     if (!node) {
       node = {

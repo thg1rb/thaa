@@ -112,3 +112,15 @@ presentation lives in `shared/ui/toast`; Tauri command names and `invoke`
 transport stay in the feature API client rather than React presentation
 components. A development-only visual fixture can preview toasts and cards
 without invoking native process actions.
+
+## Tray runtime popover
+
+W027 uses a compact WebView popover for runtime browsing while keeping system
+commands in the native tray context menu. The popover follows the shared light
+and dark color tokens, uses text labels in addition to icons, and bounds its
+height with a scrollable endpoint list. Process headings identify the process;
+small endpoint badges preserve protocol, numeric port, and local address.
+Partial scan and snapshot-age information remain textual rather than relying
+on color alone. Search labels use the same process-name/exact-port semantics
+as the Main Window. The popover does not expose Stop, Force Stop, or project
+opening actions.
