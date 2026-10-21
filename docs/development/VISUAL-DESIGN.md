@@ -116,11 +116,16 @@ without invoking native process actions.
 ## Tray runtime popover
 
 W027 uses a compact WebView popover for runtime browsing while keeping system
-commands in the native tray context menu. The popover follows the shared light
-and dark color tokens, uses text labels in addition to icons, and bounds its
-height with a scrollable endpoint list. Process headings identify the process;
-small endpoint badges preserve protocol, numeric port, and local address.
-Partial scan and snapshot-age information remain textual rather than relying
-on color alone. Search labels use the same process-name/exact-port semantics
-as the Main Window. The popover does not expose Stop, Force Stop, or project
-opening actions.
+commands in the native tray context menu. The popover uses the same global
+graphite background, surfaces, typography, and semantic colors as the Main
+Window; it does not define a separate light palette. The current application
+theme is dark. Its compact header keeps one Main Window action and summarizes
+observed TCP endpoints and identified processes. Process names and ports lead
+the hierarchy, with PID secondary. A compact port chip summarizes repeated
+address bindings; its disclosure retains every endpoint address and binding
+label, and each endpoint remains individually navigable. Initial discovery uses
+layout-matched, noninteractive Skeleton rows. Refreshing keeps the last accepted
+list visible and announces progress. Partial scan, stale snapshot, error, and
+observation-time information remain textual rather than relying on color alone.
+Search retains the Main Window's process-name and exact-port semantics. The
+popover does not expose Stop, Force Stop, or project opening actions.

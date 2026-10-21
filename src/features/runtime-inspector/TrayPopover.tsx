@@ -1,11 +1,11 @@
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { listen } from "@tauri-apps/api/event";
+import { Skeleton } from "../../shared/ui/skeleton/Skeleton";
 import { runtimeClient, snapshotFromEvent } from "./api/runtimeClient";
 import type { RuntimeSnapshot, RuntimeSnapshotDto } from "./model/types";
 import { filterRuntimeEntries } from "./utils/filterRuntimeEntries";
 import { bindingLabel, displayName, safeDisplay } from "./utils/processDisplay";
-import { runtimeLabel } from "./utils/runtimeKind";
 import { groupTrayEntries } from "./utils/trayGroups";
 import appIcon from "../../../src-tauri/icons/128x128.png";
 import "./tray-popover.css";
@@ -17,6 +17,9 @@ export function TrayPopover() {
   const [error, setError] = useState<string | null>(null);
   const [snapshotStale, setSnapshotStale] = useState(false);
   const [query, setQuery] = useState("");
+  const [expandedPorts, setExpandedPorts] = useState<Set<string>>(
+    () => new Set(),
+  );
 
   const applySnapshot = useCallback(
     (incoming: RuntimeSnapshot, isFresh = true) => {
@@ -151,9 +154,20 @@ export function TrayPopover() {
       <header className="tray-header">
         <div className="tray-brand">
           <img src={appIcon} alt="" aria-hidden="true" />
-          <div>
+          <div className="tray-brand-copy">
             <strong>Thaa</strong>
-            <span>Runtime overview</span>
+            {snapshot ? (
+              <span>
+                {snapshot.entries.length} TCP{" "}
+                {snapshot.entries.length === 1 ? "endpoint" : "endpoints"} ·{" "}
+                {identifiedProcesses} identified{" "}
+                {identifiedProcesses === 1 ? "process" : "processes"}
+              </span>
+            ) : loading ? (
+              <Skeleton className="tray-summary-skeleton" />
+            ) : (
+              <span>Runtime overview</span>
+            )}
           </div>
         </div>
         <div className="tray-header-actions">
@@ -174,27 +188,13 @@ export function TrayPopover() {
           </button>
           <button
             type="button"
-            className="tray-view-all"
+            className="tray-open-action"
             onClick={() => void showMainWindow()}
           >
-            View all
+            Open Thaa
           </button>
         </div>
       </header>
-
-      {snapshot && (
-        <section className="tray-overview" aria-label="Observed runtime counts">
-          <div>
-            <strong>{snapshot.entries.length}</strong>
-            <span>observed endpoints</span>
-          </div>
-          <div>
-            <strong>{identifiedProcesses}</strong>
-            <span>identified processes</span>
-          </div>
-          <span className="tray-overview-protocol">TCP</span>
-        </section>
-      )}
 
       <label className="tray-search">
         <span className="sr-only">
@@ -226,13 +226,30 @@ export function TrayPopover() {
         aria-busy={loading || refreshing}
       >
         {loading && !snapshot ? (
-          <p className="tray-state" role="status">
-            Loading the current runtime snapshot…
-          </p>
+          <div
+            className="tray-skeleton-list"
+            role="status"
+            aria-label="Loading runtime snapshot"
+          >
+            <span className="sr-only">
+              Loading the current runtime snapshot
+            </span>
+            {[0, 1, 2].map((item) => (
+              <div className="tray-skeleton-row" aria-hidden="true" key={item}>
+                <div className="tray-skeleton-heading">
+                  <Skeleton className="tray-skeleton-name" />
+                  <Skeleton className="tray-skeleton-meta" />
+                </div>
+                <div className="tray-skeleton-ports">
+                  <Skeleton className="tray-skeleton-port" />
+                  {item !== 1 && <Skeleton className="tray-skeleton-port" />}
+                </div>
+              </div>
+            ))}
+          </div>
         ) : !snapshot ? (
           <div className="tray-state">
             <p>No accepted runtime snapshot is available.</p>
-            <button onClick={() => void refresh()}>Refresh</button>
           </div>
         ) : snapshot.entries.length === 0 && query.trim().length === 0 ? (
           <p className="tray-state">
@@ -249,12 +266,16 @@ export function TrayPopover() {
                 group.identityKnown && group.processId !== null
                   ? `PID ${group.processId}`
                   : "Process identity unavailable";
+              const ports = new Map<string, typeof group.entries>();
+              for (const entry of group.entries) {
+                const portKey = `${entry.protocol}:${entry.port}`;
+                const portEntries = ports.get(portKey) ?? [];
+                portEntries.push(entry);
+                ports.set(portKey, portEntries);
+              }
               return (
                 <article className="tray-process" key={group.key}>
                   <div className="tray-process-heading">
-                    <span className="tray-process-mark" aria-hidden="true">
-                      ◉
-                    </span>
                     <button
                       type="button"
                       className="tray-process-name"
@@ -262,40 +283,83 @@ export function TrayPopover() {
                       onClick={() => void navigate(representative.entryRef)}
                     >
                       <strong title={group.name}>{group.name}</strong>
-                      <span>
-                        {pidLabel}
-                        {group.runtime
-                          ? ` · ${runtimeLabel(group.runtime)}`
-                          : ""}
-                      </span>
+                      <span>{pidLabel}</span>
                     </button>
-                    <span className="tray-process-count">
-                      {group.entries.length}
+                    <span className="tray-process-open" aria-hidden="true">
+                      ›
                     </span>
                   </div>
                   <div
                     className="tray-port-list"
+                    role="group"
                     aria-label={`Ports for ${group.name}`}
                   >
-                    {group.entries.map((entry) => {
-                      const address = entry.localAddress
-                        ? safeDisplay(entry.localAddress)
-                        : "Address unavailable";
-                      const label = `${entry.protocol.toUpperCase()} port ${entry.port}, ${address}, ${bindingLabel(entry.binding)}`;
+                    {[...ports.entries()].map(([portKey, entries]) => {
+                      const firstEntry = entries[0];
+                      if (!firstEntry) return null;
+                      const toggleKey = `${group.key}:${portKey}`;
+                      const expanded = expandedPorts.has(toggleKey);
                       return (
-                        <button
-                          type="button"
-                          className="tray-port-badge"
-                          key={entry.entryRef}
-                          title={`${label}. Open listener details in Thaa.`}
-                          aria-label={`Open ${label} for ${displayName(entry)} in Thaa`}
-                          onClick={() => void navigate(entry.entryRef)}
-                        >
-                          <span>
-                            {entry.protocol.toUpperCase()} {entry.port}
-                          </span>
-                          <small>{address}</small>
-                        </button>
+                        <div className="tray-port-group" key={portKey}>
+                          <div className="tray-port-controls">
+                            <button
+                              type="button"
+                              className="tray-port-chip"
+                              title={`Open ${firstEntry.protocol.toUpperCase()} port ${firstEntry.port} details in Thaa.`}
+                              aria-label={`Open ${firstEntry.protocol.toUpperCase()} port ${firstEntry.port} for ${group.name} in Thaa`}
+                              onClick={() => void navigate(firstEntry.entryRef)}
+                            >
+                              :{firstEntry.port}
+                            </button>
+                            {entries.length > 1 && (
+                              <button
+                                type="button"
+                                className="tray-port-disclosure"
+                                aria-expanded={expanded}
+                                aria-label={`${expanded ? "Hide" : "Show"} ${entries.length} bindings for ${firstEntry.protocol.toUpperCase()} port ${firstEntry.port}`}
+                                onClick={() =>
+                                  setExpandedPorts((current) => {
+                                    const next = new Set(current);
+                                    if (next.has(toggleKey))
+                                      next.delete(toggleKey);
+                                    else next.add(toggleKey);
+                                    return next;
+                                  })
+                                }
+                              >
+                                {entries.length} bindings
+                              </button>
+                            )}
+                          </div>
+                          {expanded && (
+                            <div
+                              className="tray-binding-list"
+                              role="group"
+                              aria-label={`${firstEntry.protocol.toUpperCase()} port ${firstEntry.port} bindings`}
+                            >
+                              {entries.map((entry) => {
+                                const address = entry.localAddress
+                                  ? safeDisplay(entry.localAddress)
+                                  : "Address unavailable";
+                                const label = `${entry.protocol.toUpperCase()} port ${entry.port}, ${address}, ${bindingLabel(entry.binding)}`;
+                                return (
+                                  <button
+                                    type="button"
+                                    className="tray-binding-link"
+                                    key={entry.entryRef}
+                                    aria-label={`Open ${label} for ${displayName(entry)} in Thaa`}
+                                    onClick={() =>
+                                      void navigate(entry.entryRef)
+                                    }
+                                  >
+                                    <span>{address}</span>
+                                    <small>{bindingLabel(entry.binding)}</small>
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
                       );
                     })}
                   </div>
@@ -314,6 +378,7 @@ export function TrayPopover() {
               Showing the last accepted snapshot.
             </span>
           )}
+          {refreshing && <span role="status">Refreshing…</span>}
           {snapshot ? (
             <>
               {snapshot.completeness.state === "partial" && (
@@ -331,13 +396,6 @@ export function TrayPopover() {
             <span>Snapshot unavailable</span>
           ) : null}
         </div>
-        <button
-          type="button"
-          className="tray-footer-link"
-          onClick={() => void showMainWindow()}
-        >
-          View all in Thaa
-        </button>
       </footer>
     </main>
   );

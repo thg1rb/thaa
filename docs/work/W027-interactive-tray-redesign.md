@@ -86,7 +86,7 @@ clamps the popover.
 | AC-06 | Refresh uses the shared accepted snapshot and does not create an independent scan or continuous tray polling.                             | Backend and frontend tests                   | PASS locally                                                              |
 | AC-07 | Popover placement is clamped to the selected monitor work area and dismissal does not terminate the app.                                  | Native geometry tests and interactive tests  | Native geometry tests pass; interactive macOS and Windows NOT RUN         |
 | AC-08 | The tray window has no destructive process or project-opening permissions.                                                                | Capability test and security review          | PASS locally; independent review PASS                                     |
-| AC-09 | Light/dark appearance, keyboard labels, focus, and readable compact layout are supported.                                                 | Frontend tests and interactive review        | Frontend tests pass; interactive macOS and Windows NOT RUN                |
+| AC-09 | Shared application theme, keyboard labels, focus, and readable compact layout are supported.                                              | Frontend tests and interactive review        | Frontend tests pass; interactive macOS and Windows NOT RUN                |
 | AC-10 | Existing Runtime Inspector Search, Process Tree, Refresh, metrics, network context, project actions, Stop, and Force Stop remain correct. | Regression suite and CI                      | Local regression suite passes; CI pending                                 |
 | AC-11 | macOS and Windows native CI pass; interactive behavior is reported separately for each available desktop.                                 | CI and platform validation                   | NOT RUN                                                                   |
 
@@ -130,3 +130,21 @@ clamps the popover.
   runtime feature.
 - No user-installed `/Applications/Thaa.app` was used or modified. Interactive
   acceptance must target a verified isolated debug build.
+- Refined the compact header and summary, removed duplicate Main Window
+  navigation, and aligned the popover canvas and surfaces with the existing
+  global graphite tokens. The current Main Window theme is dark; the popover no
+  longer invents a separate light palette.
+- Added three layout-matched initial Skeleton rows and a compact Refresh status
+  that keeps the accepted list visible. Refresh failure continues to retain the
+  last accepted data and its stale indication.
+- Replaced repeated endpoint badges with compact protocol/port chips. Bindings
+  sharing a protocol and port are summarized in the row while an explicit
+  disclosure preserves every observed address and exact endpoint navigation
+  reference.
+- Added frontend coverage for initial loading and retry after an initial
+  failure, in-progress Refresh, duplicate address binding disclosure with
+  exact endpoint-reference navigation, and separate same-name process
+  identities. The frontend suite now has 131 passing tests. Independent UX and
+  architecture/security read-only reviews found no unresolved material issue
+  in this refinement. Interactive visual acceptance for the refined UI remains
+  pending.
