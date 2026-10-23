@@ -11,7 +11,6 @@ import { TrayPopover } from "./TrayPopover";
 
 const eventState = vi.hoisted(() => ({
   listeners: new Map<string, (event: { payload: unknown }) => void>(),
-  hide: vi.fn(),
 }));
 
 vi.mock("@tauri-apps/api/event", () => ({
@@ -21,10 +20,6 @@ vi.mock("@tauri-apps/api/event", () => ({
       return Promise.resolve(() => undefined);
     },
   ),
-}));
-
-vi.mock("@tauri-apps/api/window", () => ({
-  getCurrentWindow: () => ({ label: "tray-popover", hide: eventState.hide }),
 }));
 
 afterEach(() => {
@@ -105,8 +100,19 @@ describe("TrayPopover", () => {
       screen.getAllByRole("button", { name: /Open TCP port 3000/ }),
     ).toHaveLength(1);
     fireEvent.click(
-      screen.getByRole("button", { name: "Show 2 bindings for TCP port 3000" }),
+      screen.getByRole("button", { name: "Show bindings for TCP port 3000" }),
     );
+    const bindingsPanel = screen.getByRole("region", {
+      name: "TCP port 3000 bindings",
+    });
+    expect(bindingsPanel).toHaveTextContent("2 bindings");
+    expect(bindingsPanel.querySelectorAll(".tray-binding-link")).toHaveLength(
+      2,
+    );
+    expect(
+      screen.getByRole("button", { name: /Hide bindings for TCP port 3000/ }),
+    ).toHaveAttribute("aria-expanded", "true");
+    expect(navigate).not.toHaveBeenCalled();
     expect(
       screen.getByRole("button", { name: /127\.0\.0\.1/ }),
     ).toBeInTheDocument();
@@ -125,6 +131,282 @@ describe("TrayPopover", () => {
         entryRef: "entry-b",
       }),
     );
+  });
+
+  it("navigates from noninteractive areas of a process card exactly once", async () => {
+    const navigate = vi.fn();
+    mockIPC((command, payload) => {
+      if (command === "get_tray_runtime_snapshot")
+        return trayState(snapshot([entry("entry-card", 3000)]));
+      if (command === "navigate_to_runtime_entry") navigate(payload);
+      return undefined;
+    });
+
+    const { container } = render(<TrayPopover />);
+    const titleButton = await screen.findByRole("button", {
+      name: /Open node in Thaa, PID 20/,
+    });
+    const card = container.querySelector(".tray-process");
+    expect(card).not.toBeNull();
+
+    const clickTargets = [
+      titleButton.querySelector("strong"),
+      card?.querySelector(".tray-process-icon-slot"),
+      titleButton.querySelector("span"),
+      card?.querySelector(".tray-process-heading"),
+      card,
+      card?.querySelector(".tray-port-list"),
+    ];
+
+    for (const target of clickTargets) {
+      expect(target).not.toBeNull();
+      navigate.mockClear();
+      fireEvent.click(target!);
+      await waitFor(() => {
+        expect(navigate).toHaveBeenCalledTimes(1);
+        expect(navigate).toHaveBeenCalledWith({
+          generation: 3,
+          entryRef: "entry-card",
+        });
+      });
+    }
+  });
+
+  it("keeps port and binding controls independent from card navigation", async () => {
+    const navigate = vi.fn();
+    mockIPC((command, payload) => {
+      if (command === "get_tray_runtime_snapshot")
+        return trayState(
+          snapshot([
+            entry("entry-3000-v4", 3000, "127.0.0.1"),
+            entry("entry-3000-v6", 3000, "::1"),
+            entry("entry-4000", 4000),
+            entry("entry-5000", 5000),
+            entry("entry-6000", 6000),
+          ]),
+        );
+      if (command === "navigate_to_runtime_entry") navigate(payload);
+      return undefined;
+    });
+
+    const { container } = render(<TrayPopover />);
+    const showBindings = await screen.findByRole("button", {
+      name: "Show bindings for TCP port 3000",
+    });
+    expect(
+      container.querySelectorAll(".tray-process button button"),
+    ).toHaveLength(0);
+    showBindings.focus();
+    expect(showBindings).toHaveFocus();
+
+    fireEvent.click(showBindings);
+    expect(
+      screen.getByRole("button", { name: "Hide bindings for TCP port 3000" }),
+    ).toHaveAttribute("aria-expanded", "true");
+    expect(navigate).not.toHaveBeenCalled();
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Hide bindings for TCP port 3000" }),
+    );
+    expect(navigate).not.toHaveBeenCalled();
+
+    const showMore = screen.getByRole("button", {
+      name: "Show 1 more ports for node",
+    });
+    fireEvent.click(showMore);
+    expect(navigate).not.toHaveBeenCalled();
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Show fewer ports for node" }),
+    );
+    expect(navigate).not.toHaveBeenCalled();
+
+    fireEvent.click(
+      screen.getByRole("button", { name: /Open TCP port 3000 for node/ }),
+    );
+    await waitFor(() => {
+      expect(navigate).toHaveBeenCalledTimes(1);
+      expect(navigate).toHaveBeenCalledWith({
+        generation: 3,
+        entryRef: "entry-3000-v4",
+      });
+    });
+
+    navigate.mockClear();
+    fireEvent.click(
+      screen.getByRole("button", { name: "Show bindings for TCP port 3000" }),
+    );
+    await screen.findByRole("region", { name: "TCP port 3000 bindings" });
+    fireEvent.click(screen.getByRole("button", { name: /127\.0\.0\.1/ }));
+    await waitFor(() => {
+      expect(navigate).toHaveBeenCalledTimes(1);
+      expect(navigate).toHaveBeenCalledWith({
+        generation: 3,
+        entryRef: "entry-3000-v4",
+      });
+    });
+  });
+
+  it("keeps one full-width binding panel per process and replaces it by port", async () => {
+    mockIPC((command) =>
+      command === "get_tray_runtime_snapshot"
+        ? trayState(
+            snapshot([
+              entry("entry-5000-v4", 5000, "0.0.0.0"),
+              entry("entry-5000-v6", 5000, "::"),
+              entry("entry-7000-v4", 7000, "0.0.0.0"),
+              entry("entry-7000-v6", 7000, "::"),
+            ]),
+          )
+        : undefined,
+    );
+    const { container } = render(<TrayPopover />);
+
+    await screen.findByRole("button", { name: /Open TCP port 5000/ });
+    const firstDisclosure = screen.getByRole("button", {
+      name: "Show bindings for TCP port 5000",
+    });
+    expect(firstDisclosure).not.toHaveAttribute("aria-controls");
+    fireEvent.click(firstDisclosure);
+
+    const firstPanel = screen.getByRole("region", {
+      name: "TCP port 5000 bindings",
+    });
+    expect(firstPanel).toHaveTextContent("0.0.0.0");
+    expect(firstPanel).toHaveTextContent("::");
+    expect(firstDisclosure).toHaveAttribute("aria-expanded", "true");
+    expect(firstDisclosure).toHaveAttribute("aria-controls", firstPanel.id);
+    expect(firstPanel.closest(".tray-process")).toBeTruthy();
+    expect(
+      firstPanel.closest(".tray-process")?.querySelector(".tray-port-list"),
+    ).not.toContainElement(firstPanel);
+
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: "Show bindings for TCP port 7000",
+      }),
+    );
+    expect(
+      screen.queryByRole("region", { name: "TCP port 5000 bindings" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("region", { name: "TCP port 7000 bindings" }),
+    ).toBeInTheDocument();
+    expect(container.querySelectorAll(".tray-bindings-panel")).toHaveLength(1);
+  });
+
+  it("keeps the selected bindings panel associated with a visible port", async () => {
+    mockIPC((command) =>
+      command === "get_tray_runtime_snapshot"
+        ? trayState(
+            snapshot([
+              entry("entry-3000", 3000),
+              entry("entry-4000", 4000),
+              entry("entry-5000-a", 5000, "0.0.0.0"),
+              entry("entry-5000-b", 5000, "::"),
+              entry("entry-6000-a", 6000, "0.0.0.0"),
+              entry("entry-6000-b", 6000, "::"),
+            ]),
+          )
+        : undefined,
+    );
+    render(<TrayPopover />);
+
+    await screen.findByRole("button", { name: /Open TCP port 5000/ });
+    fireEvent.click(
+      screen.getByRole("button", { name: "Show 1 more ports for node" }),
+    );
+    fireEvent.click(
+      screen.getByRole("button", { name: "Show bindings for TCP port 6000" }),
+    );
+    expect(
+      screen.getByRole("region", { name: "TCP port 6000 bindings" }),
+    ).toBeInTheDocument();
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Show fewer ports for node" }),
+    );
+    expect(
+      screen.queryByRole("region", { name: "TCP port 6000 bindings" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /Open TCP port 5000/ }),
+    ).toBeInTheDocument();
+  });
+
+  it("invalidates binding disclosures when endpoints change in accepted snapshots", async () => {
+    const originalEntries = [
+      entry("entry-3000-a", 3000, "0.0.0.0"),
+      entry("entry-3000-b", 3000, "::"),
+      entry("entry-4000", 4000),
+    ];
+    let refreshCount = 0;
+    mockIPC((command) => {
+      if (command === "get_tray_runtime_snapshot")
+        return trayState(snapshot(originalEntries, 3));
+      if (command === "refresh_runtime_snapshot") {
+        refreshCount += 1;
+        return refreshCount === 1
+          ? snapshot(
+              [
+                entry("entry-3000-a", 3000, "0.0.0.0"),
+                entry("entry-4000", 4000),
+              ],
+              4,
+            )
+          : refreshCount === 2
+            ? snapshot(originalEntries, 5)
+            : refreshCount === 3
+              ? snapshot([entry("entry-4000", 4000)], 6)
+              : snapshot(originalEntries, 7);
+      }
+      return undefined;
+    });
+    render(<TrayPopover />);
+
+    await screen.findByRole("button", { name: /Open TCP port 3000/ });
+    fireEvent.click(
+      screen.getByRole("button", { name: "Show bindings for TCP port 3000" }),
+    );
+    expect(
+      screen.getByRole("region", { name: "TCP port 3000 bindings" }),
+    ).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Refresh runtimes" }));
+    await screen.findByText("2 TCP endpoints · 1 identified process");
+    await waitFor(() =>
+      expect(
+        screen.getByRole("button", { name: "Refresh runtimes" }),
+      ).toBeEnabled(),
+    );
+    expect(
+      screen.queryByRole("region", { name: "TCP port 3000 bindings" }),
+    ).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Refresh runtimes" }));
+    await screen.findByText("3 TCP endpoints · 1 identified process");
+    expect(
+      screen.queryByRole("region", { name: "TCP port 3000 bindings" }),
+    ).not.toBeInTheDocument();
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Show bindings for TCP port 3000" }),
+    );
+    expect(
+      screen.getByRole("region", { name: "TCP port 3000 bindings" }),
+    ).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Refresh runtimes" }));
+    await screen.findByText("1 TCP endpoint · 1 identified process");
+    await waitFor(() =>
+      expect(
+        screen.getByRole("button", { name: "Refresh runtimes" }),
+      ).toBeEnabled(),
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Refresh runtimes" }));
+    await screen.findByText("3 TCP endpoints · 1 identified process");
+    expect(
+      screen.queryByRole("region", { name: "TCP port 3000 bindings" }),
+    ).not.toBeInTheDocument();
   });
 
   it("uses layout-matched skeletons until the first snapshot arrives", async () => {
@@ -246,6 +528,137 @@ describe("TrayPopover", () => {
     ).toBeInTheDocument();
   });
 
+  it("shows three ports initially and reveals remaining ports in the same badge list", async () => {
+    mockIPC((command) =>
+      command === "get_tray_runtime_snapshot"
+        ? trayState(
+            snapshot([
+              entry("entry-a", 3000),
+              entry("entry-b", 4000),
+              entry("entry-c", 5000),
+              entry("entry-d", 6000),
+              entry("entry-e", 7000),
+            ]),
+          )
+        : undefined,
+    );
+    const { container } = render(<TrayPopover />);
+
+    expect(
+      await screen.findByRole("button", { name: /Open TCP port 5000/ }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /Open TCP port 6000/ }),
+    ).not.toBeInTheDocument();
+    const list = container.querySelector(".tray-port-list");
+    expect(list?.querySelectorAll(".tray-port-chip")).toHaveLength(3);
+    fireEvent.click(
+      screen.getByRole("button", { name: "Show 2 more ports for node" }),
+    );
+    expect(
+      screen.getByRole("button", { name: /Open TCP port 6000/ }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /Open TCP port 7000/ }),
+    ).toBeInTheDocument();
+    expect(list?.querySelectorAll(".tray-port-chip")).toHaveLength(5);
+    expect(
+      screen.getByRole("button", { name: "Show fewer ports for node" }),
+    ).toHaveAttribute("aria-expanded", "true");
+  });
+
+  it("keeps port expansion local to the process instance", async () => {
+    const otherProcess = entry("entry-other-a", 8000);
+    otherProcess.processId = 21;
+    otherProcess.process.details.processId = 21;
+    otherProcess.process.details.startTimeUnixMs.value = 200;
+    otherProcess.process.details.name.value = "python";
+    const otherPorts = [9000, 10000, 11000].map((port) => ({
+      ...otherProcess,
+      entryRef: `entry-other-${port}`,
+      port,
+    }));
+    mockIPC((command) =>
+      command === "get_tray_runtime_snapshot"
+        ? trayState(
+            snapshot([
+              entry("entry-a", 3000),
+              entry("entry-b", 4000),
+              entry("entry-c", 5000),
+              entry("entry-d", 6000),
+              entry("entry-e", 7000),
+              otherProcess,
+              ...otherPorts,
+            ]),
+          )
+        : undefined,
+    );
+    render(<TrayPopover />);
+
+    await screen.findByRole("button", { name: /Open TCP port 3000/ });
+    fireEvent.click(
+      screen.getByRole("button", { name: "Show 2 more ports for node" }),
+    );
+    expect(
+      screen.getByRole("button", { name: /Open TCP port 6000/ }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /Open TCP port 11000/ }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Show 1 more ports for python" }),
+    ).toHaveAttribute("aria-expanded", "false");
+  });
+
+  it("loads trusted process icons by accepted snapshot generation and keeps fallback when absent", async () => {
+    const processEntry = {
+      ...entry("entry-a", 3000),
+      processIconRef: "icon-ref-1",
+    };
+    mockIPC((command, payload) => {
+      if (command === "get_tray_runtime_snapshot")
+        return trayState(snapshot([processEntry], 9));
+      if (command === "get_runtime_process_icons") {
+        expect(payload).toEqual({ generation: 9 });
+        return [{ reference: "icon-ref-1", pngBase64: "aWNvbg==" }];
+      }
+      return undefined;
+    });
+
+    const { container } = render(<TrayPopover />);
+    await screen.findByRole("button", { name: /Open TCP port 3000/ });
+    await waitFor(() =>
+      expect(container.querySelector(".tray-process img")).toHaveAttribute(
+        "src",
+        "data:image/png;base64,aWNvbg==",
+      ),
+    );
+  });
+
+  it("shows a stable generic icon slot when the backend has no icon asset", async () => {
+    const processEntry = {
+      ...entry("entry-a", 3000),
+      processIconRef: "missing-icon-ref",
+    };
+    mockIPC((command) =>
+      command === "get_tray_runtime_snapshot"
+        ? trayState(snapshot([processEntry]))
+        : command === "get_runtime_process_icons"
+          ? []
+          : undefined,
+    );
+
+    const { container } = render(<TrayPopover />);
+    await screen.findByRole("button", { name: /Open TCP port 3000/ });
+    await waitFor(() =>
+      expect(
+        container.querySelector(
+          ".tray-process-icon-slot .fallback-icon[data-icon-kind='process-fallback']",
+        ),
+      ).toBeInTheDocument(),
+    );
+  });
+
   it("filters the current snapshot by process name or exact port", async () => {
     mockIPC((command) =>
       command === "get_tray_runtime_snapshot"
@@ -273,10 +686,12 @@ describe("TrayPopover", () => {
 
   it("navigates with the snapshot generation and hides on Escape", async () => {
     const navigate = vi.fn();
+    const dismiss = vi.fn();
     mockIPC((command, payload) => {
       if (command === "get_tray_runtime_snapshot")
         return trayState(snapshot([entry("entry-a", 3000)], 4));
       if (command === "navigate_to_runtime_entry") navigate(payload);
+      if (command === "dismiss_tray_popover") dismiss();
       return undefined;
     });
     render(<TrayPopover />);
@@ -291,7 +706,7 @@ describe("TrayPopover", () => {
       }),
     );
     fireEvent.keyDown(window, { key: "Escape" });
-    expect(eventState.hide).toHaveBeenCalledOnce();
+    await waitFor(() => expect(dismiss).toHaveBeenCalledOnce());
   });
 
   it("keeps the previous snapshot visible after a refresh failure", async () => {

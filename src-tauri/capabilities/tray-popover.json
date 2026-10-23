@@ -8,8 +8,10 @@
     "allow-refresh-runtime-snapshot",
     "allow-navigate-to-runtime-entry",
     "allow-show-main-window",
+    "allow-dismiss-tray-popover",
     "core:event:allow-listen",
     "core:event:allow-unlisten",
-    "core:window:allow-hide"
+    "core:window:allow-hide",
+    "allow-get-runtime-process-icons"
   ]
 }

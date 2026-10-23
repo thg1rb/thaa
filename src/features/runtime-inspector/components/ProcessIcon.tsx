@@ -5,26 +5,28 @@ export function ProcessIcon({
   source,
   unknown,
   loading = false,
+  compact = false,
 }: {
   source: string | undefined;
   unknown: boolean;
   loading?: boolean;
+  compact?: boolean;
 }) {
   const [failedSource, setFailedSource] = useState<string | null>(null);
   const resolvedSource = source && source !== failedSource ? source : undefined;
+  const iconClass = compact
+    ? "runtime-app-icon runtime-app-icon-compact"
+    : "runtime-app-icon";
   if (loading && !unknown) {
     return (
-      <span
-        className="runtime-app-icon process-icon-loading"
-        aria-hidden="true"
-      >
+      <span className={`${iconClass} process-icon-loading`} aria-hidden="true">
         <Skeleton className="process-icon-skeleton" />
       </span>
     );
   }
   if (resolvedSource) {
     return (
-      <span className="runtime-app-icon" aria-hidden="true">
+      <span className={iconClass} aria-hidden="true">
         <img
           src={resolvedSource}
           alt=""
@@ -35,7 +37,7 @@ export function ProcessIcon({
   }
   return (
     <span
-      className={`runtime-app-icon fallback-icon ${unknown ? "unknown-owner-icon" : ""}`}
+      className={`${iconClass} fallback-icon ${unknown ? "unknown-owner-icon" : ""}`}
       aria-hidden="true"
       data-icon-kind={unknown ? "unknown-owner" : "process-fallback"}
     >

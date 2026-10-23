@@ -77,4 +77,10 @@ describe("runtimeClient tray navigation", () => {
 
     expect(invokeMock).toHaveBeenCalledExactlyOnceWith("show_main_window");
   });
+
+  it("dismisses the tray popover through its window-scoped command", async () => {
+    await runtimeClient.dismissTrayPopover();
+
+    expect(invokeMock).toHaveBeenCalledExactlyOnceWith("dismiss_tray_popover");
+  });
 });

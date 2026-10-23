@@ -341,9 +341,7 @@ pub fn navigate_to_runtime_entry(
     let main = app
         .get_webview_window("main")
         .ok_or_else(|| "The Thaa window is unavailable.".to_owned())?;
-    if let Some(popover) = app.get_webview_window("tray-popover") {
-        let _ = popover.hide();
-    }
+    crate::close_tray_popover_window(&app);
     main.show()
         .and_then(|_| main.set_focus())
         .map_err(|_| "Thaa could not focus the Main Window.".to_owned())?;
@@ -377,12 +375,16 @@ pub fn show_main_window(app: tauri::AppHandle) -> Result<(), String> {
     let main = app
         .get_webview_window("main")
         .ok_or_else(|| "The Thaa window is unavailable.".to_owned())?;
-    if let Some(popover) = app.get_webview_window("tray-popover") {
-        let _ = popover.hide();
-    }
+    crate::close_tray_popover_window(&app);
     main.show()
         .and_then(|_| main.set_focus())
         .map_err(|_| "Thaa could not open its main window.".to_owned())
+}
+
+#[tauri::command]
+pub fn dismiss_tray_popover(app: tauri::AppHandle) -> Result<(), String> {
+    crate::close_tray_popover_window(&app);
+    Ok(())
 }
 
 /// Resolves optional presentation assets after the runtime rows have returned.
@@ -905,6 +907,18 @@ mod tests {
     }
 
     #[test]
+    fn main_window_capability_authorizes_generation_scoped_process_icons() {
+        let capability: serde_json::Value =
+            serde_json::from_str(include_str!("../../capabilities/main-window.json"))
+                .expect("parse the main window capability");
+        assert!(capability["permissions"]
+            .as_array()
+            .expect("capability permissions are an array")
+            .iter()
+            .any(|permission| permission == "allow-get-runtime-process-icons"));
+    }
+
+    #[test]
     fn tray_popover_capability_is_read_only_and_scoped_to_its_window() {
         let capability: serde_json::Value =
             serde_json::from_str(include_str!("../../capabilities/tray-popover.json"))
@@ -922,6 +936,12 @@ mod tests {
         assert!(permissions
             .iter()
             .any(|item| item == "allow-navigate-to-runtime-entry"));
+        assert!(permissions
+            .iter()
+            .any(|item| item == "allow-dismiss-tray-popover"));
+        assert!(permissions
+            .iter()
+            .any(|item| item == "allow-get-runtime-process-icons"));
         assert!(!permissions
             .iter()
             .any(|item| item == "allow-request-process-action"));
@@ -962,6 +982,9 @@ mod tests {
         assert!(!permissions
             .iter()
             .any(|item| item == "allow-show-main-window"));
+        assert!(!permissions
+            .iter()
+            .any(|item| item == "allow-dismiss-tray-popover"));
     }
 
     #[test]

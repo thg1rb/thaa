@@ -1,9 +1,14 @@
-import { getCurrentWindow } from "@tauri-apps/api/window";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { listen } from "@tauri-apps/api/event";
 import { Skeleton } from "../../shared/ui/skeleton/Skeleton";
+import { BindingBadge } from "./components/BindingBadge";
+import { ProcessIcon } from "./components/ProcessIcon";
 import { runtimeClient, snapshotFromEvent } from "./api/runtimeClient";
-import type { RuntimeSnapshot, RuntimeSnapshotDto } from "./model/types";
+import type {
+  ProcessIconAsset,
+  RuntimeSnapshot,
+  RuntimeSnapshotDto,
+} from "./model/types";
 import { filterRuntimeEntries } from "./utils/filterRuntimeEntries";
 import { bindingLabel, displayName, safeDisplay } from "./utils/processDisplay";
 import { groupTrayEntries } from "./utils/trayGroups";
@@ -12,22 +17,65 @@ import "./tray-popover.css";
 
 export function TrayPopover() {
   const [snapshot, setSnapshot] = useState<RuntimeSnapshot | null>(null);
+  const acceptedSnapshot = useRef<RuntimeSnapshot | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [snapshotStale, setSnapshotStale] = useState(false);
   const [query, setQuery] = useState("");
-  const [expandedPorts, setExpandedPorts] = useState<Set<string>>(
+  const [expandedProcesses, setExpandedProcesses] = useState<Set<string>>(
     () => new Set(),
   );
+  const [selectedBindingPorts, setSelectedBindingPorts] = useState<
+    Record<string, string>
+  >({});
+  const [iconAssets, setIconAssets] = useState<{
+    generation: number;
+    assets: ProcessIconAsset[];
+  } | null>(null);
 
   const applySnapshot = useCallback(
     (incoming: RuntimeSnapshot, isFresh = true) => {
-      setSnapshot((current) =>
-        current && current.generation > incoming.generation
+      if (
+        acceptedSnapshot.current &&
+        acceptedSnapshot.current.generation > incoming.generation
+      ) {
+        return;
+      }
+      acceptedSnapshot.current = incoming;
+      setSnapshot(incoming);
+      const bindingPortsByProcess = new Map<string, Set<string>>();
+      for (const group of groupTrayEntries(incoming.entries)) {
+        const endpointCounts = new Map<string, number>();
+        for (const entry of group.entries) {
+          const key = `${entry.protocol}:${entry.port}`;
+          endpointCounts.set(key, (endpointCounts.get(key) ?? 0) + 1);
+        }
+        bindingPortsByProcess.set(
+          group.key,
+          new Set(
+            [...endpointCounts]
+              .filter(([, count]) => count > 1)
+              .map(([key]) => key),
+          ),
+        );
+      }
+      setExpandedProcesses((current) => {
+        const next = new Set(
+          [...current].filter((key) => bindingPortsByProcess.has(key)),
+        );
+        return next.size === current.size ? current : next;
+      });
+      setSelectedBindingPorts((current) => {
+        const next = Object.fromEntries(
+          Object.entries(current).filter(([processKey, portKey]) =>
+            bindingPortsByProcess.get(processKey)?.has(portKey),
+          ),
+        );
+        return Object.keys(next).length === Object.keys(current).length
           ? current
-          : incoming,
-      );
+          : next;
+      });
       if (isFresh) setSnapshotStale(false);
       setError(null);
       setLoading(false);
@@ -96,6 +144,46 @@ export function TrayPopover() {
     () => groupTrayEntries(snapshot?.entries ?? []),
     [snapshot?.entries],
   );
+  const processIconRefs = useMemo(
+    () => [
+      ...new Set(
+        (snapshot?.entries ?? []).flatMap((entry) =>
+          entry.processIconRef ? [entry.processIconRef] : [],
+        ),
+      ),
+    ],
+    [snapshot?.entries],
+  );
+  useEffect(() => {
+    let cancelled = false;
+    const generation = snapshot?.generation;
+    if (generation === undefined || processIconRefs.length === 0) return;
+    void runtimeClient
+      .getProcessIcons(generation)
+      .then((assets) => {
+        if (!cancelled) setIconAssets({ generation, assets });
+      })
+      .catch(() => {
+        // A missing optional icon must not make the runtime list unavailable.
+        if (!cancelled) setIconAssets({ generation, assets: [] });
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [snapshot?.generation, processIconRefs]);
+
+  const iconSourceByReference = useMemo(() => {
+    const assets =
+      iconAssets !== null && iconAssets.generation === snapshot?.generation
+        ? iconAssets.assets
+        : [];
+    return new Map(
+      assets.map((asset) => [
+        asset.reference,
+        `data:image/png;base64,${asset.pngBase64}`,
+      ]),
+    );
+  }, [iconAssets, snapshot?.generation]);
   const identifiedProcesses = useMemo(
     () => allGroups.filter((group) => group.identityKnown).length,
     [allGroups],
@@ -142,12 +230,14 @@ export function TrayPopover() {
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
         event.preventDefault();
-        void getCurrentWindow().hide();
+        void runtimeClient.dismissTrayPopover().catch(() => {
+          setError("Thaa could not close the Tray overview.");
+        });
       }
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, []);
+  }, [setError]);
 
   return (
     <main className="tray-popover" aria-label="Thaa runtime overview">
@@ -235,10 +325,17 @@ export function TrayPopover() {
               Loading the current runtime snapshot
             </span>
             {[0, 1, 2].map((item) => (
-              <div className="tray-skeleton-row" aria-hidden="true" key={item}>
+              <div
+                className="runtime-card tray-process tray-skeleton-row"
+                aria-hidden="true"
+                key={item}
+              >
                 <div className="tray-skeleton-heading">
-                  <Skeleton className="tray-skeleton-name" />
-                  <Skeleton className="tray-skeleton-meta" />
+                  <Skeleton className="tray-skeleton-icon" />
+                  <div>
+                    <Skeleton className="tray-skeleton-name" />
+                    <Skeleton className="tray-skeleton-meta" />
+                  </div>
                 </div>
                 <div className="tray-skeleton-ports">
                   <Skeleton className="tray-skeleton-port" />
@@ -273,9 +370,46 @@ export function TrayPopover() {
                 portEntries.push(entry);
                 ports.set(portKey, portEntries);
               }
+              const allPorts = [...ports.entries()];
+              const processExpanded = expandedProcesses.has(group.key);
+              const visiblePorts = processExpanded
+                ? allPorts
+                : allPorts.slice(0, 3);
+              const hiddenPortCount = allPorts.length - visiblePorts.length;
+              const selectedPortKey = selectedBindingPorts[group.key];
+              const selectedPort = visiblePorts.find(
+                ([portKey]) => portKey === selectedPortKey,
+              );
+              const iconRef = representative.processIconRef ?? undefined;
               return (
-                <article className="tray-process" key={group.key}>
+                <article
+                  className="runtime-card tray-process"
+                  key={group.key}
+                  onClick={(event) => {
+                    const target = event.target;
+                    if (
+                      target instanceof Element &&
+                      target.closest(
+                        "button, a, input, select, textarea, summary, [role='button'], [role='link']",
+                      )
+                    ) {
+                      return;
+                    }
+                    void navigate(representative.entryRef);
+                  }}
+                >
                   <div className="tray-process-heading">
+                    <span className="tray-process-icon-slot">
+                      <ProcessIcon
+                        source={
+                          iconRef
+                            ? iconSourceByReference.get(iconRef)
+                            : undefined
+                        }
+                        unknown={representative.process.state === "noOwner"}
+                        compact
+                      />
+                    </span>
                     <button
                       type="button"
                       className="tray-process-name"
@@ -283,7 +417,12 @@ export function TrayPopover() {
                       onClick={() => void navigate(representative.entryRef)}
                     >
                       <strong title={group.name}>{group.name}</strong>
-                      <span>{pidLabel}</span>
+                      <span>
+                        {pidLabel}
+                        <span aria-hidden="true"> · </span>
+                        {group.entries.length} TCP{" "}
+                        {group.entries.length === 1 ? "endpoint" : "endpoints"}
+                      </span>
                     </button>
                     <span className="tray-process-open" aria-hidden="true">
                       ›
@@ -294,11 +433,10 @@ export function TrayPopover() {
                     role="group"
                     aria-label={`Ports for ${group.name}`}
                   >
-                    {[...ports.entries()].map(([portKey, entries]) => {
+                    {visiblePorts.map(([portKey, entries]) => {
                       const firstEntry = entries[0];
                       if (!firstEntry) return null;
-                      const toggleKey = `${group.key}:${portKey}`;
-                      const expanded = expandedPorts.has(toggleKey);
+                      const expanded = selectedPortKey === portKey;
                       return (
                         <div className="tray-port-group" key={portKey}>
                           <div className="tray-port-controls">
@@ -316,53 +454,106 @@ export function TrayPopover() {
                                 type="button"
                                 className="tray-port-disclosure"
                                 aria-expanded={expanded}
-                                aria-label={`${expanded ? "Hide" : "Show"} ${entries.length} bindings for ${firstEntry.protocol.toUpperCase()} port ${firstEntry.port}`}
+                                aria-controls={
+                                  expanded
+                                    ? `tray-bindings-${group.key}-${portKey}`
+                                    : undefined
+                                }
+                                aria-label={`${expanded ? "Hide" : "Show"} bindings for ${firstEntry.protocol.toUpperCase()} port ${firstEntry.port}`}
                                 onClick={() =>
-                                  setExpandedPorts((current) => {
-                                    const next = new Set(current);
-                                    if (next.has(toggleKey))
-                                      next.delete(toggleKey);
-                                    else next.add(toggleKey);
+                                  setSelectedBindingPorts((current) => {
+                                    const next = { ...current };
+                                    if (next[group.key] === portKey)
+                                      delete next[group.key];
+                                    else next[group.key] = portKey;
                                     return next;
                                   })
                                 }
                               >
-                                {entries.length} bindings
+                                {expanded ? "Hide bindings" : "Show bindings"}
                               </button>
                             )}
                           </div>
-                          {expanded && (
-                            <div
-                              className="tray-binding-list"
-                              role="group"
-                              aria-label={`${firstEntry.protocol.toUpperCase()} port ${firstEntry.port} bindings`}
-                            >
-                              {entries.map((entry) => {
-                                const address = entry.localAddress
-                                  ? safeDisplay(entry.localAddress)
-                                  : "Address unavailable";
-                                const label = `${entry.protocol.toUpperCase()} port ${entry.port}, ${address}, ${bindingLabel(entry.binding)}`;
-                                return (
-                                  <button
-                                    type="button"
-                                    className="tray-binding-link"
-                                    key={entry.entryRef}
-                                    aria-label={`Open ${label} for ${displayName(entry)} in Thaa`}
-                                    onClick={() =>
-                                      void navigate(entry.entryRef)
-                                    }
-                                  >
-                                    <span>{address}</span>
-                                    <small>{bindingLabel(entry.binding)}</small>
-                                  </button>
-                                );
-                              })}
-                            </div>
-                          )}
                         </div>
                       );
                     })}
+                    {(allPorts.length > 3 || processExpanded) && (
+                      <button
+                        type="button"
+                        className="tray-more-ports"
+                        aria-expanded={processExpanded}
+                        aria-label={
+                          processExpanded
+                            ? `Show fewer ports for ${group.name}`
+                            : `Show ${hiddenPortCount} more ports for ${group.name}`
+                        }
+                        onClick={() => {
+                          setExpandedProcesses((current) => {
+                            const next = new Set(current);
+                            if (processExpanded) next.delete(group.key);
+                            else next.add(group.key);
+                            return next;
+                          });
+                          if (processExpanded) {
+                            const selected = selectedBindingPorts[group.key];
+                            if (
+                              selected &&
+                              !allPorts
+                                .slice(0, 3)
+                                .some(([key]) => key === selected)
+                            ) {
+                              setSelectedBindingPorts((current) => {
+                                const next = { ...current };
+                                delete next[group.key];
+                                return next;
+                              });
+                            }
+                          }
+                        }}
+                      >
+                        {processExpanded
+                          ? "Show less"
+                          : `+${hiddenPortCount} more`}
+                      </button>
+                    )}
                   </div>
+                  {selectedPort && selectedPort[1].length > 1 && (
+                    <section
+                      id={`tray-bindings-${group.key}-${selectedPort[0]}`}
+                      className="tray-bindings-panel"
+                      aria-label={`${selectedPort[1][0]?.protocol.toUpperCase()} port ${selectedPort[1][0]?.port} bindings`}
+                    >
+                      <h4>
+                        {selectedPort[1][0]?.protocol.toUpperCase()} port{" "}
+                        <span>:{selectedPort[1][0]?.port}</span>
+                        <small>{selectedPort[1].length} bindings</small>
+                      </h4>
+                      <div className="tray-binding-list">
+                        {selectedPort[1].map((entry) => {
+                          const address = entry.localAddress
+                            ? safeDisplay(entry.localAddress)
+                            : "Address unavailable";
+                          const label = `${entry.protocol.toUpperCase()} port ${entry.port}, ${address}, ${bindingLabel(entry.binding)}`;
+                          return (
+                            <button
+                              type="button"
+                              className="tray-binding-link"
+                              key={entry.entryRef}
+                              aria-label={`Open ${label} for ${displayName(entry)} in Thaa`}
+                              onClick={() => void navigate(entry.entryRef)}
+                            >
+                              <code>{address}</code>
+                              <BindingBadge
+                                binding={entry.binding}
+                                localAddress={entry.localAddress}
+                                showProtocol={false}
+                              />
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </section>
+                  )}
                 </article>
               );
             })}

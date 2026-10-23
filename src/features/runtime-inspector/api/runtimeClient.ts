@@ -19,6 +19,7 @@ export const runtimeClient = {
   getTrayRuntimeSnapshot,
   navigateToRuntimeEntry,
   showMainWindow,
+  dismissTrayPopover,
 };
 
 let initialSnapshot: Promise<RuntimeSnapshot> | undefined;
@@ -57,6 +58,10 @@ function navigateToRuntimeEntry(generation: number, entryRef: string) {
 
 function showMainWindow() {
   return invoke<void>("show_main_window");
+}
+
+function dismissTrayPopover() {
+  return invoke<void>("dismiss_tray_popover");
 }
 
 function getProcessIcons(generation: number) {

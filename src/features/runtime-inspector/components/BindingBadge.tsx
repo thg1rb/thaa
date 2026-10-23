@@ -4,9 +4,11 @@ import { bindingDescription, bindingLabel } from "../utils/processDisplay";
 export function BindingBadge({
   binding,
   localAddress,
+  showProtocol = true,
 }: {
   binding: RuntimeEntry["binding"];
   localAddress: RuntimeEntry["localAddress"];
+  showProtocol?: boolean;
 }) {
   const label = bindingLabel(binding);
   const description = bindingDescription(binding, localAddress);
@@ -21,7 +23,7 @@ export function BindingBadge({
       >
         {label}
       </span>
-      <span className="protocol-label">LOCAL TCP</span>
+      {showProtocol && <span className="protocol-label">LOCAL TCP</span>}
     </div>
   );
 }
