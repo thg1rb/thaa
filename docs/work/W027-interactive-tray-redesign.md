@@ -265,8 +265,12 @@ whole-design visual signoff are not established by these results.
   advisories for `glib`/related GTK dependencies); no dependency upgrade is
   included in this closeout.
 - PR #77 CI passed on the previously pushed `3f1ac232` head (run
-  `39597801214`). Required Shared Quality, macOS Native Validation, and Windows
-  Native Validation must pass again on the closeout head.
+  `39597801214`). On implementation head `a21e88f`, Shared Quality, macOS
+  Native Validation, and Windows Native Validation all passed in run
+  `39969142079`. The preceding head `356ce82` had failed only Windows Clippy
+  because the macOS-only monitor comparison helper was compiled but unused on
+  Windows; the helper is now macOS-gated. Final docs-only closeout update CI is
+  rerunning on the current PR head.
 - `navigate_to_runtime_entry` validates the current generation and opaque
   entry, shows/focuses Main Window, then emits snapshot and navigation events.
   The frontend listener registers asynchronously and there is no ready
