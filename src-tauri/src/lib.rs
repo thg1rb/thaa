@@ -608,6 +608,7 @@ fn physical_position_to_logical(x: i32, y: i32, scale: f64) -> LogicalPosition<f
     LogicalPosition::new(f64::from(x) / scale, f64::from(y) / scale)
 }
 
+#[cfg(target_os = "macos")]
 fn same_monitor(left: &tauri::Monitor, right: &tauri::Monitor) -> bool {
     left.position() == right.position()
         && left.size() == right.size()
