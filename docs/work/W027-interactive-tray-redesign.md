@@ -254,7 +254,7 @@ whole-design visual signoff are not established by these results.
 
 ## Closeout and remaining gates
 
-- Closeout local checks: 141 frontend tests and 187 Rust tests pass; ESLint,
+- Closeout local checks: 141 frontend tests and 185 Rust tests pass; ESLint,
   TypeScript, frontend production build, Rust formatting, Clippy with warnings
   denied, Markdown link validation, Prettier, and `git diff --check` pass.
   `pnpm audit` reports two moderate advisories in dev-only `@vitest/mocker`
