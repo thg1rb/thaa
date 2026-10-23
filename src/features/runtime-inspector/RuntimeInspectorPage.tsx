@@ -1,4 +1,5 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { listen } from "@tauri-apps/api/event";
 import { useToast } from "../../shared/ui/toast/useToast";
 import { DesiredPortAssistance } from "./components/DesiredPortAssistance";
 import { ForceStopDialog } from "./components/ForceStopDialog";
@@ -18,7 +19,7 @@ import type { Action, RuntimeEntry } from "./model/types";
 import "./runtime-inspector.css";
 
 export function RuntimeInspectorPage() {
-  const { state, refresh } = useRuntimeInspector();
+  const { state, refresh, currentSnapshot } = useRuntimeInspector();
   const { showToast } = useToast();
   const { pendingTargets, requestProcessAction } = useProcessAction(
     refresh,
@@ -33,7 +34,42 @@ export function RuntimeInspectorPage() {
   } = useRuntimeEntryActions(showToast);
   const [confirming, setConfirming] = useState<RuntimeEntry | null>(null);
   const [query, setQuery] = useState("");
+  const [selectedEntryRef, setSelectedEntryRef] = useState<string | null>(null);
   const snapshot = state.snapshot;
+
+  useEffect(() => {
+    let unlisten: (() => void) | undefined;
+    let cancelled = false;
+    void listen<{ generation: number; entryRef: string }>(
+      "navigate-to-runtime-entry",
+      (event) => {
+        const target = event.payload;
+        const current = currentSnapshot.current;
+        if (
+          current?.generation !== target.generation ||
+          !current.entries.some((entry) => entry.entryRef === target.entryRef)
+        ) {
+          showToast({
+            tone: "warning",
+            title: "Listener changed",
+            message: "Refresh the runtime list to find the current process.",
+          });
+          return;
+        }
+        setQuery("");
+        setSelectedEntryRef(target.entryRef);
+      },
+    )
+      .then((stop) => {
+        if (cancelled) stop();
+        else unlisten = stop;
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+      unlisten?.();
+    };
+  }, [currentSnapshot, showToast]);
   const visibleEntries = useMemo(
     () => filterRuntimeEntries(snapshot?.entries ?? [], query),
     [snapshot?.entries, query],
@@ -167,6 +203,7 @@ export function RuntimeInspectorPage() {
             <RuntimeList
               snapshot={snapshot}
               query={query}
+              selectedEntryRef={selectedEntryRef}
               pendingTargets={pendingTargets}
               iconSources={iconSources}
               iconsLoading={state.iconsLoading}

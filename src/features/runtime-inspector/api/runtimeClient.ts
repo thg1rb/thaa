@@ -16,6 +16,10 @@ export const runtimeClient = {
   revealProjectFolder,
   openProjectInTerminal,
   openProjectInEditor,
+  getTrayRuntimeSnapshot,
+  navigateToRuntimeEntry,
+  showMainWindow,
+  dismissTrayPopover,
 };
 
 let initialSnapshot: Promise<RuntimeSnapshot> | undefined;
@@ -37,6 +41,27 @@ function refreshSnapshot() {
   return invoke<RuntimeSnapshotDto>("refresh_runtime_snapshot").then(
     withEmptyIconAssets,
   );
+}
+
+function getTrayRuntimeSnapshot() {
+  return invoke<{ snapshot: RuntimeSnapshotDto | null; stale: boolean }>(
+    "get_tray_runtime_snapshot",
+  ).then(({ snapshot, stale }) => ({
+    snapshot: snapshot ? withEmptyIconAssets(snapshot) : null,
+    stale,
+  }));
+}
+
+function navigateToRuntimeEntry(generation: number, entryRef: string) {
+  return invoke<void>("navigate_to_runtime_entry", { generation, entryRef });
+}
+
+function showMainWindow() {
+  return invoke<void>("show_main_window");
+}
+
+function dismissTrayPopover() {
+  return invoke<void>("dismiss_tray_popover");
 }
 
 function getProcessIcons(generation: number) {

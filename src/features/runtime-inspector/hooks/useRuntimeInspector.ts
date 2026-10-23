@@ -185,7 +185,7 @@ export function useRuntimeInspector() {
     return () => window.clearInterval(timer);
   }, []);
 
-  return { state, refresh };
+  return { state, refresh, currentSnapshot };
 }
 
 function friendlyScanError(error: unknown) {

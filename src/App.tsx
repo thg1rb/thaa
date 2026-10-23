@@ -1,5 +1,7 @@
 import { lazy, Suspense } from "react";
+import { getCurrentWindow } from "@tauri-apps/api/window";
 import { RuntimeInspectorPage } from "./features/runtime-inspector/RuntimeInspectorPage";
+import { TrayPopover } from "./features/runtime-inspector/TrayPopover";
 import { ToastProvider } from "./shared/ui/toast/ToastProvider";
 
 const RuntimeVisualFixture = import.meta.env.DEV
@@ -11,6 +13,8 @@ const RuntimeVisualFixture = import.meta.env.DEV
   : null;
 
 function AppContent() {
+  if (getCurrentWindow().label === "tray-popover") return <TrayPopover />;
+
   const fixtureMode = import.meta.env.DEV
     ? new URLSearchParams(window.location.search).get("w0131")
     : null;

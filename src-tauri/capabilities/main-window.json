@@ -13,6 +13,7 @@
     "allow-open-project-in-editor",
     "core:event:allow-listen",
     "core:event:allow-unlisten",
-    "core:window:allow-start-dragging"
+    "core:window:allow-start-dragging",
+    "allow-get-runtime-process-icons"
   ]
 }

@@ -1,11 +1,12 @@
 //! Deliberate transport DTOs and thin runtime command boundary.
 
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use std::time::UNIX_EPOCH;
 
 use base64::Engine;
 use serde::Serialize;
-use tauri::State;
+use tauri::{Emitter, Manager, State};
 use tauri_plugin_opener::OpenerExt;
 
 use crate::application::runtime_inspection::{
@@ -23,7 +24,7 @@ use crate::platform::editor::{self, EditorOpenError};
 use crate::platform::terminal::{self, TerminalOpenError};
 
 #[derive(Clone)]
-pub struct RuntimeState(pub Arc<RuntimeInspector>);
+pub struct RuntimeState(pub Arc<RuntimeInspector>, pub Arc<AtomicBool>);
 
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -33,6 +34,13 @@ pub struct RuntimeSnapshotDto {
     pub completeness: ScanCompletenessDto,
     pub capabilities: CapabilitiesDto,
     pub entries: Vec<RuntimeEntryDto>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TrayRuntimeSnapshotDto {
+    pub snapshot: Option<RuntimeSnapshotDto>,
+    pub stale: bool,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -235,15 +243,46 @@ pub async fn get_runtime_snapshot(
     state: State<'_, RuntimeState>,
 ) -> Result<RuntimeSnapshotDto, RuntimeCommandErrorDto> {
     let inspector = Arc::clone(&state.0);
+    let stale_app = app.clone();
+    let refresh_failed = Arc::clone(&state.1);
+    let previous_generation = inspector
+        .current_snapshot()
+        .map(|snapshot| snapshot.generation);
+    let had_accepted_snapshot = previous_generation.is_some();
+    let refresh_failed_during_scan = Arc::clone(&refresh_failed);
     tauri::async_runtime::spawn_blocking(move || {
         inspector.snapshot_or_initialize().map(|snapshot| {
-            crate::update_tray_menu(&app);
-            snapshot_dto(&snapshot)
+            if !had_accepted_snapshot {
+                refresh_failed_during_scan.store(false, Ordering::Release);
+            }
+            let dto = snapshot_dto(&snapshot);
+            if previous_generation != Some(snapshot.generation) {
+                crate::update_tray_menu(&app);
+                let _ = app.emit("runtime-snapshot-updated", dto.clone());
+            }
+            dto
         })
     })
     .await
     .map_err(|_| RuntimeCommandErrorDto::ProviderFailure("Runtime inspection failed.".into()))?
-    .map_err(scan_error_dto)
+    .map_err(|error| {
+        refresh_failed.store(true, Ordering::Release);
+        let _ = stale_app.emit_to("tray-popover", "runtime-snapshot-stale", true);
+        scan_error_dto(error)
+    })
+}
+
+/// Returns only an already accepted snapshot. Opening the tray popover never
+/// starts a provider scan of its own.
+#[tauri::command]
+pub fn get_tray_runtime_snapshot(state: State<'_, RuntimeState>) -> TrayRuntimeSnapshotDto {
+    TrayRuntimeSnapshotDto {
+        snapshot: state
+            .0
+            .current_snapshot()
+            .map(|snapshot| snapshot_dto(&snapshot)),
+        stale: state.1.load(Ordering::Acquire),
+    }
 }
 
 #[tauri::command]
@@ -252,15 +291,100 @@ pub async fn refresh_runtime_snapshot(
     state: State<'_, RuntimeState>,
 ) -> Result<RuntimeSnapshotDto, RuntimeCommandErrorDto> {
     let inspector = Arc::clone(&state.0);
+    let stale_app = app.clone();
+    let refresh_failed = Arc::clone(&state.1);
+    let refresh_failed_during_scan = Arc::clone(&refresh_failed);
     tauri::async_runtime::spawn_blocking(move || {
         inspector.refresh().map(|snapshot| {
+            refresh_failed_during_scan.store(false, Ordering::Release);
             crate::update_tray_menu(&app);
-            snapshot_dto(&snapshot)
+            let dto = snapshot_dto(&snapshot);
+            let _ = app.emit("runtime-snapshot-updated", dto.clone());
+            dto
         })
     })
     .await
     .map_err(|_| RuntimeCommandErrorDto::ProviderFailure("Runtime inspection failed.".into()))?
-    .map_err(scan_error_dto)
+    .map_err(|error| {
+        refresh_failed.store(true, Ordering::Release);
+        let _ = stale_app.emit_to("tray-popover", "runtime-snapshot-stale", true);
+        scan_error_dto(error)
+    })
+}
+
+#[derive(Debug, Clone, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+struct RuntimeNavigationDto {
+    generation: u64,
+    entry_ref: String,
+}
+
+#[tauri::command]
+pub fn navigate_to_runtime_entry(
+    app: tauri::AppHandle,
+    state: State<'_, RuntimeState>,
+    generation: u64,
+    entry_ref: String,
+) -> Result<(), String> {
+    if entry_ref.len() > 96 || !valid_reference(&entry_ref) || !entry_ref.starts_with("entry-") {
+        return Err("This listener changed. Refresh the runtime list and try again.".into());
+    }
+
+    let snapshot = state
+        .0
+        .current_snapshot()
+        .ok_or_else(|| "Runtime data is not available yet. Refresh and try again.".to_owned())?;
+    if !navigation_target_is_current(&snapshot, generation, &entry_ref) {
+        return Err("This listener changed. Refresh the runtime list and try again.".into());
+    }
+
+    let main = app
+        .get_webview_window("main")
+        .ok_or_else(|| "The Thaa window is unavailable.".to_owned())?;
+    crate::close_tray_popover_window(&app);
+    main.show()
+        .and_then(|_| main.set_focus())
+        .map_err(|_| "Thaa could not focus the Main Window.".to_owned())?;
+    app.emit_to("main", "runtime-snapshot-updated", snapshot_dto(&snapshot))
+        .map_err(|_| "Runtime data could not be shared with the Thaa window.".to_owned())?;
+    app.emit_to(
+        "main",
+        "navigate-to-runtime-entry",
+        RuntimeNavigationDto {
+            generation,
+            entry_ref,
+        },
+    )
+    .map_err(|_| "Thaa could not focus this listener.".to_owned())
+}
+
+fn navigation_target_is_current(
+    snapshot: &RuntimeSnapshot,
+    generation: u64,
+    entry_ref: &str,
+) -> bool {
+    snapshot.generation == generation
+        && snapshot
+            .entries
+            .iter()
+            .any(|entry| entry.entry_ref == entry_ref)
+}
+
+#[tauri::command]
+pub fn show_main_window(app: tauri::AppHandle) -> Result<(), String> {
+    let main = app
+        .get_webview_window("main")
+        .ok_or_else(|| "The Thaa window is unavailable.".to_owned())?;
+    crate::close_tray_popover_window(&app);
+    main.show()
+        .and_then(|_| main.set_focus())
+        .map_err(|_| "Thaa could not open its main window.".to_owned())
+}
+
+#[tauri::command]
+pub fn dismiss_tray_popover(app: tauri::AppHandle) -> Result<(), String> {
+    crate::close_tray_popover_window(&app);
+    Ok(())
 }
 
 /// Resolves optional presentation assets after the runtime rows have returned.
@@ -681,10 +805,10 @@ fn project_root_opener_path(path: &std::path::Path) -> Option<&str> {
 #[cfg(test)]
 mod tests {
     use super::{
-        open_project_in_editor_for_entry, open_project_in_terminal_for_entry,
-        process_icon_assets_dto, project_root_error, project_root_opener_path, snapshot_dto,
-        terminal_open_error, valid_reference, ActionDto, BindingDto, ResourceMetricsDto,
-        RuntimeKindDto,
+        navigation_target_is_current, open_project_in_editor_for_entry,
+        open_project_in_terminal_for_entry, process_icon_assets_dto, project_root_error,
+        project_root_opener_path, snapshot_dto, terminal_open_error, valid_reference, ActionDto,
+        BindingDto, ResourceMetricsDto, RuntimeKindDto, TrayRuntimeSnapshotDto,
     };
     use crate::application::process_icons::ProcessIconAsset;
     use crate::application::runtime_inspection::{ProjectRootError, RuntimeEntry, RuntimeSnapshot};
@@ -780,6 +904,122 @@ mod tests {
             .expect("capability permissions are an array")
             .iter()
             .any(|permission| permission == "allow-open-project-in-editor"));
+    }
+
+    #[test]
+    fn main_window_capability_authorizes_generation_scoped_process_icons() {
+        let capability: serde_json::Value =
+            serde_json::from_str(include_str!("../../capabilities/main-window.json"))
+                .expect("parse the main window capability");
+        assert!(capability["permissions"]
+            .as_array()
+            .expect("capability permissions are an array")
+            .iter()
+            .any(|permission| permission == "allow-get-runtime-process-icons"));
+    }
+
+    #[test]
+    fn tray_popover_capability_is_read_only_and_scoped_to_its_window() {
+        let capability: serde_json::Value =
+            serde_json::from_str(include_str!("../../capabilities/tray-popover.json"))
+                .expect("parse the tray popover capability");
+        let permissions = capability["permissions"]
+            .as_array()
+            .expect("capability permissions are an array");
+        assert_eq!(capability["windows"][0], "tray-popover");
+        assert!(permissions
+            .iter()
+            .any(|item| item == "allow-get-tray-runtime-snapshot"));
+        assert!(permissions
+            .iter()
+            .any(|item| item == "allow-refresh-runtime-snapshot"));
+        assert!(permissions
+            .iter()
+            .any(|item| item == "allow-navigate-to-runtime-entry"));
+        assert!(permissions
+            .iter()
+            .any(|item| item == "allow-dismiss-tray-popover"));
+        assert!(permissions
+            .iter()
+            .any(|item| item == "allow-get-runtime-process-icons"));
+        assert!(!permissions
+            .iter()
+            .any(|item| item == "allow-request-process-action"));
+        assert!(!permissions
+            .iter()
+            .any(|item| item == "allow-reveal-project-folder"));
+        assert!(!permissions
+            .iter()
+            .any(|item| item == "allow-open-project-in-terminal"));
+        assert!(!permissions
+            .iter()
+            .any(|item| item == "allow-open-project-in-editor"));
+    }
+
+    #[test]
+    fn tray_snapshot_transport_preserves_persistent_stale_status() {
+        let value = serde_json::to_value(TrayRuntimeSnapshotDto {
+            snapshot: None,
+            stale: true,
+        })
+        .expect("serialize tray snapshot status");
+
+        assert_eq!(value["snapshot"], serde_json::Value::Null);
+        assert_eq!(value["stale"], true);
+    }
+
+    #[test]
+    fn main_window_capability_does_not_authorize_tray_navigation_commands() {
+        let capability: serde_json::Value =
+            serde_json::from_str(include_str!("../../capabilities/main-window.json"))
+                .expect("parse the main window capability");
+        let permissions = capability["permissions"]
+            .as_array()
+            .expect("capability permissions are an array");
+        assert!(!permissions
+            .iter()
+            .any(|item| item == "allow-navigate-to-runtime-entry"));
+        assert!(!permissions
+            .iter()
+            .any(|item| item == "allow-show-main-window"));
+        assert!(!permissions
+            .iter()
+            .any(|item| item == "allow-dismiss-tray-popover"));
+    }
+
+    #[test]
+    fn tray_navigation_requires_current_generation_and_exact_snapshot_reference() {
+        let snapshot = RuntimeSnapshot {
+            generation: 3,
+            observed_at: UNIX_EPOCH,
+            completeness: PortScanCompleteness::Complete,
+            capabilities: PlatformCapabilities {
+                command_line: CapabilitySupport::Unsupported,
+                working_directory: CapabilitySupport::Unsupported,
+                graceful_stop: CapabilitySupport::Unsupported,
+                force_stop: CapabilitySupport::Unsupported,
+            },
+            entries: vec![RuntimeEntry {
+                entry_ref: "entry-3-0".into(),
+                listener: NetworkListener {
+                    protocol: NetworkProtocol::Tcp,
+                    local_address: Some(IpAddr::V4(Ipv4Addr::LOCALHOST)),
+                    local_port: NonZeroU16::new(3000).expect("fixture port"),
+                    owner_pid: None,
+                },
+                process: None,
+                resource_metrics: None,
+                runtime: None,
+                project_root: None,
+                git_context: None,
+                action_target_ref: None,
+                process_icon_ref: None,
+            }],
+        };
+
+        assert!(navigation_target_is_current(&snapshot, 3, "entry-3-0"));
+        assert!(!navigation_target_is_current(&snapshot, 2, "entry-3-0"));
+        assert!(!navigation_target_is_current(&snapshot, 3, "entry-3-1"));
     }
 
     #[test]
