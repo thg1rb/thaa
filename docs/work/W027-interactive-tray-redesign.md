@@ -261,9 +261,10 @@ whole-design visual signoff are not established by these results.
   4.1.11 (GHSA-qxg6-89mg-rqv8 and GHSA-xp26-3454-mjgp), both patched in
   4.1.12; `pnpm audit --prod` reports none. These are in the existing test
   toolchain and were not introduced by W027. `cargo audit` exits successfully
-  with five allowed Rust advisories (three unmaintained-crate notices and two
-  advisories for `glib`/related GTK dependencies); no dependency upgrade is
-  included in this closeout.
+  with five allowed Rust advisories: unmaintained notices for `proc-macro-error`,
+  `zbus_names`, `zvariant`, and `zvariant_derive`, plus the `glib` 0.18.5
+  `VariantStrIter` unsoundness advisory. No dependency upgrade is included in
+  this closeout.
 - PR #77 CI passed on the previously pushed `3f1ac232` head (run
   `39597801214`). On implementation head `a21e88f`, Shared Quality, macOS
   Native Validation, and Windows Native Validation all passed in run
