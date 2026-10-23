@@ -270,7 +270,8 @@ whole-design visual signoff are not established by these results.
   `39969142079`. The preceding head `356ce82` had failed only Windows Clippy
   because the macOS-only monitor comparison helper was compiled but unused on
   Windows; the helper is now macOS-gated. Final docs-only closeout update CI is
-  rerunning on the current PR head.
+  head `f232838` also passed all three CI jobs in run `39970456927`. Refer to
+  PR #77 for the latest workflow status after subsequent documentation updates.
 - `navigate_to_runtime_entry` validates the current generation and opaque
   entry, shows/focuses Main Window, then emits snapshot and navigation events.
   The frontend listener registers asynchronously and there is no ready
